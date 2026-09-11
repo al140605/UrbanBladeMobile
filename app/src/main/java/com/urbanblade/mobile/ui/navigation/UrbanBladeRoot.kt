@@ -1,0 +1,122 @@
+package com.urbanblade.mobile.ui.navigation
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.*
+import com.urbanblade.mobile.data.model.AuthUser
+import com.urbanblade.mobile.ui.screens.*
+import com.urbanblade.mobile.ui.viewmodel.AuthState
+import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
+
+private data class NavItem(val route:String,val label:String,val icon:ImageVector)
+
+@Composable
+fun UrbanBladeRoot(authViewModel:AuthViewModel=viewModel()){
+    val authState by authViewModel.state.collectAsState()
+    when(val state=authState){
+        AuthState.Loading->Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){CircularProgressIndicator()}
+        AuthState.Guest->GuestNav(authViewModel)
+        is AuthState.Authenticated->AuthenticatedNav(state.user,authViewModel)
+    }
+}
+
+@Composable private fun GuestNav(authViewModel:AuthViewModel){
+    val nav=rememberNavController()
+    NavHost(nav,"login"){
+        composable("login"){LoginScreen(authViewModel,{nav.navigate("register")},{nav.navigate("forgot")})}
+        composable("register"){RegisterScreen(authViewModel){nav.popBackStack()}}
+        composable("forgot"){ForgotPasswordScreen(authViewModel){nav.popBackStack()}}
+    }
+}
+
+@Composable private fun AuthenticatedNav(user:AuthUser,authViewModel:AuthViewModel){
+    val nav=rememberNavController();val backStack by nav.currentBackStackEntryAsState();val current=backStack?.destination?.route
+    val engineerOnly=user.roles.contains("ingeniero")&&user.roles.none{it in listOf("administrador","recepcionista","barbero","cliente")}
+    val items=buildList{
+        add(NavItem("home","Inicio",Icons.Default.Home))
+        if(!engineerOnly)add(NavItem("appointments","Citas",Icons.Default.CalendarMonth))
+        if(user.roles.contains("cliente"))add(NavItem("store","Tienda",Icons.Default.Storefront))
+        add(NavItem("more","Más",Icons.Default.GridView))
+        add(NavItem("profile","Perfil",Icons.Default.Person))
+    }
+    val rootRoutes=items.map{it.route}
+    Scaffold(bottomBar={if(current in rootRoutes)NavigationBar{items.forEach{item->NavigationBarItem(selected=current==item.route,onClick={nav.navigate(item.route){popUpTo(nav.graph.findStartDestination().id){saveState=true};launchSingleTop=true;restoreState=true}},icon={Icon(item.icon,item.label)},label={Text(item.label)})}}}){padding->
+        NavHost(nav,"home",Modifier.padding(padding)){
+            composable("home"){DashboardScreen(user,{nav.navigate("appointments")},{nav.navigate("booking")})}
+            composable("appointments") {
+                AppointmentsScreen(
+                    user = user,
+                    onBook = { nav.navigate("booking") }
+                )
+            }
+            composable("booking") {
+                BookingScreen(
+                    onBack = { nav.popBackStack() },
+                    onCreated = {
+                        nav.navigate("appointments") {
+                            popUpTo("booking") {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
+            }
+            composable("catalog") {
+                CatalogScreen(
+                    onBook = { nav.navigate("booking") }
+                )
+            }
+            composable("store"){StoreScreen(user,{nav.navigate("orders")})}
+            composable("orders"){OrdersScreen(user,{nav.popBackStack()})}
+            composable("payments"){PaymentsScreen(user,{nav.popBackStack()})}
+            composable("notifications") {
+                NotificationsScreen(
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable("chatbot") {
+                ChatbotScreen(
+                    onBack = { nav.popBackStack() }
+                )
+            }
+            composable("more"){MoreScreen(user){nav.navigate(it)}}
+            composable("profile") {
+                ProfileScreen(
+                    user = user,
+                    onLogout = { authViewModel.logout() }
+                )
+            }
+
+            module("analytics","Analítica","analytics",nav)
+            module("social","Muro social","social/feed",nav)
+            module("clients","Clientes",if(user.roles.contains("administrador"))"admin/clients" else "clients",nav)
+            module("inventory","Inventario","inventory/products",nav)
+            module("cash","Corte de caja","cash-closes/preview",nav)
+            module("barber_agenda","Mi agenda","barber/agenda",nav)
+            module("barber_portfolio","Portafolio","barber/portfolio",nav)
+            module("barber_schedule","Mi horario","barber/schedule",nav)
+            module("reports","Reportes","reports",nav)
+            module("logs","Logs","logs",nav)
+            module("admin_metrics","Métricas del negocio","admin/dashboard/metrics",nav)
+            module("insights","Insights IA","admin/predictions/insights",nav)
+            module("campaigns","Campañas","campaigns",nav)
+            module("raffles","Sorteos","raffles",nav)
+            module("reviews","Reseñas","reviews",nav)
+            module("users","Usuarios","users",nav)
+            module("settings","Configuración","settings",nav)
+            module("system","Estado del sistema","admin/system/status",nav)
+        }
+    }
+}
+
+private fun androidx.navigation.NavGraphBuilder.module(route:String,title:String,endpoint:String,nav:androidx.navigation.NavHostController){
+    composable(route){GenericModuleScreen(title,endpoint,{nav.popBackStack()})}
+}
