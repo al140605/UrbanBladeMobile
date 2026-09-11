@@ -1,0 +1,439 @@
+package com.urbanblade.mobile.ui.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.ui.theme.UrbanColors
+
+@Composable
+fun UrbanBladeBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF080808),
+                        UrbanColors.Background,
+                        Color(0xFF0E0D09)
+                    )
+                )
+            ),
+        content = content
+    )
+}
+
+@Composable
+fun UrbanBrandMark(compact: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(if (compact) 34.dp else 42.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFF302712), Color(0xFF17130A))
+                    )
+                )
+                .border(1.dp, Color(0x55D4AF37), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.ContentCut,
+                contentDescription = null,
+                tint = UrbanColors.Gold,
+                modifier = Modifier.size(if (compact) 19.dp else 23.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                "URBANBLADE",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = UrbanColors.Ink
+            )
+            if (!compact) {
+                Text(
+                    "BARBERSHOP · MOBILE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = UrbanColors.Gold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UrbanPageHeader(
+    title: String,
+    subtitle: String? = null,
+    eyebrow: String? = null,
+    trailing: (@Composable () -> Unit)? = null
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(Modifier.weight(1f)) {
+            eyebrow?.let {
+                Text(
+                    it.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = UrbanColors.Gold
+                )
+                Spacer(Modifier.height(5.dp))
+            }
+            Text(title, style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Ink)
+            subtitle?.let {
+                Spacer(Modifier.height(5.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+            }
+        }
+        trailing?.let {
+            Spacer(Modifier.width(12.dp))
+            it()
+        }
+    }
+}
+
+@Composable
+fun UrbanSectionTitle(
+    title: String,
+    subtitle: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+            subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
+        }
+        if (actionLabel != null && onAction != null) {
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        }
+    }
+}
+
+@Composable
+fun UrbanPremiumCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val base = modifier
+        .clip(MaterialTheme.shapes.large)
+        .background(
+            Brush.linearGradient(
+                listOf(Color(0xFF1B1B1B), Color(0xFF0D0D0D))
+            )
+        )
+        .border(1.dp, Color(0xFF2C2C2C), MaterialTheme.shapes.large)
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+
+    Column(base.padding(18.dp), content = content)
+}
+
+@Composable
+fun UrbanCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val clickableModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    Surface(
+        modifier = modifier.then(clickableModifier),
+        shape = MaterialTheme.shapes.medium,
+        color = UrbanColors.Card,
+        border = BorderStroke(1.dp, UrbanColors.Line),
+        tonalElevation = 0.dp
+    ) {
+        Column(Modifier.padding(16.dp), content = content)
+    }
+}
+
+@Composable
+fun UrbanMetricCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
+) {
+    UrbanPremiumCard(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0x22D4AF37)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(value, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+fun UrbanQuickAction(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    UrbanPremiumCard(modifier = modifier, onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(UrbanColors.Gold),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = Color(0xFF080808), modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Gold)
+        }
+    }
+}
+
+@Composable
+fun UrbanStatusPill(status: String) {
+    val normalized = status.lowercase()
+    val color = when {
+        normalized.contains("complet") || normalized.contains("confirm") || normalized.contains("entreg") || normalized.contains("verific") -> UrbanColors.Success
+        normalized.contains("cancel") || normalized.contains("rechaz") || normalized.contains("error") -> UrbanColors.Danger
+        normalized.contains("pend") || normalized.contains("proceso") -> UrbanColors.Warning
+        else -> UrbanColors.Info
+    }
+    Surface(
+        shape = CircleShape,
+        color = color.copy(alpha = 0.13f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
+    ) {
+        Text(
+            status.replace('_', ' ').replaceFirstChar { it.uppercase() },
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+fun UrbanRolePill(role: String) {
+    Surface(
+        shape = CircleShape,
+        color = Color(0x1FD4AF37),
+        border = BorderStroke(1.dp, Color(0x55D4AF37))
+    ) {
+        Text(
+            role.replace('_', ' ').replaceFirstChar { it.uppercase() },
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = UrbanColors.Gold
+        )
+    }
+}
+
+@Composable
+fun UrbanAvatar(name: String, modifier: Modifier = Modifier) {
+    val initials = name.trim().split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
+    Box(
+        modifier
+            .size(46.dp)
+            .clip(CircleShape)
+            .background(Color(0x22D4AF37))
+            .border(1.dp, Color(0x55D4AF37), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(initials.ifBlank { "UB" }, style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+    }
+}
+
+@Composable
+fun UrbanPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    loading: Boolean = false
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled && !loading,
+        modifier = modifier.heightIn(min = 52.dp),
+        shape = RoundedCornerShape(15.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = UrbanColors.Gold,
+            contentColor = Color(0xFF080808),
+            disabledContainerColor = UrbanColors.GoldDim.copy(alpha = 0.35f),
+            disabledContentColor = Color(0xFF080808).copy(alpha = 0.5f)
+        )
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = Color(0xFF080808))
+        } else {
+            icon?.let { Icon(it, null, modifier = Modifier.size(19.dp)); Spacer(Modifier.width(8.dp)) }
+            Text(text, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun UrbanOutlineButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 50.dp),
+        shape = RoundedCornerShape(15.dp),
+        border = BorderStroke(1.dp, UrbanColors.Line)
+    ) {
+        icon?.let { Icon(it, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
+        Text(text)
+    }
+}
+
+@Composable
+fun UrbanErrorBanner(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = UrbanColors.Danger.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, UrbanColors.Danger.copy(alpha = 0.3f))
+    ) {
+        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.ErrorOutline, null, tint = UrbanColors.Danger)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.bodySmall, color = Color(0xFFFFC7C7))
+        }
+    }
+}
+
+@Composable
+fun UrbanInfoBanner(text: String, icon: ImageVector = Icons.Default.Info) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = Color(0x18D4AF37),
+        border = BorderStroke(1.dp, Color(0x40D4AF37))
+    ) {
+        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = UrbanColors.Gold)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
+        }
+    }
+}
+
+@Composable
+fun UrbanEmptyState(
+    title: String,
+    subtitle: String? = null,
+    icon: ImageVector = Icons.Default.ContentCut,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            Modifier
+                .size(62.dp)
+                .clip(CircleShape)
+                .background(Color(0x18D4AF37)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(28.dp))
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+        subtitle?.let {
+            Spacer(Modifier.height(5.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+        if (actionLabel != null && onAction != null) {
+            Spacer(Modifier.height(14.dp))
+            TextButton(onClick = onAction) { Text(actionLabel) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UrbanTopBar(
+    title: String,
+    onBack: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    TopAppBar(
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Volver") }
+            }
+        },
+        actions = actions,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = UrbanColors.Background,
+            titleContentColor = UrbanColors.Ink,
+            navigationIconContentColor = UrbanColors.Ink,
+            actionIconContentColor = UrbanColors.Gold
+        )
+    )
+}
+
+@Composable
+fun UrbanFieldLabel(text: String) {
+    Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+}
+
+@Composable
+fun UrbanKeyValue(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        Spacer(Modifier.width(12.dp))
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}

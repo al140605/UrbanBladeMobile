@@ -1,163 +1,587 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.data.model.ProductItem
+import com.urbanblade.mobile.ui.components.*
+import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewModel()) {
-    val products by vm.products.collectAsState(); val cart by vm.cart.collectAsState(); val busy by vm.busy.collectAsState(); val error by vm.error.collectAsState(); val message by vm.message.collectAsState()
+    val products by vm.products.collectAsState()
+    val cart by vm.cart.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val error by vm.error.collectAsState()
+    val message by vm.message.collectAsState()
     var query by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { vm.load() }
-    val total = products.sumOf { it.precioVenta * (cart[it.id] ?: 0) }
     val isClient = user.roles.contains("cliente")
+    val total = products.sumOf { it.precioVenta * (cart[it.id] ?: 0) }
+
+    LaunchedEffect(Unit) { vm.load() }
+
     Scaffold(
-        topBar={TopAppBar(title={Text("Tienda")},actions={IconButton(onClick=onOrders){Icon(Icons.Default.ReceiptLong,"Pedidos")}})},
-        bottomBar={
-            if (cart.isNotEmpty() && isClient) Surface(tonalElevation=6.dp,shadowElevation=8.dp){
-                Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-                    Column(Modifier.weight(1f)){Text("${cart.values.sum()} artículos",fontWeight=FontWeight.Bold);Text("$${"%.2f".format(total)} MXN")}
-                    Button(onClick={vm.checkout(onOrders)},enabled=!busy){Text("Crear pedido")}
+        containerColor = Color.Transparent,
+        bottomBar = {
+            if (cart.isNotEmpty() && isClient) {
+                Surface(
+                    color = Color(0xFF111111),
+                    shadowElevation = 18.dp,
+                    border = BorderStroke(1.dp, UrbanColors.Line),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("${cart.values.sum()} artículos", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                            Text("\$${"%.2f".format(total)} MXN", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+                        }
+                        UrbanPrimaryButton(
+                            text = "Pedir",
+                            onClick = { vm.checkout(onOrders) },
+                            loading = busy,
+                            icon = Icons.Default.ShoppingBag
+                        )
+                    }
                 }
             }
         }
-    ){p->
-        LazyColumn(Modifier.fillMaxSize().padding(p).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(vertical=12.dp)){
-            item{OutlinedTextField(query,{query=it},label={Text("Buscar productos")},modifier=Modifier.fillMaxWidth(),singleLine=true,trailingIcon={IconButton(onClick={vm.load(query.ifBlank{null})}){Icon(Icons.Default.Search,"Buscar")}})}
-            if(busy)item{LinearProgressIndicator(Modifier.fillMaxWidth())}
-            error?.let{item{ErrorCard(it)}};message?.let{item{InfoCard(it)}}
-            if(!isClient)item{InfoCard("Puedes consultar el catálogo. El checkout está disponible para cuentas con rol cliente.")}
-            items(products,key={it.id}){product->ProductCard(product,cart[product.id]?:0,{if(isClient)vm.add(product.id)},{if(isClient)vm.remove(product.id)})}
-            if(products.isEmpty()&&!busy)item{EmptyState("No hay productos disponibles.")}
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                UrbanPageHeader(
+                    title = "Tienda",
+                    subtitle = "Productos seleccionados para mantener tu estilo.",
+                    eyebrow = "UrbanBlade Shop",
+                    trailing = {
+                        IconButton(onClick = onOrders) {
+                            BadgedBox(badge = { if (cart.isNotEmpty()) Badge { Text(cart.values.sum().toString()) } }) {
+                                Icon(Icons.Default.ReceiptLong, "Mis pedidos", tint = UrbanColors.Gold)
+                            }
+                        }
+                    }
+                )
+            }
+            item {
+                OutlinedTextField(
+                    query,
+                    { query = it },
+                    placeholder = { Text("Buscar productos") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    trailingIcon = {
+                        IconButton(onClick = { vm.load(query.ifBlank { null }) }) { Icon(Icons.Default.Tune, "Buscar") }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
+            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            error?.let { item { UrbanErrorBanner(it) } }
+            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+            if (!isClient) item { UrbanInfoBanner("Puedes explorar la tienda; el checkout está disponible para cuentas cliente.", Icons.Default.Visibility) }
+            item { UrbanSectionTitle("Productos", "${products.size} disponibles") }
+            items(products, key = { it.id }) { product ->
+                ProductCard(
+                    item = product,
+                    qty = cart[product.id] ?: 0,
+                    add = { if (isClient) vm.add(product.id) },
+                    remove = { if (isClient) vm.remove(product.id) },
+                    canShop = isClient
+                )
+            }
+            if (products.isEmpty() && !busy) item { UrbanEmptyState("No encontramos productos", "Prueba con otra búsqueda.", Icons.Default.Inventory2) }
+            item { Spacer(Modifier.height(if (cart.isNotEmpty()) 80.dp else 8.dp)) }
         }
     }
 }
 
 @Composable
-private fun ProductCard(item: ProductItem, qty:Int, add:()->Unit, remove:()->Unit){
-    ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Column(Modifier.weight(1f)){Text(item.nombre,fontWeight=FontWeight.Bold); item.categoria?.let{Text(it,style=MaterialTheme.typography.labelMedium)}}; Text("$${"%.2f".format(item.precioVenta)}",color=MaterialTheme.colorScheme.primary,fontWeight=FontWeight.Bold)}
-        item.descripcion?.takeIf{it.isNotBlank()}?.let{Text(it,style=MaterialTheme.typography.bodySmall)}
-        Row(verticalAlignment=Alignment.CenterVertically){Text("Stock: ${item.stockActual}",Modifier.weight(1f)); if(qty>0) IconButton(onClick=remove){Icon(Icons.Default.Remove,"Quitar")}; if(qty>0) Text(qty.toString()); IconButton(onClick=add,enabled=qty<item.stockActual){Icon(Icons.Default.Add,"Agregar")}}
-    }}
+private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: () -> Unit, canShop: Boolean) {
+    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!item.imagen.isNullOrBlank()) {
+                AsyncImage(
+                    model = item.imagen,
+                    contentDescription = item.nombre,
+                    modifier = Modifier.size(70.dp).clip(RoundedCornerShape(16.dp))
+                )
+            } else {
+                Box(
+                    Modifier.size(70.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x18D4AF37)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Inventory2, null, tint = UrbanColors.Gold, modifier = Modifier.size(29.dp))
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                item.categoria?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
+                Text(item.nombre, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                item.descripcion?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.height(7.dp))
+                Text("Stock ${item.stockActual}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                Text("\$${"%.0f".format(item.precioVenta)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+                if (canShop) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (qty > 0) {
+                            SmallFloatingActionButton(onClick = remove, containerColor = UrbanColors.CardAlt, contentColor = UrbanColors.Ink) { Icon(Icons.Default.Remove, null) }
+                            Text(qty.toString(), Modifier.padding(horizontal = 9.dp), style = MaterialTheme.typography.titleMedium)
+                        }
+                        SmallFloatingActionButton(
+                            onClick = add,
+                            containerColor = UrbanColors.Gold,
+                            contentColor = Color(0xFF080808),
+                        ) { Icon(Icons.Default.Add, null) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrdersScreen(user:AuthUser,onBack:()->Unit,vm:OrdersViewModel=viewModel()){
-    val data by vm.data.collectAsState(); val busy by vm.busy.collectAsState(); val error by vm.error.collectAsState(); val staff=user.roles.any{it=="administrador"||it=="recepcionista"}
-    LaunchedEffect(Unit){vm.load()}
-    Scaffold(topBar={TopAppBar(title={Text("Pedidos")},navigationIcon={IconButton(onClick=onBack){Icon(Icons.Default.ArrowBack,"Volver")}},actions={IconButton(onClick={vm.load()}){Icon(Icons.Default.Refresh,"Actualizar")}})}){p->
-        LazyColumn(Modifier.fillMaxSize().padding(p).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-            if(busy)item{LinearProgressIndicator(Modifier.fillMaxWidth())}; error?.let{item{ErrorCard(it)}}
-            items(data.data,key={it.id}){o->OrderCard(o,staff,{vm.cancel(o.id)},{m->vm.deliver(o.id,m)})}
-            if(data.data.isEmpty()&&!busy)item{EmptyState("Aún no hay pedidos.")}
+fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewModel()) {
+    val data by vm.data.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val error by vm.error.collectAsState()
+    val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
+    LaunchedEffect(Unit) { vm.load() }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            UrbanTopBar("Pedidos", onBack) {
+                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item { UrbanPageHeader("Pedidos", if (staff) "Bandeja de pedidos y entregas." else "Sigue el estado de tus compras.", "Tienda") }
+            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            error?.let { item { UrbanErrorBanner(it) } }
+            items(data.data, key = { it.id }) { order ->
+                OrderCard(order, staff, cancel = { vm.cancel(order.id) }, deliver = { vm.deliver(order.id, it) })
+            }
+            if (data.data.isEmpty() && !busy) item { UrbanEmptyState("Aún no hay pedidos", "Tus compras aparecerán aquí.", Icons.Default.ShoppingBag) }
         }
     }
 }
 
 @Composable
-private fun OrderCard(o:OrderRow,staff:Boolean,cancel:()->Unit,deliver:(String)->Unit){
-    var menu by remember{mutableStateOf(false)}
-    ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(o.folio?:"Pedido",fontWeight=FontWeight.Bold); AssistChip(onClick={},label={Text(o.estado)})}
-        o.client?.name?.let{Text("Cliente: $it")}; Text("Total: $${"%.2f".format(o.total)} MXN",fontWeight=FontWeight.SemiBold)
-        o.items.forEach{Text("• ${it.cantidad} × ${it.nombre ?: "Producto"} — $${"%.2f".format(it.subtotal)}",style=MaterialTheme.typography.bodySmall)}
-        if(o.estado=="pendiente") Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=cancel){Text("Cancelar")}; if(staff){Box{Button(onClick={menu=true}){Text("Entregar")};DropdownMenu(menu,{menu=false}){listOf("efectivo","tarjeta","transferencia").forEach{m->DropdownMenuItem(text={Text(m.replaceFirstChar(Char::uppercase))},onClick={menu=false;deliver(m)})}}}}}
-    }}
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PaymentsScreen(user:AuthUser,onBack:()->Unit,vm:PaymentsViewModel=viewModel()){
-    val staff=user.roles.any{it=="administrador"||it=="recepcionista"}; val payments by vm.payments.collectAsState(); val pending by vm.pending.collectAsState(); val busy by vm.busy.collectAsState(); val error by vm.error.collectAsState()
-    LaunchedEffect(Unit){vm.load(staff)}
-    Scaffold(topBar={TopAppBar(title={Text(if(staff)"Pagos y comprobantes" else "Mis pagos")},navigationIcon={IconButton(onClick=onBack){Icon(Icons.Default.ArrowBack,"Volver")}})}){p->
-        LazyColumn(Modifier.fillMaxSize().padding(p).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-            if(busy)item{LinearProgressIndicator(Modifier.fillMaxWidth())}; error?.let{item{ErrorCard(it)}}
-            if(staff&&pending.data.isNotEmpty()){item{SectionTitle("Transferencias por revisar")};items(pending.data,key={it.id}){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp)){Text("$${"%.2f".format(x.monto)}",fontWeight=FontWeight.Bold);x.ocrTexto?.let{Text(it,style=MaterialTheme.typography.bodySmall)};Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){Button(onClick={vm.approve(x.id,staff)}){Text("Aprobar")};OutlinedButton(onClick={vm.reject(x.id,"Comprobante no válido",staff)}){Text("Rechazar")}}}}}}
-            item{SectionTitle("Historial")};items(payments.data,key={it.id}){x->ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp)){Text("$${"%.2f".format(x.monto+x.propina)} MXN",fontWeight=FontWeight.Bold);Text(x.metodoPago?:"Pago");x.appointment?.let{a->Text(listOfNotNull(a.service,a.barber,a.fecha).joinToString(" · "),style=MaterialTheme.typography.bodySmall)}}}}
-            if(payments.data.isEmpty()&&!busy)item{EmptyState("No hay pagos registrados.")}
+private fun OrderCard(order: OrderRow, staff: Boolean, cancel: () -> Unit, deliver: (String) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text(order.folio ?: "Pedido", style = MaterialTheme.typography.titleMedium)
+                order.createdAt?.let { Text(it.take(10), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
+            }
+            UrbanStatusPill(order.estado)
+        }
+        Spacer(Modifier.height(14.dp))
+        order.client?.name?.let { UrbanKeyValue("Cliente", it) }
+        order.items.take(4).forEach { line ->
+            UrbanKeyValue("${line.cantidad} × ${line.nombre ?: "Producto"}", "\$${"%.2f".format(line.subtotal)}")
+        }
+        if (order.items.size > 4) Text("+${order.items.size - 4} productos", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = UrbanColors.Line)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Total", style = MaterialTheme.typography.labelLarge)
+            Text("\$${"%.2f".format(order.total)} MXN", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+        }
+        if (order.estado == "pendiente") {
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = cancel, modifier = Modifier.weight(1f)) { Text("Cancelar") }
+                if (staff) {
+                    Box(Modifier.weight(1f)) {
+                        Button(onClick = { menu = true }, modifier = Modifier.fillMaxWidth()) { Text("Entregar") }
+                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            listOf("efectivo", "tarjeta", "transferencia").forEach { method ->
+                                DropdownMenuItem(
+                                    text = { Text(method.replaceFirstChar { it.uppercase() }) },
+                                    onClick = { menu = false; deliver(method) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(onBack:()->Unit,vm:NotificationsViewModel=viewModel()){
-    val data by vm.data.collectAsState();val busy by vm.busy.collectAsState();val error by vm.error.collectAsState();LaunchedEffect(Unit){vm.load()}
-    Scaffold(topBar={TopAppBar(title={Text("Notificaciones")},navigationIcon={IconButton(onClick=onBack){Icon(Icons.Default.ArrowBack,"Volver")}},actions={TextButton(onClick={vm.readAll()}){Text("Leer todas")}})}){p->JsonContentScreen(data,busy,error,Modifier.padding(p))}
+fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = viewModel()) {
+    val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
+    val payments by vm.payments.collectAsState()
+    val pending by vm.pending.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val error by vm.error.collectAsState()
+    LaunchedEffect(Unit) { vm.load(staff) }
+
+    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar(if (staff) "Pagos" else "Mis pagos", onBack) }) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item { UrbanPageHeader(if (staff) "Centro de cobro" else "Tus pagos", if (staff) "Comprobantes, historial y operación." else "Historial conectado a tus citas.", "Facturación") }
+            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            error?.let { item { UrbanErrorBanner(it) } }
+
+            if (staff && pending.data.isNotEmpty()) {
+                item { UrbanSectionTitle("Por revisar", "${pending.data.size} transferencias pendientes") }
+                items(pending.data, key = { it.id }) { payment ->
+                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                Text("Transferencia", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+                                Text("\$${"%.2f".format(payment.monto)} MXN", style = MaterialTheme.typography.titleLarge)
+                            }
+                            UrbanStatusPill("pendiente")
+                        }
+                        payment.ocrTexto?.takeIf { it.isNotBlank() }?.let {
+                            Spacer(Modifier.height(8.dp))
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { vm.approve(payment.id, staff) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Check, null); Spacer(Modifier.width(5.dp)); Text("Aprobar") }
+                            OutlinedButton(onClick = { vm.reject(payment.id, "Comprobante no válido", staff) }, modifier = Modifier.weight(1f)) { Text("Rechazar") }
+                        }
+                    }
+                }
+            }
+
+            item { UrbanSectionTitle("Historial", "Pagos registrados en UrbanBlade") }
+            items(payments.data, key = { it.id }) { payment ->
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f)) {
+                            Text(payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago", style = MaterialTheme.typography.titleMedium)
+                            payment.appointment?.let { a ->
+                                Text(listOfNotNull(a.service, a.barber, a.fecha).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
+                            }
+                        }
+                        Text("\$${"%.2f".format(payment.monto + payment.propina)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+                    }
+                }
+            }
+            if (payments.data.isEmpty() && !busy) item { UrbanEmptyState("No hay pagos registrados", null, Icons.Default.ReceiptLong) }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GenericModuleScreen(title:String,endpoint:String,onBack:()->Unit,vm:GenericModuleViewModel=viewModel()){
-    val data by vm.data.collectAsState();val busy by vm.busy.collectAsState();val error by vm.error.collectAsState();LaunchedEffect(endpoint){vm.load(endpoint)}
-    Scaffold(topBar={TopAppBar(title={Text(title)},navigationIcon={IconButton(onClick=onBack){Icon(Icons.Default.ArrowBack,"Volver")}},actions={IconButton(onClick={vm.load(endpoint)}){Icon(Icons.Default.Refresh,"Actualizar")}})}){p->JsonContentScreen(data,busy,error,Modifier.padding(p))}
-}
-
-@Composable
-private fun JsonContentScreen(data:JsonObject?,busy:Boolean,error:String?,modifier:Modifier=Modifier){
-    LazyColumn(modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-        if(busy)item{LinearProgressIndicator(Modifier.fillMaxWidth())};error?.let{item{ErrorCard(it)}}
-        data?.entrySet()?.forEach{(k,v)->item{JsonCard(k,v)}}
-        if(data==null&&!busy&&error==null)item{EmptyState("Sin información.")}
+fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewModel()) {
+    val data by vm.data.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val error by vm.error.collectAsState()
+    LaunchedEffect(Unit) { vm.load() }
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            UrbanTopBar("Notificaciones", onBack) {
+                TextButton(onClick = { vm.readAll() }) { Text("Leer todas") }
+            }
+        }
+    ) { padding ->
+        JsonContentScreen(data, busy, error, Modifier.padding(padding), emptyIcon = Icons.Default.NotificationsNone)
     }
 }
-
-@Composable
-private fun JsonCard(label:String,value:JsonElement){
-    ElevatedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(label.replace('_',' ').replaceFirstChar(Char::uppercase),fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.primary); when{
-        value.isJsonArray-> value.asJsonArray.take(20).forEachIndexed{i,e-> Text("${i+1}. ${compactJson(e)}",style=MaterialTheme.typography.bodySmall)}
-        value.isJsonObject-> value.asJsonObject.entrySet().take(20).forEach{(k,v)->Text("${k.replace('_',' ')}: ${compactJson(v)}",style=MaterialTheme.typography.bodySmall)}
-        else->Text(compactJson(value))
-    }}}
-}
-private fun compactJson(e:JsonElement):String = when{e.isJsonNull->"—";e.isJsonPrimitive->e.asJsonPrimitive.toString().trim('"');e.isJsonObject->e.asJsonObject.entrySet().take(5).joinToString(" · "){"${it.key}: ${compactJson(it.value)}"};e.isJsonArray->"${e.asJsonArray.size()} elementos";else->e.toString()}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatbotScreen(onBack:()->Unit,vm:ChatbotViewModel=viewModel()){
-    val messages by vm.messages.collectAsState();val busy by vm.busy.collectAsState();var text by remember{mutableStateOf("")}
-    Scaffold(topBar={TopAppBar(title={Text("Bladebot")},navigationIcon={IconButton(onClick=onBack){Icon(Icons.Default.ArrowBack,"Volver")}})},bottomBar={Surface(shadowElevation=8.dp){Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){OutlinedTextField(text,{text=it},Modifier.weight(1f),placeholder={Text("Escribe tu pregunta")});IconButton(onClick={ val t=text; text=""; vm.send(t) },enabled=text.isNotBlank()&&!busy){Icon(Icons.Default.Send,"Enviar")}}}}){p->
-        LazyColumn(Modifier.fillMaxSize().padding(p).padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){items(messages){m->Box(Modifier.fillMaxWidth()){Surface(tonalElevation=2.dp,shape=MaterialTheme.shapes.medium,modifier=Modifier.fillMaxWidth(if(m.first)0.85f else 1f)){Text(m.second,Modifier.padding(12.dp))}}};if(busy)item{LinearProgressIndicator(Modifier.fillMaxWidth())}}
+fun GenericModuleScreen(title: String, endpoint: String, onBack: () -> Unit, vm: GenericModuleViewModel = viewModel()) {
+    val data by vm.data.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val error by vm.error.collectAsState()
+    LaunchedEffect(endpoint) { vm.load(endpoint) }
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            UrbanTopBar(title, onBack) {
+                IconButton(onClick = { vm.load(endpoint) }) { Icon(Icons.Default.Refresh, "Actualizar") }
+            }
+        }
+    ) { padding ->
+        JsonContentScreen(data, busy, error, Modifier.padding(padding), emptyIcon = Icons.Default.DashboardCustomize)
     }
 }
 
 @Composable
-fun MoreScreen(user:AuthUser,onNavigate:(String)->Unit){
-    val roles=user.roles.toSet();val staff=roles.any{it=="administrador"||it=="recepcionista"};val admin="administrador" in roles;val engineer="ingeniero" in roles;val barber="barbero" in roles;val client="cliente" in roles
-    val modules=buildList{
-        add(ModuleItem("catalog","Servicios y barberos",Icons.Default.ContentCut));add(ModuleItem("notifications","Notificaciones",Icons.Default.Notifications));add(ModuleItem("analytics","Analítica",Icons.Default.QueryStats));add(ModuleItem("social","Muro social",Icons.Default.Groups));add(ModuleItem("chatbot","Bladebot",Icons.Default.SmartToy)); if(staff||client){add(ModuleItem("payments","Pagos",Icons.Default.Payments));add(ModuleItem("orders","Pedidos",Icons.Default.ReceiptLong))}
-        if(staff){add(ModuleItem("clients","Clientes",Icons.Default.People));add(ModuleItem("inventory","Inventario",Icons.Default.Inventory2));add(ModuleItem("cash","Corte de caja",Icons.Default.PointOfSale))}
-        if(barber){add(ModuleItem("barber_agenda","Mi agenda",Icons.Default.Event));add(ModuleItem("barber_portfolio","Portafolio",Icons.Default.PhotoLibrary));add(ModuleItem("barber_schedule","Mi horario",Icons.Default.Schedule))}
-        if(admin||engineer){add(ModuleItem("reports","Reportes",Icons.Default.Assessment));add(ModuleItem("logs","Logs",Icons.Default.Terminal));add(ModuleItem("admin_metrics","Métricas",Icons.Default.MonitorHeart));add(ModuleItem("insights","Insights IA",Icons.Default.AutoAwesome))}
-        if(admin){add(ModuleItem("campaigns","Campañas",Icons.Default.Campaign));add(ModuleItem("raffles","Sorteos",Icons.Default.EmojiEvents));add(ModuleItem("reviews","Reseñas",Icons.Default.Star));add(ModuleItem("users","Usuarios",Icons.Default.ManageAccounts));add(ModuleItem("settings","Configuración",Icons.Default.Settings))}
-        if(engineer||admin){add(ModuleItem("system","Estado del sistema",Icons.Default.Dns))}
+private fun JsonContentScreen(
+    data: JsonObject?,
+    busy: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier,
+    emptyIcon: ImageVector
+) {
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        error?.let { item { UrbanErrorBanner(it) } }
+        data?.entrySet()?.forEach { (key, value) -> item { JsonCard(key, value) } }
+        if (data == null && !busy && error == null) item { UrbanEmptyState("Sin información", "Este módulo todavía no tiene datos para mostrar.", emptyIcon) }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){item{Text("Más módulos",style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.Bold);Text("Opciones disponibles según tus roles: ${user.roles.joinToString()}",style=MaterialTheme.typography.bodySmall)};items(modules){m->ElevatedCard(onClick={onNavigate(m.route)},modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Icon(m.icon,null,tint=MaterialTheme.colorScheme.primary);Spacer(Modifier.width(14.dp));Text(m.title,Modifier.weight(1f),fontWeight=FontWeight.SemiBold);Icon(Icons.Default.ChevronRight,null)}}}}
 }
-private data class ModuleItem(val route:String,val title:String,val icon:ImageVector)
 
-@Composable private fun SectionTitle(t:String)=Text(t,style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
-@Composable private fun ErrorCard(t:String)=Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.errorContainer)){Text(t,Modifier.padding(12.dp),color=MaterialTheme.colorScheme.onErrorContainer)}
-@Composable private fun InfoCard(t:String)=Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)){Text(t,Modifier.padding(12.dp))}
-@Composable private fun EmptyState(t:String)=Box(Modifier.fillMaxWidth().padding(28.dp),contentAlignment=Alignment.Center){Text(t,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+@Composable
+private fun JsonCard(label: String, value: JsonElement) {
+    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+        Text(label.replace('_', ' ').replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+        Spacer(Modifier.height(10.dp))
+        when {
+            value.isJsonArray -> value.asJsonArray.take(20).forEachIndexed { index, element ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.Top) {
+                    Surface(shape = CircleShape, color = Color(0x18D4AF37), modifier = Modifier.size(24.dp)) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
+                    }
+                    Spacer(Modifier.width(9.dp))
+                    Text(compactJson(element), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
+                }
+            }
+            value.isJsonObject -> value.asJsonObject.entrySet().take(20).forEach { (key, item) ->
+                UrbanKeyValue(key.replace('_', ' ').replaceFirstChar { it.uppercase() }, compactJson(item), Modifier.padding(vertical = 4.dp))
+            }
+            else -> Text(compactJson(value), style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+private fun compactJson(element: JsonElement): String = when {
+    element.isJsonNull -> "—"
+    element.isJsonPrimitive -> element.asJsonPrimitive.toString().trim('"')
+    element.isJsonObject -> element.asJsonObject.entrySet().take(5).joinToString(" · ") { "${it.key}: ${compactJson(it.value)}" }
+    element.isJsonArray -> "${element.asJsonArray.size()} elementos"
+    else -> element.toString()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
+    val messages by vm.messages.collectAsState()
+    val busy by vm.busy.collectAsState()
+    var text by remember { mutableStateOf("") }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = { UrbanTopBar("Bladebot", onBack) },
+        bottomBar = {
+            Surface(color = Color(0xFF111111), shadowElevation = 16.dp, border = BorderStroke(1.dp, UrbanColors.Line)) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        text,
+                        { text = it },
+                        Modifier.weight(1f),
+                        placeholder = { Text("Pregunta a Bladebot…") },
+                        leadingIcon = { Icon(Icons.Default.SmartToy, null) },
+                        shape = MaterialTheme.shapes.medium,
+                        maxLines = 4
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FloatingActionButton(
+                        onClick = { val current = text; text = ""; vm.send(current) },
+                        containerColor = UrbanColors.Gold,
+                        contentColor = Color(0xFF080808),
+                        modifier = Modifier.size(50.dp)
+                    ) { Icon(Icons.Default.Send, "Enviar") }
+                }
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (messages.isEmpty()) {
+                item {
+                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = CircleShape, color = Color(0x18D4AF37), modifier = Modifier.size(54.dp)) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(Icons.Default.SmartToy, null, tint = UrbanColors.Gold) }
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Hola, soy Bladebot", style = MaterialTheme.typography.titleMedium)
+                                Text("Puedo ayudarte con UrbanBlade y sus módulos.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                            }
+                        }
+                    }
+                }
+            }
+            items(messages) { message ->
+                val fromUser = message.first
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (fromUser) Arrangement.End else Arrangement.Start
+                ) {
+                    Surface(
+                        modifier = Modifier.widthIn(max = 310.dp),
+                        shape = RoundedCornerShape(
+                            topStart = 18.dp,
+                            topEnd = 18.dp,
+                            bottomStart = if (fromUser) 18.dp else 5.dp,
+                            bottomEnd = if (fromUser) 5.dp else 18.dp
+                        ),
+                        color = if (fromUser) UrbanColors.Gold else UrbanColors.Card,
+                        contentColor = if (fromUser) Color(0xFF080808) else UrbanColors.Ink,
+                        border = if (fromUser) null else BorderStroke(1.dp, UrbanColors.Line)
+                    ) {
+                        Text(message.second, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        }
+    }
+}
+
+@Composable
+fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
+    val roles = user.roles.toSet()
+    val staff = roles.any { it == "administrador" || it == "recepcionista" }
+    val admin = "administrador" in roles
+    val engineer = "ingeniero" in roles
+    val barber = "barbero" in roles
+    val client = "cliente" in roles
+
+    val modules = buildList {
+        add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, "GENERAL"))
+        add(ModuleItem("notifications", "Notificaciones", "Novedades de tu cuenta", Icons.Default.Notifications, "GENERAL"))
+        add(ModuleItem("analytics", "Analítica", "Actividad y rendimiento", Icons.Default.QueryStats, "GENERAL"))
+        add(ModuleItem("social", "Muro social", "Trabajos y comunidad", Icons.Default.Groups, "GENERAL"))
+        add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, "GENERAL"))
+        if (staff || client) {
+            add(ModuleItem("payments", "Pagos", "Historial y comprobantes", Icons.Default.Payments, "OPERACIÓN"))
+            add(ModuleItem("orders", "Pedidos", "Tienda y entregas", Icons.Default.ReceiptLong, "OPERACIÓN"))
+        }
+        if (staff) {
+            add(ModuleItem("clients", "Clientes", "Atención y gestión", Icons.Default.People, "OPERACIÓN"))
+            add(ModuleItem("inventory", "Inventario", "Stock y movimientos", Icons.Default.Inventory2, "OPERACIÓN"))
+            add(ModuleItem("cash", "Corte de caja", "Resumen de turno", Icons.Default.PointOfSale, "OPERACIÓN"))
+        }
+        if (barber) {
+            add(ModuleItem("barber_agenda", "Mi agenda", "Tu día de trabajo", Icons.Default.Event, "BARBERO"))
+            add(ModuleItem("barber_portfolio", "Portafolio", "Muestra tus trabajos", Icons.Default.PhotoLibrary, "BARBERO"))
+            add(ModuleItem("barber_schedule", "Mi horario", "Disponibilidad semanal", Icons.Default.Schedule, "BARBERO"))
+        }
+        if (admin || engineer) {
+            add(ModuleItem("reports", "Reportes", "Datos del negocio", Icons.Default.Assessment, "ANÁLISIS"))
+            add(ModuleItem("logs", "Logs", "Trazabilidad del sistema", Icons.Default.Terminal, "ANÁLISIS"))
+            add(ModuleItem("admin_metrics", "Métricas", "KPIs operativos", Icons.Default.MonitorHeart, "ANÁLISIS"))
+            add(ModuleItem("insights", "Insights IA", "Señales y predicciones", Icons.Default.AutoAwesome, "ANÁLISIS"))
+        }
+        if (admin) {
+            add(ModuleItem("campaigns", "Campañas", "Marketing y alcance", Icons.Default.Campaign, "ADMIN"))
+            add(ModuleItem("raffles", "Sorteos", "Lealtad y promociones", Icons.Default.EmojiEvents, "ADMIN"))
+            add(ModuleItem("reviews", "Reseñas", "Opiniones de clientes", Icons.Default.Star, "ADMIN"))
+            add(ModuleItem("users", "Usuarios", "Roles y accesos", Icons.Default.ManageAccounts, "ADMIN"))
+            add(ModuleItem("settings", "Configuración", "Ajustes del negocio", Icons.Default.Settings, "ADMIN"))
+        }
+        if (engineer || admin) add(ModuleItem("system", "Estado del sistema", "Servicios y salud", Icons.Default.Dns, "SISTEMA"))
+    }
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            UrbanPageHeader(
+                title = "Más herramientas",
+                subtitle = "Tu panel cambia según responsabilidades y permisos.",
+                eyebrow = "Módulos",
+                trailing = { UrbanAvatar(user.name) }
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                user.roles.take(3).forEach { UrbanRolePill(it) }
+            }
+        }
+        modules.groupBy { it.section }.forEach { (section, group) ->
+            item { UrbanSectionTitle(section.replaceFirstChar { it.uppercase() }) }
+            items(group) { module -> ModuleCard(module, onNavigate) }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun ModuleCard(module: ModuleItem, onNavigate: (String) -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = { onNavigate(module.route) }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(Color(0x18D4AF37)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(module.icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text(module.title, style = MaterialTheme.typography.titleMedium)
+                Text(module.subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Gold)
+        }
+    }
+}
+
+private data class ModuleItem(
+    val route: String,
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val section: String
+)

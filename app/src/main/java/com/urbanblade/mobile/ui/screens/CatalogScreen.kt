@@ -1,16 +1,28 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.urbanblade.mobile.data.model.BarberItem
+import com.urbanblade.mobile.data.model.ServiceItem
+import com.urbanblade.mobile.ui.components.*
+import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CatalogViewModel
 
 @Composable
@@ -21,37 +33,108 @@ fun CatalogScreen(onBook: () -> Unit, vm: CatalogViewModel = viewModel()) {
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         item {
-            Text("Explorar", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-            Text("Servicios y equipo de UrbanBlade", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            UrbanPageHeader(
+                title = "Explora UrbanBlade",
+                subtitle = "Servicios precisos. Barberos con estilo propio.",
+                eyebrow = "Catálogo"
+            )
         }
-        if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-        error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-        item { Text("Servicios", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-        items(services, key = { it.id }) { s ->
-            ElevatedCard(onClick = onBook) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        item {
+            UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onBook) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(s.nombre, fontWeight = FontWeight.Bold)
-                        Text("${s.duracionMin} min", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("¿Ya sabes qué quieres?", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(5.dp))
+                        Text("Ve directo a reservar y consulta disponibilidad real.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                     }
-                    Text("\$${"%.0f".format(s.precio)}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.width(12.dp))
+                    Surface(shape = CircleShape, color = UrbanColors.Gold, modifier = Modifier.size(48.dp)) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.ArrowForward, null, tint = Color(0xFF080808))
+                        }
+                    }
                 }
             }
         }
-        item { Text("Barberos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-        items(barbers, key = { it.id }) { b ->
-            Card {
-                Row(Modifier.fillMaxWidth().padding(16.dp)) {
-                    Icon(Icons.Default.ContentCut, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(b.user?.name ?: "Barbero", fontWeight = FontWeight.Bold)
-                        b.descripcion?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2) }
-                    }
+        if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        error?.let { item { UrbanErrorBanner(it) } }
+
+        item { UrbanSectionTitle("Servicios", "Elige el acabado que va contigo") }
+        items(services, key = { it.id }) { service -> ServiceCard(service, onBook) }
+        if (!loading && services.isEmpty()) item { UrbanEmptyState("Sin servicios disponibles", "Vuelve a intentarlo más tarde.", Icons.Default.ContentCut) }
+
+        item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
+        items(barbers, key = { it.id }) { barber -> BarberCard(barber) }
+        if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
+    UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onBook) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = Color(0x18D4AF37),
+                modifier = Modifier.size(54.dp),
+                border = BorderStroke(1.dp, Color(0x35D4AF37))
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.ContentCut, null, tint = UrbanColors.Gold)
                 }
             }
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text(service.nombre, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(3.dp))
+                Text("${service.duracionMin} min", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                service.descripcion?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                Text("\$${"%.0f".format(service.precio)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+                Text("MXN", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BarberCard(barber: BarberItem) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!barber.foto.isNullOrBlank()) {
+                AsyncImage(
+                    model = barber.foto,
+                    contentDescription = barber.user?.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(58.dp).clip(CircleShape)
+                )
+            } else {
+                UrbanAvatar(barber.user?.name ?: "Barbero", Modifier.size(58.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(barber.user?.name ?: "Barbero", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                barber.especialidades?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                barber.descripcion?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted)
         }
     }
 }
