@@ -120,7 +120,7 @@ interface UrbanBladeApi {
     @GET("admin/dashboard/revenue") suspend fun adminRevenue(): JsonObject
     @GET("admin/dashboard/alerts") suspend fun adminAlerts(): JsonObject
     @GET("admin/dashboard/metrics") suspend fun adminMetrics(): AdminMetricsResponse
-    @GET("admin/predictions/insights") suspend fun predictionInsights(): JsonObject
+    @GET("admin/predictions/insights") suspend fun predictionInsights(): InsightsResponse
     @GET("admin/system/status") suspend fun systemStatus(): SystemStatusResponse
     @GET("admin/clients") suspend fun adminClients(@QueryMap query: Map<String, String> = emptyMap()): ClientsResponse
     @GET("admin/clients/{id}") suspend fun adminClientDetail(@Path("id") id: String): ClientDetailResponse

@@ -208,4 +208,6 @@ class UrbanRepository(private val api: UrbanBladeApi) {
 
     suspend fun campaigns() = api.campaigns()
     suspend fun createCampaign(body: CreateCampaignRequest) = api.createCampaign(body)
+
+    suspend fun predictionInsights() = api.predictionInsights().data
 }

@@ -662,6 +662,31 @@ data class PortfolioStats(
 data class PortfolioResponse(val works: List<WorkRow> = emptyList(), val stats: PortfolioStats = PortfolioStats())
 data class CreateWorkResponse(val message: String? = null, val work: WorkRow? = null)
 
+// ── Insights IA (admin/predictions/insights) ─────────────────────────────
+// generateInsights() en barber es cómputo local sobre datos ya cacheados
+// (PredictionService::historicalData) -- a diferencia de sus endpoints
+// hermanos (income/appointments/services), NO llama a Ollama, así que
+// responde rápido pese al set_time_limit(120) defensivo del controlador.
+data class RevenueInsight(val status: String? = null, val message: String? = null, @SerializedName("avg_daily") val avgDaily: Double? = null)
+data class AppointmentsInsight(
+    val status: String? = null,
+    val message: String? = null,
+    @SerializedName("avg_daily") val avgDaily: Double? = null,
+    @SerializedName("trend_7d") val trend7d: Double? = null
+)
+data class ServiceConcentrationInsight(
+    val status: String? = null,
+    val message: String? = null,
+    @SerializedName("top_service") val topService: String? = null,
+    val percentage: Double? = null
+)
+data class InsightsData(
+    val revenue: RevenueInsight? = null,
+    val appointments: AppointmentsInsight? = null,
+    @SerializedName("service_concentration") val serviceConcentration: ServiceConcentrationInsight? = null
+)
+data class InsightsResponse(val type: String? = null, val data: InsightsData = InsightsData())
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

@@ -379,6 +379,19 @@ class SettingsViewModel : ViewModel() {
     }
 }
 
+class InsightsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _data = MutableStateFlow(InsightsData()); val data = _data.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _data.value = repo.predictionInsights() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron generar los insights.") }
+        finally { _busy.value = false }
+    }
+}
+
 class AnalyticsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow(AnalyticsResponse()); val data = _data.asStateFlow()
