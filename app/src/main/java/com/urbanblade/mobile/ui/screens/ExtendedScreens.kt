@@ -336,25 +336,6 @@ fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewMod
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun GenericModuleScreen(title: String, endpoint: String, onBack: () -> Unit, vm: GenericModuleViewModel = viewModel()) {
-    val data by vm.data.collectAsState()
-    val busy by vm.busy.collectAsState()
-    val error by vm.error.collectAsState()
-    LaunchedEffect(endpoint) { vm.load(endpoint) }
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar(title, onBack) {
-                IconButton(onClick = { vm.load(endpoint) }) { Icon(Icons.Default.Refresh, "Actualizar") }
-            }
-        }
-    ) { padding ->
-        JsonContentScreen(data, busy, error, Modifier.padding(padding), emptyIcon = Icons.Default.DashboardCustomize)
-    }
-}
-
 @Composable
 private fun JsonContentScreen(
     data: JsonObject?,

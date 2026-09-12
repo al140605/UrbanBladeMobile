@@ -379,6 +379,54 @@ class SettingsViewModel : ViewModel() {
     }
 }
 
+class SocialFeedViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _feed = MutableStateFlow(SocialFeedResponse()); val feed = _feed.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _feed.value = repo.socialFeed() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el muro social.") }
+        finally { _busy.value = false }
+    }
+
+    private fun updateWork(id: String, transform: (SocialWork) -> SocialWork) {
+        _feed.value = _feed.value.copy(data = _feed.value.data.map { if (it.id == id) transform(it) else it })
+    }
+
+    fun toggleReaction(id: String) = viewModelScope.launch {
+        try {
+            val res = repo.reactWork(id)
+            updateWork(id) { it.copy(isReacted = res.status == "added", reactionsCount = res.count ?: it.reactionsCount) }
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo reaccionar.") }
+    }
+
+    fun toggleSave(id: String) = viewModelScope.launch {
+        try {
+            val res = repo.saveWork(id)
+            val added = res.status == "added"
+            updateWork(id) { it.copy(isSaved = added, savedCount = it.savedCount + if (added) 1 else -1) }
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo guardar.") }
+    }
+
+    fun comment(id: String, text: String, onDone: () -> Unit) = viewModelScope.launch {
+        if (text.isBlank()) return@launch
+        try {
+            val res = repo.commentWork(id, text)
+            val newComment = res.data
+            updateWork(id) {
+                it.copy(
+                    commentsCount = it.commentsCount + 1,
+                    comments = if (newComment != null) (listOf(newComment) + it.comments).take(3) else it.comments
+                )
+            }
+            onDone()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo publicar el comentario.") }
+    }
+}
+
 class InsightsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow(InsightsData()); val data = _data.asStateFlow()
@@ -466,14 +514,6 @@ class SystemUsersViewModel : ViewModel() {
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo eliminar el usuario.") }
         finally { _saving.value = false }
     }
-}
-
-class GenericModuleViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
-    private val _data = MutableStateFlow<JsonObject?>(null); val data = _data.asStateFlow()
-    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
-    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
-    fun load(endpoint:String)=viewModelScope.launch{_busy.value=true;_error.value=null;try{_data.value=repo.module(endpoint)}catch(e:Exception){_error.value=e.toFriendlyMessage("No se pudo cargar el módulo.")}finally{_busy.value=false}}
 }
 
 class ChatbotViewModel : ViewModel() {

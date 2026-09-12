@@ -687,6 +687,35 @@ data class InsightsData(
 )
 data class InsightsResponse(val type: String? = null, val data: InsightsData = InsightsData())
 
+// ── Muro social (social/feed) ────────────────────────────────────────────
+data class SocialBarber(val id: String? = null, val name: String? = null, val slug: String? = null, val foto: String? = null)
+data class SocialMedia(val url: String? = null, val type: String? = null)
+data class SocialCommentUser(val name: String? = null)
+data class SocialComment(
+    val id: String? = null,
+    val comment: String? = null,
+    val user: SocialCommentUser? = null,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+data class SocialWork(
+    val id: String,
+    val title: String? = null,
+    val description: String? = null,
+    @SerializedName("work_date") val workDate: String? = null,
+    val barber: SocialBarber? = null,
+    val media: List<SocialMedia> = emptyList(),
+    @SerializedName("reactions_count") val reactionsCount: Int = 0,
+    @SerializedName("comments_count") val commentsCount: Int = 0,
+    @SerializedName("saved_count") val savedCount: Int = 0,
+    @SerializedName("is_reacted") val isReacted: Boolean = false,
+    @SerializedName("is_saved") val isSaved: Boolean = false,
+    val comments: List<SocialComment> = emptyList()
+)
+data class SocialFeedResponse(val data: List<SocialWork> = emptyList(), val meta: JsonObject? = null)
+data class SocialActionResponse(val status: String? = null, val count: Int? = null)
+data class PostCommentRequest(val comment: String)
+data class PostCommentResponse(val message: String? = null, val data: SocialComment? = null)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

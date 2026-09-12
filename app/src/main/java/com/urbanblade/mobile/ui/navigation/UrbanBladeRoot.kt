@@ -150,7 +150,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("profile") { ProfileScreen(user = user, onLogout = { authViewModel.logout() }) }
 
                 composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
-                module("social", "Muro social", "social/feed", nav)
+                composable("social") { SocialFeedScreen(onBack = { nav.popBackStack() }) }
                 composable("clients") {
                     ClientsListScreen(
                         user = user,
@@ -185,16 +185,5 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
             }
         }
-    }
-}
-
-private fun androidx.navigation.NavGraphBuilder.module(
-    route: String,
-    title: String,
-    endpoint: String,
-    nav: androidx.navigation.NavHostController
-) {
-    composable(route) {
-        GenericModuleScreen(title = title, endpoint = endpoint, onBack = { nav.popBackStack() })
     }
 }
