@@ -418,17 +418,6 @@ data class CreateProductRequest(
     val tipo: String,
     val activo: Boolean = true
 )
-data class UpdateProductRequest(
-    val nombre: String?,
-    val categoria: String?,
-    val descripcion: String?,
-    @SerializedName("precio_compra") val precioCompra: Double?,
-    @SerializedName("precio_venta") val precioVenta: Double?,
-    @SerializedName("stock_actual") val stockActual: Int?,
-    @SerializedName("stock_minimo") val stockMinimo: Int?,
-    val tipo: String?,
-    val activo: Boolean?
-)
 data class RegisterMovementRequest(
     @SerializedName("product_id") val productId: String,
     val tipo: String,
@@ -652,6 +641,26 @@ data class CreateCampaignRequest(
     val modo: String,
     @SerializedName("programada_para") val programadaPara: String?
 )
+
+// ── Portafolio de barbero (barber/portfolio, barber/works) ───────────────
+data class WorkMediaItem(val id: String? = null, val url: String? = null, val type: String? = null)
+data class WorkRow(
+    val id: String,
+    val title: String? = null,
+    val description: String? = null,
+    val media: List<WorkMediaItem> = emptyList(),
+    @SerializedName("reactions_count") val reactionsCount: Int = 0,
+    @SerializedName("comments_count") val commentsCount: Int = 0,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+data class PortfolioStats(
+    @SerializedName("total_works") val totalWorks: Int = 0,
+    @SerializedName("total_reactions") val totalReactions: Int = 0,
+    @SerializedName("total_comments") val totalComments: Int = 0,
+    @SerializedName("total_saves") val totalSaves: Int = 0
+)
+data class PortfolioResponse(val works: List<WorkRow> = emptyList(), val stats: PortfolioStats = PortfolioStats())
+data class CreateWorkResponse(val message: String? = null, val work: WorkRow? = null)
 
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)

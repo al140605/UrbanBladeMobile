@@ -1,5 +1,8 @@
 package com.urbanblade.mobile.data.repository
 
+import android.content.Context
+import android.net.Uri
+import com.urbanblade.mobile.core.media.MediaUploadHelper
 import com.urbanblade.mobile.core.network.UrbanBladeApi
 import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.model.*
@@ -107,8 +110,44 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun deleteClient(id: String) = api.deleteClient(id)
 
     suspend fun inventoryProducts() = api.inventoryProducts()
-    suspend fun createProduct(body: CreateProductRequest) = api.createProduct(body)
-    suspend fun updateProduct(id: String, body: UpdateProductRequest) = api.updateProduct(id, body)
+
+    private fun productFields(
+        nombre: String, categoria: String, descripcion: String?,
+        precioCompra: Double, precioVenta: Double, stockActual: Int, stockMinimo: Int,
+        tipo: String, activo: Boolean
+    ) = buildMap {
+        put("nombre", MediaUploadHelper.textPart(nombre))
+        put("categoria", MediaUploadHelper.textPart(categoria))
+        descripcion?.let { put("descripcion", MediaUploadHelper.textPart(it)) }
+        put("precio_compra", MediaUploadHelper.textPart(precioCompra.toString()))
+        put("precio_venta", MediaUploadHelper.textPart(precioVenta.toString()))
+        put("stock_actual", MediaUploadHelper.textPart(stockActual.toString()))
+        put("stock_minimo", MediaUploadHelper.textPart(stockMinimo.toString()))
+        put("tipo", MediaUploadHelper.textPart(tipo))
+        put("activo", MediaUploadHelper.textPart(if (activo) "1" else "0"))
+    }
+
+    suspend fun createProduct(context: Context, req: CreateProductRequest, imageUri: Uri?) = api.createProduct(
+        productFields(req.nombre, req.categoria, req.descripcion, req.precioCompra, req.precioVenta, req.stockActual, req.stockMinimo, req.tipo, req.activo),
+        imageUri?.let { MediaUploadHelper.uriToPart(context, it, "imagen") }
+    )
+
+    suspend fun updateProduct(context: Context, id: String, req: CreateProductRequest, imageUri: Uri?) = api.updateProduct(
+        id,
+        productFields(req.nombre, req.categoria, req.descripcion, req.precioCompra, req.precioVenta, req.stockActual, req.stockMinimo, req.tipo, req.activo),
+        imageUri?.let { MediaUploadHelper.uriToPart(context, it, "imagen") }
+    )
+
+    suspend fun portfolio() = api.barberPortfolio()
+    suspend fun createWork(context: Context, title: String, description: String?, mediaUris: List<Uri>): CreateWorkResponse {
+        val parts = mediaUris.mapNotNull { MediaUploadHelper.uriToPart(context, it, "media[]") }
+        return api.createWork(
+            MediaUploadHelper.textPart(title),
+            description?.let { MediaUploadHelper.textPart(it) },
+            parts
+        )
+    }
+    suspend fun deleteWork(id: String) = api.deleteWork(id)
     suspend fun deleteProduct(id: String) = api.deleteProduct(id)
     suspend fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?) =
         api.registerMovement(RegisterMovementRequest(productId, tipo, cantidad, motivo))

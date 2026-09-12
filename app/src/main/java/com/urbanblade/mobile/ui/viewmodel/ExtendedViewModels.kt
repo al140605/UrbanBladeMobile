@@ -214,16 +214,16 @@ class InventoryViewModel : ViewModel() {
         finally { _busy.value = false }
     }
 
-    fun createProduct(body: CreateProductRequest, onDone: () -> Unit) = viewModelScope.launch {
+    fun createProduct(context: android.content.Context, body: CreateProductRequest, imageUri: android.net.Uri?, onDone: () -> Unit) = viewModelScope.launch {
         _saving.value = true; _error.value = null
-        try { repo.createProduct(body); _message.value = "Producto creado."; onDone(); load() }
+        try { repo.createProduct(context, body, imageUri); _message.value = "Producto creado."; onDone(); load() }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo crear el producto.") }
         finally { _saving.value = false }
     }
 
-    fun updateProduct(id: String, body: UpdateProductRequest, onDone: () -> Unit) = viewModelScope.launch {
+    fun updateProduct(context: android.content.Context, id: String, body: CreateProductRequest, imageUri: android.net.Uri?, onDone: () -> Unit) = viewModelScope.launch {
         _saving.value = true; _error.value = null
-        try { repo.updateProduct(id, body); _message.value = "Producto actualizado."; onDone(); load() }
+        try { repo.updateProduct(context, id, body, imageUri); _message.value = "Producto actualizado."; onDone(); load() }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo actualizar el producto.") }
         finally { _saving.value = false }
     }
@@ -240,6 +240,40 @@ class InventoryViewModel : ViewModel() {
         try { repo.registerMovement(productId, tipo, cantidad, motivo); _message.value = "Movimiento registrado."; onDone(); load() }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo registrar el movimiento.") }
         finally { _saving.value = false }
+    }
+}
+
+class PortfolioViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _portfolio = MutableStateFlow(PortfolioResponse()); val portfolio = _portfolio.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _uploading = MutableStateFlow(false); val uploading = _uploading.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _portfolio.value = repo.portfolio() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu portafolio.") }
+        finally { _busy.value = false }
+    }
+
+    fun upload(context: android.content.Context, title: String, description: String?, media: List<android.net.Uri>, onDone: () -> Unit) = viewModelScope.launch {
+        _uploading.value = true; _error.value = null
+        try {
+            val res = repo.createWork(context, title, description, media)
+            _message.value = res.message
+            onDone()
+            load()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo subir el trabajo.") }
+        finally { _uploading.value = false }
+    }
+
+    fun delete(id: String) = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { repo.deleteWork(id); load() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo eliminar el trabajo.") }
+        finally { _busy.value = false }
     }
 }
 

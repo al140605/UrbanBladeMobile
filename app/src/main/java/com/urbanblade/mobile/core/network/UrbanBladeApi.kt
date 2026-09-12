@@ -2,6 +2,8 @@ package com.urbanblade.mobile.core.network
 
 import com.google.gson.JsonObject
 import com.urbanblade.mobile.data.model.*
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface UrbanBladeApi {
@@ -62,14 +64,30 @@ interface UrbanBladeApi {
 
     @GET("barber/agenda") suspend fun barberAgenda(@QueryMap query: Map<String, String> = emptyMap()): BarberAgendaResponse
     @GET("barber/me") suspend fun barberMe(): JsonObject
-    @GET("barber/portfolio") suspend fun barberPortfolio(): JsonObject
+    @GET("barber/portfolio") suspend fun barberPortfolio(): PortfolioResponse
+    @Multipart
+    @POST("barber/works")
+    suspend fun createWork(
+        @Part("title") title: RequestBody,
+        @Part("description") description: RequestBody?,
+        @Part media: List<MultipartBody.Part>
+    ): CreateWorkResponse
+    @DELETE("barber/works/{id}") suspend fun deleteWork(@Path("id") id: String): MessageResponse
     @GET("barber/schedule") suspend fun barberSchedule(): BarberScheduleResponse
     @PUT("barber/schedule") suspend fun updateBarberSchedule(@Body body: UpdateBarberScheduleRequest): BarberScheduleResponse
 
     @GET("clients") suspend fun clients(): JsonObject
     @GET("inventory/products") suspend fun inventoryProducts(): InventoryResponse
-    @POST("inventory/products") suspend fun createProduct(@Body body: CreateProductRequest): JsonObject
-    @PUT("inventory/products/{id}") suspend fun updateProduct(@Path("id") id: String, @Body body: UpdateProductRequest): JsonObject
+    // Multipart siempre (no solo cuando hay imagen): Laravel valida los
+    // campos de texto igual venga el request como JSON o multipart/form-data,
+    // así que no hace falta duplicar el endpoint -- un solo camino para
+    // crear/editar con o sin imagen.
+    @Multipart
+    @POST("inventory/products")
+    suspend fun createProduct(@PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>, @Part imagen: MultipartBody.Part?): JsonObject
+    @Multipart
+    @PUT("inventory/products/{id}")
+    suspend fun updateProduct(@Path("id") id: String, @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>, @Part imagen: MultipartBody.Part?): JsonObject
     @DELETE("inventory/products/{id}") suspend fun deleteProduct(@Path("id") id: String): MessageResponse
     @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject
     @GET("inventory/low-stock") suspend fun lowStock(): JsonObject

@@ -3,19 +3,22 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.model.CreateProductRequest
 import com.urbanblade.mobile.data.model.InventoryProductRow
-import com.urbanblade.mobile.data.model.UpdateProductRequest
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryViewModel
@@ -31,6 +34,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
     val error by vm.error.collectAsState()
     val isAdmin = user.roles.contains("administrador")
 
+    val context = LocalContext.current
     var categoryFilter by remember { mutableStateOf<String?>(null) }
     var showMovement by remember { mutableStateOf<InventoryProductRow?>(null) }
     var showCreate by remember { mutableStateOf(false) }
@@ -89,6 +93,14 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
             items(visibleProducts) { product ->
                 UrbanCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                        product.imagenUrl?.let { url ->
+                            AsyncImage(
+                                model = url,
+                                contentDescription = null,
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp))
+                            )
+                            Spacer(Modifier.width(10.dp))
+                        }
                         Column(Modifier.weight(1f)) {
                             product.categoria?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
                             Text(product.nombre, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -130,7 +142,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
             initial = null,
             saving = saving,
             onDismiss = { showCreate = false },
-            onSubmit = { req -> vm.createProduct(req) { showCreate = false } }
+            onSubmit = { req, imageUri -> vm.createProduct(context, req, imageUri) { showCreate = false } }
         )
     }
 
@@ -140,12 +152,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
             initial = product,
             saving = saving,
             onDismiss = { showEdit = null },
-            onSubmit = { req ->
-                vm.updateProduct(
-                    product.id,
-                    UpdateProductRequest(req.nombre, req.categoria, req.descripcion, req.precioCompra, req.precioVenta, req.stockActual, req.stockMinimo, req.tipo, req.activo)
-                ) { showEdit = null }
-            }
+            onSubmit = { req, imageUri -> vm.updateProduct(context, product.id, req, imageUri) { showEdit = null } }
         )
     }
 
@@ -210,7 +217,7 @@ private fun ProductFormDialog(
     initial: InventoryProductRow?,
     saving: Boolean,
     onDismiss: () -> Unit,
-    onSubmit: (CreateProductRequest) -> Unit
+    onSubmit: (CreateProductRequest, android.net.Uri?) -> Unit
 ) {
     var nombre by remember { mutableStateOf(initial?.nombre.orEmpty()) }
     var categoria by remember { mutableStateOf(initial?.categoria.orEmpty()) }
@@ -220,6 +227,8 @@ private fun ProductFormDialog(
     var stockActual by remember { mutableStateOf(initial?.stockActual?.toString().orEmpty()) }
     var stockMinimo by remember { mutableStateOf(initial?.stockMinimo?.toString().orEmpty()) }
     var tipo by remember { mutableStateOf(initial?.tipo ?: "venta_cliente") }
+    var imageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val pickImage = rememberSingleImagePicker { imageUri = it }
 
     val valid = nombre.isNotBlank() && categoria.isNotBlank() &&
         precioCompra.toDoubleOrNull() != null && precioVenta.toDoubleOrNull() != null &&
@@ -230,6 +239,13 @@ private fun ProductFormDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val previewModel = imageUri ?: initial?.imagenUrl
+                    if (previewModel != null) {
+                        AsyncImage(model = previewModel, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)))
+                    }
+                    UrbanOutlineButton(text = if (previewModel != null) "Cambiar foto" else "Agregar foto", onClick = pickImage, icon = Icons.Default.Image)
+                }
                 OutlinedTextField(nombre, { nombre = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(categoria, { categoria = it }, label = { Text("Categoría") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(descripcion, { descripcion = it }, label = { Text("Descripción (opcional)") }, modifier = Modifier.fillMaxWidth())
@@ -262,7 +278,8 @@ private fun ProductFormDialog(
                             stockActual = stockActual.toInt(),
                             stockMinimo = stockMinimo.toInt(),
                             tipo = tipo
-                        )
+                        ),
+                        imageUri
                     )
                 }
             ) { Text(if (saving) "Guardando…" else "Guardar") }
