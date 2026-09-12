@@ -67,7 +67,11 @@ interface UrbanBladeApi {
     @PUT("barber/schedule") suspend fun updateBarberSchedule(@Body body: UpdateBarberScheduleRequest): BarberScheduleResponse
 
     @GET("clients") suspend fun clients(): JsonObject
-    @GET("inventory/products") suspend fun inventoryProducts(): JsonObject
+    @GET("inventory/products") suspend fun inventoryProducts(): InventoryResponse
+    @POST("inventory/products") suspend fun createProduct(@Body body: CreateProductRequest): JsonObject
+    @PUT("inventory/products/{id}") suspend fun updateProduct(@Path("id") id: String, @Body body: UpdateProductRequest): JsonObject
+    @DELETE("inventory/products/{id}") suspend fun deleteProduct(@Path("id") id: String): MessageResponse
+    @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject
     @GET("inventory/low-stock") suspend fun lowStock(): JsonObject
     @GET("inventory/movements") suspend fun inventoryMovements(): JsonObject
     @GET("cash-closes") suspend fun cashCloses(): JsonObject

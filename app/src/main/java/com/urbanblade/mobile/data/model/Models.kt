@@ -377,6 +377,61 @@ data class ClientMutationResponse(val success: Boolean = true, val message: Stri
 data class CreateClientRequest(val name: String, val email: String, val telefono: String?, val password: String)
 data class UpdateClientRequest(val name: String?, val email: String?, val telefono: String?, val notas: String?)
 
+// ── Inventario (inventory/products, staff: admin + recepcionista) ────────
+data class InventoryProductRow(
+    val id: String,
+    val nombre: String,
+    val categoria: String? = null,
+    val descripcion: String? = null,
+    val tipo: String? = null,
+    @SerializedName("stock_actual") val stockActual: Int = 0,
+    @SerializedName("stock_minimo") val stockMinimo: Int = 0,
+    @SerializedName("precio_compra") val precioCompra: Double = 0.0,
+    @SerializedName("precio_venta") val precioVenta: Double = 0.0,
+    val activo: Boolean = true,
+    @SerializedName("low_stock") val lowStock: Boolean = false,
+    @SerializedName("pending_restock") val pendingRestock: Boolean = false,
+    @SerializedName("imagen_url") val imagenUrl: String? = null
+)
+data class InventoryStats(val total: Int = 0, @SerializedName("bajo_stock") val bajoStock: Int = 0, @SerializedName("valor_total") val valorTotal: Double = 0.0)
+data class InventoryMeta(
+    @SerializedName("current_page") val currentPage: Int? = null,
+    @SerializedName("last_page") val lastPage: Int? = null,
+    val total: Int? = null,
+    val stats: InventoryStats = InventoryStats(),
+    val categorias: List<String> = emptyList(),
+    val tipos: List<String> = emptyList()
+)
+data class InventoryResponse(val data: List<InventoryProductRow> = emptyList(), val meta: InventoryMeta = InventoryMeta())
+data class CreateProductRequest(
+    val nombre: String,
+    val categoria: String,
+    val descripcion: String?,
+    @SerializedName("precio_compra") val precioCompra: Double,
+    @SerializedName("precio_venta") val precioVenta: Double,
+    @SerializedName("stock_actual") val stockActual: Int,
+    @SerializedName("stock_minimo") val stockMinimo: Int,
+    val tipo: String,
+    val activo: Boolean = true
+)
+data class UpdateProductRequest(
+    val nombre: String?,
+    val categoria: String?,
+    val descripcion: String?,
+    @SerializedName("precio_compra") val precioCompra: Double?,
+    @SerializedName("precio_venta") val precioVenta: Double?,
+    @SerializedName("stock_actual") val stockActual: Int?,
+    @SerializedName("stock_minimo") val stockMinimo: Int?,
+    val tipo: String?,
+    val activo: Boolean?
+)
+data class RegisterMovementRequest(
+    @SerializedName("product_id") val productId: String,
+    val tipo: String,
+    val cantidad: Int,
+    val motivo: String?
+)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

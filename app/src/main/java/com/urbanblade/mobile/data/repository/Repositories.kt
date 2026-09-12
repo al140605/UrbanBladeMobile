@@ -105,4 +105,11 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun updateClient(id: String, name: String?, email: String?, telefono: String?, notas: String?) =
         api.updateClient(id, UpdateClientRequest(name, email, telefono, notas))
     suspend fun deleteClient(id: String) = api.deleteClient(id)
+
+    suspend fun inventoryProducts() = api.inventoryProducts()
+    suspend fun createProduct(body: CreateProductRequest) = api.createProduct(body)
+    suspend fun updateProduct(id: String, body: UpdateProductRequest) = api.updateProduct(id, body)
+    suspend fun deleteProduct(id: String) = api.deleteProduct(id)
+    suspend fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?) =
+        api.registerMovement(RegisterMovementRequest(productId, tipo, cantidad, motivo))
 }

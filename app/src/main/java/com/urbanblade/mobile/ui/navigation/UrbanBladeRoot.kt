@@ -168,7 +168,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         onBack = { nav.popBackStack() }
                     )
                 }
-                module("inventory", "Inventario", "inventory/products", nav)
+                composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
                 module("barber_agenda", "Mi agenda", "barber/agenda", nav)
                 module("barber_portfolio", "Portafolio", "barber/portfolio", nav)

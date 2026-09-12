@@ -199,6 +199,50 @@ class ClientsViewModel : ViewModel() {
     }
 }
 
+class InventoryViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _products = MutableStateFlow(InventoryResponse()); val products = _products.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _products.value = repo.inventoryProducts() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el inventario.") }
+        finally { _busy.value = false }
+    }
+
+    fun createProduct(body: CreateProductRequest, onDone: () -> Unit) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try { repo.createProduct(body); _message.value = "Producto creado."; onDone(); load() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo crear el producto.") }
+        finally { _saving.value = false }
+    }
+
+    fun updateProduct(id: String, body: UpdateProductRequest, onDone: () -> Unit) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try { repo.updateProduct(id, body); _message.value = "Producto actualizado."; onDone(); load() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo actualizar el producto.") }
+        finally { _saving.value = false }
+    }
+
+    fun deleteProduct(id: String) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try { repo.deleteProduct(id); load() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo eliminar el producto.") }
+        finally { _saving.value = false }
+    }
+
+    fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?, onDone: () -> Unit) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try { repo.registerMovement(productId, tipo, cantidad, motivo); _message.value = "Movimiento registrado."; onDone(); load() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo registrar el movimiento.") }
+        finally { _saving.value = false }
+    }
+}
+
 class GenericModuleViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow<JsonObject?>(null); val data = _data.asStateFlow()
