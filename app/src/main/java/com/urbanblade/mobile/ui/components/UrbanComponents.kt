@@ -33,9 +33,9 @@ fun UrbanBladeBackground(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFF080808),
+                        UrbanColors.GradientTop,
                         UrbanColors.Background,
-                        Color(0xFF0E0D09)
+                        UrbanColors.GradientBottom
                     )
                 )
             ),
