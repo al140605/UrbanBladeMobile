@@ -85,7 +85,8 @@ interface UrbanBladeApi {
         @QueryMap query: Map<String, String> = emptyMap()
     ): ReportData
     @GET("logs") suspend fun logs(@QueryMap query: Map<String, String> = emptyMap()): LogsResponse
-    @GET("campaigns") suspend fun campaigns(): JsonObject
+    @GET("campaigns") suspend fun campaigns(): CampaignsResponse
+    @POST("campaigns") suspend fun createCampaign(@Body body: CreateCampaignRequest): MessageResponse
     @GET("raffles") suspend fun raffles(): RaffleResponse
     @GET("reviews") suspend fun reviews(@QueryMap query: Map<String, String> = emptyMap()): ReviewsResponse
     @GET("users") suspend fun users(@QueryMap query: Map<String, String> = emptyMap()): SystemUsersResponse

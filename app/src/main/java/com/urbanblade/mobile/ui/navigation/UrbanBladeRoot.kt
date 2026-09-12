@@ -177,7 +177,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("logs") { LogsScreen(onBack = { nav.popBackStack() }) }
                 composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
                 module("insights", "Insights IA", "admin/predictions/insights", nav)
-                module("campaigns", "Campañas", "campaigns", nav)
+                composable("campaigns") { CampaignsScreen(onBack = { nav.popBackStack() }) }
                 composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
                 composable("reviews") { ReviewsScreen(onBack = { nav.popBackStack() }) }
                 composable("users") { UsersScreen(onBack = { nav.popBackStack() }) }

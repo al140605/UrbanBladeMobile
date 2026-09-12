@@ -166,4 +166,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     }
     suspend fun updateAppointmentStatus(code: String, estado: String) =
         api.updateAppointmentStatus(code, com.google.gson.JsonObject().apply { addProperty("estado", estado) })
+
+    suspend fun campaigns() = api.campaigns()
+    suspend fun createCampaign(body: CreateCampaignRequest) = api.createCampaign(body)
 }

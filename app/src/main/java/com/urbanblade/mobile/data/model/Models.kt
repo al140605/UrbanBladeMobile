@@ -620,6 +620,39 @@ data class BarberAgendaResponse(
     val stats: AgendaStats = AgendaStats()
 )
 
+// ── Campañas (campaigns, admin-only) ─────────────────────────────────────
+data class CampaignRow(
+    val id: String,
+    val titulo: String? = null,
+    val cuerpo: String? = null,
+    @SerializedName("cta_label") val ctaLabel: String? = null,
+    @SerializedName("cta_url") val ctaUrl: String? = null,
+    val segmento: String? = null,
+    val destinatarios: Int = 0,
+    val estado: String? = null,
+    @SerializedName("programada_para") val programadaPara: String? = null,
+    @SerializedName("enviada_en") val enviadaEn: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val opens: Int = 0,
+    val clicks: Int = 0,
+    @SerializedName("open_rate") val openRate: Double = 0.0,
+    @SerializedName("click_rate") val clickRate: Double = 0.0
+)
+data class CampaignsResponse(
+    val levels: Map<String, String> = emptyMap(),
+    @SerializedName("segment_counts") val segmentCounts: Map<String, Int> = emptyMap(),
+    val data: List<CampaignRow> = emptyList()
+)
+data class CreateCampaignRequest(
+    val titulo: String,
+    val cuerpo: String,
+    @SerializedName("cta_label") val ctaLabel: String?,
+    @SerializedName("cta_url") val ctaUrl: String?,
+    val segmento: String,
+    val modo: String,
+    @SerializedName("programada_para") val programadaPara: String?
+)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

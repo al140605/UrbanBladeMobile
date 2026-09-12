@@ -243,6 +243,33 @@ class InventoryViewModel : ViewModel() {
     }
 }
 
+class CampaignsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _campaigns = MutableStateFlow(CampaignsResponse()); val campaigns = _campaigns.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _sending = MutableStateFlow(false); val sending = _sending.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _campaigns.value = repo.campaigns() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar las campañas.") }
+        finally { _busy.value = false }
+    }
+
+    fun create(body: CreateCampaignRequest, onDone: () -> Unit) = viewModelScope.launch {
+        _sending.value = true; _error.value = null
+        try {
+            val res = repo.createCampaign(body)
+            _message.value = res.message
+            onDone()
+            load()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo crear la campaña.") }
+        finally { _sending.value = false }
+    }
+}
+
 class BarberAgendaViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _agenda = MutableStateFlow(BarberAgendaResponse()); val agenda = _agenda.asStateFlow()
