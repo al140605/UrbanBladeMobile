@@ -14,7 +14,7 @@ interface UrbanBladeApi {
     @POST("auth/refresh-token") suspend fun refreshToken(): LoginResponse
 
     @GET("dashboard") suspend fun dashboard(): DashboardResponse
-    @GET("analytics") suspend fun analytics(): JsonObject
+    @GET("analytics") suspend fun analytics(): AnalyticsResponse
 
     @GET("barbershop") suspend fun barbershop(): JsonObject
     @GET("services") suspend fun services(): ApiList<ServiceItem>

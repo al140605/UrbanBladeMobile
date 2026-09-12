@@ -149,7 +149,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("more") { MoreScreen(user = user, onNavigate = { nav.navigate(it) }) }
                 composable("profile") { ProfileScreen(user = user, onLogout = { authViewModel.logout() }) }
 
-                module("analytics", "Analítica", "analytics", nav)
+                composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
                 module("social", "Muro social", "social/feed", nav)
                 composable("clients") {
                     ClientsListScreen(

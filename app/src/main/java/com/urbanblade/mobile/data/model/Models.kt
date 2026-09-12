@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.data.model
 
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 
@@ -489,6 +490,62 @@ data class SystemUsersResponse(
 data class SystemUserMutationResponse(val message: String? = null)
 data class CreateUserRequest(val name: String, val email: String, val password: String, @SerializedName("password_confirmation") val passwordConfirmation: String, val role: String)
 data class UpdateUserRequest(val name: String, val email: String, val password: String?, @SerializedName("password_confirmation") val passwordConfirmation: String?, val role: String)
+
+// ── Analítica (analytics) ────────────────────────────────────────────────
+data class AnalyticsGraph(val tipo: String? = null, val labels: List<String> = emptyList(), val valores: List<JsonElement> = emptyList())
+data class AnalyticsKpi(
+    val label: String? = null,
+    val value: String? = null,
+    val detail: String? = null,
+    val tone: String? = null,
+    val type: String? = null,
+    val graph: AnalyticsGraph? = null,
+    val message: String? = null
+)
+data class AnalyticsInsightItem(
+    val tipo: String? = null,
+    val titulo: String? = null,
+    val mensaje: String? = null,
+    @SerializedName("valor_destacado") val valorDestacado: String? = null,
+    val color: String? = null,
+    val grafica: AnalyticsGraph? = null,
+    @SerializedName("visual_type") val visualType: String? = null,
+    @SerializedName("has_renderable_visual") val hasRenderableVisual: Boolean = false,
+    @SerializedName("generado_en") val generadoEn: String? = null
+)
+data class AnalyticsSection(
+    val titulo: String? = null,
+    val subtitulo: String? = null,
+    val intro: String? = null,
+    val acento: String? = null,
+    val insights: List<AnalyticsInsightItem> = emptyList()
+)
+data class AnalyticsSecciones(
+    val resumen: AnalyticsSection = AnalyticsSection(),
+    val operacion: AnalyticsSection = AnalyticsSection(),
+    val clientes: AnalyticsSection = AnalyticsSection(),
+    val prediccion: AnalyticsSection = AnalyticsSection()
+)
+data class OperationalKpi(val label: String? = null, val value: Double = 0.0, val detail: String? = null)
+data class OperationalAction(val label: String? = null, val detail: String? = null)
+data class OperationalSummary(val kpis: List<OperationalKpi> = emptyList(), val actions: List<OperationalAction> = emptyList())
+data class SparkFlowStep(
+    val titulo: String? = null,
+    val descripcion: String? = null,
+    val color: String? = null,
+    val count: Int = 0,
+    val total: Int = 1,
+    val progress: Double = 0.0
+)
+data class AnalyticsResponse(
+    @SerializedName("rol_label") val rolLabel: String? = null,
+    val operational: OperationalSummary? = null,
+    val kpis: List<AnalyticsKpi> = emptyList(),
+    @SerializedName("ultima_actualizacion") val ultimaActualizacion: String? = null,
+    val secciones: AnalyticsSecciones = AnalyticsSecciones(),
+    @SerializedName("diagnostico_insights") val diagnosticoInsights: List<AnalyticsInsightItem> = emptyList(),
+    @SerializedName("spark_flow") val sparkFlow: List<SparkFlowStep> = emptyList()
+)
 
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)

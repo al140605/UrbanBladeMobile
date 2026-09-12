@@ -243,6 +243,19 @@ class InventoryViewModel : ViewModel() {
     }
 }
 
+class AnalyticsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _data = MutableStateFlow(AnalyticsResponse()); val data = _data.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _data.value = repo.analytics() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar la analítica.") }
+        finally { _busy.value = false }
+    }
+}
+
 class ReviewsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _reviews = MutableStateFlow(ReviewsResponse()); val reviews = _reviews.asStateFlow()
