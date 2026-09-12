@@ -243,6 +243,28 @@ class InventoryViewModel : ViewModel() {
     }
 }
 
+class BarberAgendaViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _agenda = MutableStateFlow(BarberAgendaResponse()); val agenda = _agenda.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _updating = MutableStateFlow<String?>(null); val updating = _updating.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load(period: String = "day", estado: String? = null, offset: Int = 0) = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _agenda.value = repo.barberAgenda(period, estado, offset) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu agenda.") }
+        finally { _busy.value = false }
+    }
+
+    fun updateStatus(code: String, estado: String, period: String, filtroEstado: String?, offset: Int) = viewModelScope.launch {
+        _updating.value = code; _error.value = null
+        try { repo.updateAppointmentStatus(code, estado); load(period, filtroEstado, offset) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo actualizar la cita.") }
+        finally { _updating.value = null }
+    }
+}
+
 class ReportsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _manifest = MutableStateFlow(ReportManifest()); val manifest = _manifest.asStateFlow()

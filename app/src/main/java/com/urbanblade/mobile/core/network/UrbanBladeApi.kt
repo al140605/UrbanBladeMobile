@@ -60,7 +60,7 @@ interface UrbanBladeApi {
     @GET("chatbot/history") suspend fun chatbotHistory(): JsonObject
     @POST("chatbot/clear-history") suspend fun clearChatbot(): MessageResponse
 
-    @GET("barber/agenda") suspend fun barberAgenda(): JsonObject
+    @GET("barber/agenda") suspend fun barberAgenda(@QueryMap query: Map<String, String> = emptyMap()): BarberAgendaResponse
     @GET("barber/me") suspend fun barberMe(): JsonObject
     @GET("barber/portfolio") suspend fun barberPortfolio(): JsonObject
     @GET("barber/schedule") suspend fun barberSchedule(): BarberScheduleResponse

@@ -94,6 +94,8 @@ data class AppointmentService(
     @SerializedName("duracion_min") val duracionMin: Int? = null
 )
 
+data class AppointmentClientUser(val name: String? = null)
+data class AppointmentClientRef(val id: String? = null, val user: AppointmentClientUser? = null)
 data class AppointmentRow(
     val id: String,
     val code: String? = null,
@@ -105,6 +107,7 @@ data class AppointmentRow(
     @SerializedName("precio_cobrado") val precioCobrado: Double? = null,
     @SerializedName("has_payment") val hasPayment: Boolean = false,
     @SerializedName("is_chargeable") val isChargeable: Boolean = false,
+    val client: AppointmentClientRef? = null,
     val barber: AppointmentBarber? = null,
     val service: AppointmentService? = null
 )
@@ -593,6 +596,29 @@ data class UpdateSettingRequest(
 )
 data class MaintenanceToggleResponse(val message: String? = null, val data: MaintenanceStatus = MaintenanceStatus())
 data class MaintenanceStatus(@SerializedName("maintenance_mode") val maintenanceMode: Boolean = false)
+
+// ── Agenda de barbero (barber/agenda) ────────────────────────────────────
+data class AgendaRange(val start: String? = null, val end: String? = null, val label: String? = null)
+data class AgendaStats(
+    @SerializedName("completed_count") val completedCount: Int = 0,
+    @SerializedName("income_total") val incomeTotal: Double = 0.0,
+    val productivity: Int = 0,
+    @SerializedName("total_period") val totalPeriod: Int = 0,
+    @SerializedName("pending_period") val pendingPeriod: Int = 0,
+    @SerializedName("confirmed_period") val confirmedPeriod: Int = 0,
+    @SerializedName("in_process_period") val inProcessPeriod: Int = 0,
+    @SerializedName("completed_period") val completedPeriod: Int = 0,
+    @SerializedName("cancelled_period") val cancelledPeriod: Int = 0,
+    @SerializedName("no_show_period") val noShowPeriod: Int = 0
+)
+data class BarberAgendaResponse(
+    val data: List<AppointmentRow> = emptyList(),
+    val period: String = "day",
+    val estado: String? = null,
+    val offset: Int = 0,
+    val range: AgendaRange = AgendaRange(),
+    val stats: AgendaStats = AgendaStats()
+)
 
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)

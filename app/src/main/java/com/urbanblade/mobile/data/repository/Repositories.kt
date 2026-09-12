@@ -155,4 +155,15 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun settings() = api.settings().data
     suspend fun updateSettings(body: UpdateSettingRequest) = api.updateSettings(body).data
     suspend fun toggleMaintenance() = api.toggleMaintenance()
+
+    suspend fun barberAgenda(period: String, estado: String?, offset: Int): BarberAgendaResponse {
+        val query = buildMap {
+            put("period", period)
+            put("offset", offset.toString())
+            if (!estado.isNullOrBlank()) put("estado", estado)
+        }
+        return api.barberAgenda(query)
+    }
+    suspend fun updateAppointmentStatus(code: String, estado: String) =
+        api.updateAppointmentStatus(code, com.google.gson.JsonObject().apply { addProperty("estado", estado) })
 }
