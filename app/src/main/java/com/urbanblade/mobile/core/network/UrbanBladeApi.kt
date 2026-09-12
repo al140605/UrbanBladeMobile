@@ -62,19 +62,21 @@ interface UrbanBladeApi {
     @GET("barber/agenda") suspend fun barberAgenda(): JsonObject
     @GET("barber/me") suspend fun barberMe(): JsonObject
     @GET("barber/portfolio") suspend fun barberPortfolio(): JsonObject
-    @GET("barber/schedule") suspend fun barberSchedule(): JsonObject
+    @GET("barber/schedule") suspend fun barberSchedule(): BarberScheduleResponse
+    @PUT("barber/schedule") suspend fun updateBarberSchedule(@Body body: UpdateBarberScheduleRequest): BarberScheduleResponse
 
     @GET("clients") suspend fun clients(): JsonObject
     @GET("inventory/products") suspend fun inventoryProducts(): JsonObject
     @GET("inventory/low-stock") suspend fun lowStock(): JsonObject
     @GET("inventory/movements") suspend fun inventoryMovements(): JsonObject
     @GET("cash-closes") suspend fun cashCloses(): JsonObject
-    @GET("cash-closes/preview") suspend fun cashClosePreview(): JsonObject
+    @GET("cash-closes/preview") suspend fun cashClosePreview(): CashClosePreviewResponse
+    @POST("cash-closes") suspend fun registerCashClose(@Body body: RegisterCashCloseRequest): JsonObject
 
     @GET("reports") suspend fun reports(): JsonObject
     @GET("logs") suspend fun logs(): JsonObject
     @GET("campaigns") suspend fun campaigns(): JsonObject
-    @GET("raffles") suspend fun raffles(): JsonObject
+    @GET("raffles") suspend fun raffles(): RaffleResponse
     @GET("reviews") suspend fun reviews(): JsonObject
     @GET("users") suspend fun users(): JsonObject
     @GET("settings") suspend fun settings(): JsonObject
@@ -83,9 +85,9 @@ interface UrbanBladeApi {
     @GET("admin/dashboard/appointments") suspend fun adminAppointments(): JsonObject
     @GET("admin/dashboard/revenue") suspend fun adminRevenue(): JsonObject
     @GET("admin/dashboard/alerts") suspend fun adminAlerts(): JsonObject
-    @GET("admin/dashboard/metrics") suspend fun adminMetrics(): JsonObject
+    @GET("admin/dashboard/metrics") suspend fun adminMetrics(): AdminMetricsResponse
     @GET("admin/predictions/insights") suspend fun predictionInsights(): JsonObject
-    @GET("admin/system/status") suspend fun systemStatus(): JsonObject
+    @GET("admin/system/status") suspend fun systemStatus(): SystemStatusResponse
     @GET("admin/clients") suspend fun adminClients(): JsonObject
     @GET("admin/inventory/summary") suspend fun adminInventorySummary(): JsonObject
 

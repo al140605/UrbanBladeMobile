@@ -71,6 +71,81 @@ class NotificationsViewModel : ViewModel() {
     fun readAll()=viewModelScope.launch{try{repo.markAllNotificationsRead();load()}catch(e:Exception){_error.value=e.toFriendlyMessage("No se pudieron marcar.")}}
 }
 
+class BarberScheduleViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _schedules = MutableStateFlow<List<BarberScheduleDay>>(emptyList()); val schedules = _schedules.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _schedules.value = repo.barberSchedule() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu horario.") }
+        finally { _busy.value = false }
+    }
+
+    fun save(schedules: List<BarberScheduleDay>) = viewModelScope.launch {
+        _saving.value = true; _error.value = null; _message.value = null
+        try {
+            _schedules.value = repo.updateBarberSchedule(schedules)
+            _message.value = "Horario actualizado."
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo guardar tu horario.") }
+        finally { _saving.value = false }
+    }
+}
+
+class CashCloseViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _preview = MutableStateFlow(CashClosePreview()); val preview = _preview.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _closing = MutableStateFlow(false); val closing = _closing.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _preview.value = repo.cashClosePreview() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el corte de caja.") }
+        finally { _busy.value = false }
+    }
+
+    fun close(efectivoContado: Double, notas: String?) = viewModelScope.launch {
+        _closing.value = true; _error.value = null; _message.value = null
+        try {
+            repo.registerCashClose(efectivoContado, notas)
+            _message.value = "Caja cerrada correctamente."
+            load()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cerrar la caja.") }
+        finally { _closing.value = false }
+    }
+}
+
+class AdminMetricsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _metrics = MutableStateFlow(AdminMetrics()); val metrics = _metrics.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _metrics.value = repo.adminMetrics() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar las métricas.") } finally { _busy.value = false } }
+}
+
+class SystemStatusViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _status = MutableStateFlow<SystemStatusResponse?>(null); val status = _status.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _status.value = repo.systemStatus() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el estado del sistema.") } finally { _busy.value = false } }
+}
+
+class RafflesViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _raffles = MutableStateFlow(RaffleResponse()); val raffles = _raffles.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _raffles.value = repo.raffles() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los sorteos.") } finally { _busy.value = false } }
+}
+
 class GenericModuleViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow<JsonObject?>(null); val data = _data.asStateFlow()

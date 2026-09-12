@@ -239,3 +239,105 @@ data class PendingPaymentRow(
 data class PendingPaymentsResponse(val data: List<PendingPaymentRow> = emptyList())
 data class RejectPaymentRequest(@SerializedName("motivo_rechazo") val motivo: String)
 data class StripeIntentRequest(@SerializedName("appointment_id") val appointmentId: String, @SerializedName("puntos_canjeados") val puntos: Int = 0)
+
+// ── Horario de barbero ──────────────────────────────────────────────────
+data class BarberScheduleDay(
+    @SerializedName("day_of_week") val dayOfWeek: String,
+    @SerializedName("start_time") val startTime: String,
+    @SerializedName("end_time") val endTime: String,
+    @SerializedName("is_active") val isActive: Boolean = true
+)
+data class BarberScheduleResponse(val schedules: List<BarberScheduleDay> = emptyList())
+data class UpdateBarberScheduleRequest(val schedules: List<BarberScheduleDay>)
+
+// ── Corte de caja ────────────────────────────────────────────────────────
+data class CashCloseRecord(
+    val id: String? = null,
+    @SerializedName("efectivo_contado") val efectivoContado: Double = 0.0,
+    val diferencia: Double = 0.0,
+    val notas: String? = null,
+    @SerializedName("cerrado_por_nombre") val cerradoPorNombre: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null
+)
+data class CashClosePreview(
+    val fecha: String? = null,
+    val esperado: Map<String, Double> = emptyMap(),
+    @SerializedName("esperado_total") val esperadoTotal: Double = 0.0,
+    @SerializedName("efectivo_esperado") val efectivoEsperado: Double = 0.0,
+    val propinas: Double = 0.0,
+    val pagos: Int = 0,
+    val pedidos: Int = 0,
+    val paquetes: Int = 0,
+    @SerializedName("gift_cards") val giftCards: Int = 0,
+    val membresias: Int = 0,
+    val cierre: CashCloseRecord? = null
+)
+data class CashClosePreviewResponse(val data: CashClosePreview = CashClosePreview())
+data class RegisterCashCloseRequest(
+    @SerializedName("efectivo_contado") val efectivoContado: Double,
+    val notas: String? = null
+)
+
+// ── Métricas de admin ────────────────────────────────────────────────────
+data class AdminMetrics(
+    val totalClients: Int = 0,
+    val activeBarbers: Int = 0,
+    val cancellationRate: Double = 0.0,
+    val averageRevenuePerAppointment: Double = 0.0,
+    val totalRevenue: Double = 0.0
+)
+data class AdminMetricsResponse(val metrics: AdminMetrics = AdminMetrics())
+
+// ── Estado del sistema ───────────────────────────────────────────────────
+data class SystemAppInfo(
+    val name: String? = null,
+    val env: String? = null,
+    @SerializedName("laravel_version") val laravelVersion: String? = null,
+    @SerializedName("php_version") val phpVersion: String? = null
+)
+data class SystemServiceStatus(
+    val status: String? = null,
+    @SerializedName("latency_ms") val latencyMs: Int? = null,
+    val error: String? = null
+)
+data class SystemQueueStatus(
+    val connection: String? = null,
+    val pending: Int? = null,
+    val failed: Int? = null
+)
+data class SystemScheduledTask(
+    val name: String? = null,
+    val expression: String? = null,
+    val status: String? = null,
+    @SerializedName("ran_at") val ranAt: String? = null,
+    @SerializedName("runtime_ms") val runtimeMs: Int? = null,
+    val error: String? = null
+)
+data class SystemStatusResponse(
+    val app: SystemAppInfo = SystemAppInfo(),
+    val database: SystemServiceStatus = SystemServiceStatus(),
+    val redis: SystemServiceStatus = SystemServiceStatus(),
+    val queue: SystemQueueStatus = SystemQueueStatus(),
+    @SerializedName("scheduled_tasks") val scheduledTasks: List<SystemScheduledTask> = emptyList()
+)
+
+// ── Sorteos ──────────────────────────────────────────────────────────────
+data class RaffleClientUser(val name: String? = null)
+data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)
+data class RaffleRow(
+    val id: String,
+    val mes: String? = null,
+    val premio: String? = null,
+    @SerializedName("nivel_ganador") val nivelGanador: String? = null,
+    @SerializedName("vence_en") val venceEn: String? = null,
+    @SerializedName("reclamado_en") val reclamadoEn: String? = null,
+    val client: RaffleClient? = null,
+    @SerializedName("is_claimed") val isClaimed: Boolean = false,
+    @SerializedName("is_expired") val isExpired: Boolean = false
+)
+data class RaffleStats(val total: Int = 0, val reclamados: Int = 0, val vigentes: Int = 0)
+data class RaffleResponse(
+    val data: List<RaffleRow> = emptyList(),
+    val meta: JsonObject? = null,
+    val stats: RaffleStats = RaffleStats()
+)

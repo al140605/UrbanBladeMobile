@@ -73,4 +73,16 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun socialFeed() = api.socialFeed()
     suspend fun chatbot(message: String) = api.chatbot(com.google.gson.JsonObject().apply { addProperty("message", message) })
     suspend fun module(url: String, query: Map<String, String> = emptyMap()) = api.genericGet(url, query)
+
+    suspend fun barberSchedule() = api.barberSchedule().schedules
+    suspend fun updateBarberSchedule(schedules: List<BarberScheduleDay>) =
+        api.updateBarberSchedule(UpdateBarberScheduleRequest(schedules)).schedules
+
+    suspend fun cashClosePreview() = api.cashClosePreview().data
+    suspend fun registerCashClose(efectivoContado: Double, notas: String?) =
+        api.registerCashClose(RegisterCashCloseRequest(efectivoContado, notas))
+
+    suspend fun adminMetrics() = api.adminMetrics().metrics
+    suspend fun systemStatus() = api.systemStatus()
+    suspend fun raffles() = api.raffles()
 }

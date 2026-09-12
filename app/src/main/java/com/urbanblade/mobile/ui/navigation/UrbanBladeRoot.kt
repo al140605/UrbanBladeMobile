@@ -151,20 +151,20 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 module("social", "Muro social", "social/feed", nav)
                 module("clients", "Clientes", if (user.roles.contains("administrador")) "admin/clients" else "clients", nav)
                 module("inventory", "Inventario", "inventory/products", nav)
-                module("cash", "Corte de caja", "cash-closes/preview", nav)
+                composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
                 module("barber_agenda", "Mi agenda", "barber/agenda", nav)
                 module("barber_portfolio", "Portafolio", "barber/portfolio", nav)
-                module("barber_schedule", "Mi horario", "barber/schedule", nav)
+                composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }
                 module("reports", "Reportes", "reports", nav)
                 module("logs", "Logs", "logs", nav)
-                module("admin_metrics", "Métricas del negocio", "admin/dashboard/metrics", nav)
+                composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
                 module("insights", "Insights IA", "admin/predictions/insights", nav)
                 module("campaigns", "Campañas", "campaigns", nav)
-                module("raffles", "Sorteos", "raffles", nav)
+                composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
                 module("reviews", "Reseñas", "reviews", nav)
                 module("users", "Usuarios", "users", nav)
                 module("settings", "Configuración", "settings", nav)
-                module("system", "Estado del sistema", "admin/system/status", nav)
+                composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
             }
         }
     }
