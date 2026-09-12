@@ -322,6 +322,61 @@ data class SystemStatusResponse(
     @SerializedName("scheduled_tasks") val scheduledTasks: List<SystemScheduledTask> = emptyList()
 )
 
+// ── Clientes (admin/clients) ─────────────────────────────────────────────
+data class ClientRow(
+    val id: String,
+    val slug: String? = null,
+    val name: String? = null,
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    val email: String? = null,
+    val telefono: String? = null,
+    val segment: String? = null,
+    val totalAppointments: Int = 0,
+    val totalSpent: Double = 0.0,
+    val lastAppointment: String? = null,
+    val joinedAt: String? = null
+)
+data class ClientsResponse(
+    val success: Boolean = true,
+    val data: List<ClientRow> = emptyList(),
+    val total: Int? = null,
+    @SerializedName("current_page") val currentPage: Int? = null,
+    @SerializedName("last_page") val lastPage: Int? = null
+)
+data class ClientAppointmentRow(
+    val id: String,
+    val code: String? = null,
+    val fecha: String? = null,
+    @SerializedName("hora_inicio") val horaInicio: String? = null,
+    val barber: String? = null,
+    val service: String? = null,
+    val precio: Double? = null,
+    val estado: String? = null
+)
+data class ClientDetail(
+    val id: String,
+    val slug: String? = null,
+    val name: String? = null,
+    val email: String? = null,
+    val telefono: String? = null,
+    val segment: String? = null,
+    val nivel: String? = null,
+    val puntos: Int = 0,
+    val notas: String? = null,
+    val joinedAt: String? = null,
+    val totalAppointments: Int = 0,
+    val totalSpent: Double = 0.0,
+    val averageSpent: Double = 0.0,
+    val lastAppointment: String? = null,
+    val daysSinceLastAppointment: Int? = null,
+    val preferredBarber: String? = null,
+    val appointments: List<ClientAppointmentRow> = emptyList()
+)
+data class ClientDetailResponse(val success: Boolean = true, val data: ClientDetail? = null)
+data class ClientMutationResponse(val success: Boolean = true, val message: String? = null, val data: ClientRow? = null)
+data class CreateClientRequest(val name: String, val email: String, val telefono: String?, val password: String)
+data class UpdateClientRequest(val name: String?, val email: String?, val telefono: String?, val notas: String?)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

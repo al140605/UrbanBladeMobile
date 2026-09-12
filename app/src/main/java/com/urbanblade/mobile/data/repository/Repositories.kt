@@ -91,4 +91,18 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun adminMetrics() = api.adminMetrics().metrics
     suspend fun systemStatus() = api.systemStatus()
     suspend fun raffles() = api.raffles()
+
+    suspend fun clients(search: String? = null, segment: String? = null): ClientsResponse {
+        val query = buildMap {
+            if (!search.isNullOrBlank()) put("search", search)
+            if (!segment.isNullOrBlank()) put("segment", segment)
+        }
+        return api.adminClients(query)
+    }
+    suspend fun clientDetail(id: String) = api.adminClientDetail(id).data
+    suspend fun createClient(name: String, email: String, telefono: String?, password: String) =
+        api.createClient(CreateClientRequest(name, email, telefono, password))
+    suspend fun updateClient(id: String, name: String?, email: String?, telefono: String?, notas: String?) =
+        api.updateClient(id, UpdateClientRequest(name, email, telefono, notas))
+    suspend fun deleteClient(id: String) = api.deleteClient(id)
 }

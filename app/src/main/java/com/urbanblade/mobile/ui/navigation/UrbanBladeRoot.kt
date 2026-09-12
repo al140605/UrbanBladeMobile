@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanBladeBackground
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
@@ -149,7 +151,23 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
 
                 module("analytics", "Analítica", "analytics", nav)
                 module("social", "Muro social", "social/feed", nav)
-                module("clients", "Clientes", if (user.roles.contains("administrador")) "admin/clients" else "clients", nav)
+                composable("clients") {
+                    ClientsListScreen(
+                        user = user,
+                        onClientClick = { id -> nav.navigate("client_detail/$id") },
+                        onBack = { nav.popBackStack() }
+                    )
+                }
+                composable(
+                    "client_detail/{id}",
+                    arguments = listOf(navArgument("id") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    ClientDetailScreen(
+                        user = user,
+                        clientId = backStackEntry.arguments?.getString("id").orEmpty(),
+                        onBack = { nav.popBackStack() }
+                    )
+                }
                 module("inventory", "Inventario", "inventory/products", nav)
                 composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
                 module("barber_agenda", "Mi agenda", "barber/agenda", nav)

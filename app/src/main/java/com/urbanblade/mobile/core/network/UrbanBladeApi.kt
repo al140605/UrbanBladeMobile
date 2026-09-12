@@ -89,7 +89,11 @@ interface UrbanBladeApi {
     @GET("admin/dashboard/metrics") suspend fun adminMetrics(): AdminMetricsResponse
     @GET("admin/predictions/insights") suspend fun predictionInsights(): JsonObject
     @GET("admin/system/status") suspend fun systemStatus(): SystemStatusResponse
-    @GET("admin/clients") suspend fun adminClients(): JsonObject
+    @GET("admin/clients") suspend fun adminClients(@QueryMap query: Map<String, String> = emptyMap()): ClientsResponse
+    @GET("admin/clients/{id}") suspend fun adminClientDetail(@Path("id") id: String): ClientDetailResponse
+    @POST("admin/clients") suspend fun createClient(@Body body: CreateClientRequest): ClientMutationResponse
+    @PUT("admin/clients/{id}") suspend fun updateClient(@Path("id") id: String, @Body body: UpdateClientRequest): ClientMutationResponse
+    @DELETE("admin/clients/{id}") suspend fun deleteClient(@Path("id") id: String): MessageResponse
     @GET("admin/inventory/summary") suspend fun adminInventorySummary(): JsonObject
 
     @GET suspend fun genericGet(@Url url: String, @QueryMap query: Map<String, String> = emptyMap()): JsonObject

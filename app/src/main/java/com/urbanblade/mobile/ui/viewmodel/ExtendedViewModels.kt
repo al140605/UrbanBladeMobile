@@ -146,6 +146,59 @@ class RafflesViewModel : ViewModel() {
     fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _raffles.value = repo.raffles() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los sorteos.") } finally { _busy.value = false } }
 }
 
+class ClientsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _clients = MutableStateFlow(ClientsResponse()); val clients = _clients.asStateFlow()
+    private val _detail = MutableStateFlow<ClientDetail?>(null); val detail = _detail.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load(search: String? = null, segment: String? = null) = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _clients.value = repo.clients(search, segment) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los clientes.") }
+        finally { _busy.value = false }
+    }
+
+    fun loadDetail(id: String) = viewModelScope.launch {
+        _busy.value = true; _error.value = null; _detail.value = null
+        try { _detail.value = repo.clientDetail(id) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el cliente.") }
+        finally { _busy.value = false }
+    }
+
+    fun create(name: String, email: String, telefono: String?, password: String, onDone: () -> Unit) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try {
+            repo.createClient(name, email, telefono, password)
+            _message.value = "Cliente creado."
+            onDone()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo crear el cliente.") }
+        finally { _saving.value = false }
+    }
+
+    fun update(id: String, name: String?, email: String?, telefono: String?, notas: String?) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try {
+            repo.updateClient(id, name, email, telefono, notas)
+            _message.value = "Cliente actualizado."
+            loadDetail(id)
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo actualizar el cliente.") }
+        finally { _saving.value = false }
+    }
+
+    fun delete(id: String, onDone: () -> Unit) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try {
+            repo.deleteClient(id)
+            onDone()
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo eliminar el cliente.") }
+        finally { _saving.value = false }
+    }
+}
+
 class GenericModuleViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow<JsonObject?>(null); val data = _data.asStateFlow()
