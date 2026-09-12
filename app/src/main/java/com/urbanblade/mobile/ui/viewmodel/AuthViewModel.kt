@@ -52,6 +52,20 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun loginWithGoogle(idToken: String) {
+        if (_busy.value) return
+        viewModelScope.launch {
+            _busy.value = true
+            _error.value = null
+            try {
+                val user = repository.googleLogin(idToken)
+                _state.value = AuthState.Authenticated(user)
+            } catch (e: Exception) {
+                _error.value = e.toFriendlyMessage("No se pudo iniciar sesión con Google.")
+            } finally { _busy.value = false }
+        }
+    }
+
     fun register(name: String, email: String, password: String, confirmation: String) {
         if (_busy.value) return
         if (password != confirmation) {

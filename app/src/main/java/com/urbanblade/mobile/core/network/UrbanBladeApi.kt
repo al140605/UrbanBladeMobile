@@ -8,6 +8,7 @@ interface UrbanBladeApi {
     @POST("auth/login") suspend fun login(@Body body: LoginRequest): LoginResponse
     @POST("auth/register") suspend fun register(@Body body: RegisterRequest): LoginResponse
     @POST("auth/forgot-password") suspend fun forgotPassword(@Body body: ForgotPasswordRequest): MessageResponse
+    @POST("auth/google/token") suspend fun googleLogin(@Body body: GoogleLoginRequest): LoginResponse
     @GET("auth/me") suspend fun me(): MeResponse
     @POST("auth/logout") suspend fun logout(): MessageResponse?
     @POST("auth/refresh-token") suspend fun refreshToken(): LoginResponse

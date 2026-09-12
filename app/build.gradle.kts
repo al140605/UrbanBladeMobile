@@ -18,7 +18,19 @@ android {
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"http://192.168.100.11:8000/api/v1/\""
+            "\"http://10.0.2.2:8000/api/v1/\""
+        )
+
+        // Mismo Web Client ID que ya usa barber (services.google.client_id,
+        // ver SocialAuthController) -- Credential Manager lo usa como
+        // "serverClientId" para pedir un ID token que el backend pueda
+        // verificar contra esa misma audiencia. Placeholder a propósito:
+        // reemplazar con el valor real (termina en .apps.googleusercontent.com)
+        // antes de probar el login con Google.
+        buildConfigField(
+            "String",
+            "GOOGLE_CLIENT_ID",
+            "\"PENDIENTE_CONFIGURAR.apps.googleusercontent.com\""
         )
     }
 
@@ -64,4 +76,9 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Login con Google nativo (Credential Manager) -- ver core/auth/GoogleAuthHelper.kt
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }

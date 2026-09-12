@@ -18,6 +18,7 @@ data class RegisterRequest(
 )
 
 data class ForgotPasswordRequest(val email: String)
+data class GoogleLoginRequest(@SerializedName("id_token") val idToken: String)
 
 data class LoginResponse(
     val message: String? = null,

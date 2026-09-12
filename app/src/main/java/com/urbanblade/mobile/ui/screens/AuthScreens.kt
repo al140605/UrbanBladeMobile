@@ -1,6 +1,14 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,14 +16,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.core.auth.GoogleAuthHelper
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(authViewModel: AuthViewModel, onRegister: () -> Unit, onForgot: () -> Unit) {
@@ -24,12 +38,32 @@ fun LoginScreen(authViewModel: AuthViewModel, onRegister: () -> Unit, onForgot: 
     var showPassword by remember { mutableStateOf(false) }
     val busy by authViewModel.busy.collectAsState()
     val error by authViewModel.error.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var googleBusy by remember { mutableStateOf(false) }
 
     AuthShell(
         title = "Tu estilo. Tu tiempo.",
         subtitle = "Todo UrbanBlade en la palma de tu mano.",
         helper = "Nava cuida la entrada. Tú solo trae tus credenciales."
     ) {
+        GoogleSignInButton(
+            text = "Continuar con Google",
+            loading = googleBusy,
+            onClick = {
+                scope.launch {
+                    googleBusy = true
+                    val idToken = GoogleAuthHelper.requestGoogleIdToken(context)
+                    googleBusy = false
+                    if (idToken != null) authViewModel.loginWithGoogle(idToken)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+        OrDivider("O CON TU CORREO")
+        Spacer(Modifier.height(16.dp))
+
         UrbanFieldLabel("Correo electrónico")
         OutlinedTextField(
             value = email,
@@ -74,11 +108,7 @@ fun LoginScreen(authViewModel: AuthViewModel, onRegister: () -> Unit, onForgot: 
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(14.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            HorizontalDivider(Modifier.weight(1f), color = UrbanColors.Line)
-            Text("  ¿Eres nuevo?  ", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            HorizontalDivider(Modifier.weight(1f), color = UrbanColors.Line)
-        }
+        OrDivider("¿Eres nuevo?")
         Spacer(Modifier.height(14.dp))
         UrbanOutlineButton(
             text = "Crear mi cuenta",
@@ -99,6 +129,9 @@ fun RegisterScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
     var showConfirmation by remember { mutableStateOf(false) }
     val busy by authViewModel.busy.collectAsState()
     val error by authViewModel.error.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var googleBusy by remember { mutableStateOf(false) }
 
     // Mismo mínimo que AuthController::register() ('password' => ['min:8', 'confirmed']) --
     // validar aquí evita un viaje al servidor que de todos modos rechazaría la contraseña.
@@ -111,6 +144,23 @@ fun RegisterScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
         helper = "Tu cuenta se conecta al mismo ecosistema de la versión web.",
         onBack = onBack
     ) {
+        GoogleSignInButton(
+            text = "Continuar con Google",
+            loading = googleBusy,
+            onClick = {
+                scope.launch {
+                    googleBusy = true
+                    val idToken = GoogleAuthHelper.requestGoogleIdToken(context)
+                    googleBusy = false
+                    if (idToken != null) authViewModel.loginWithGoogle(idToken)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(16.dp))
+        OrDivider("O CON TU CORREO")
+        Spacer(Modifier.height(16.dp))
+
         UrbanFieldLabel("Nombre")
         OutlinedTextField(name, { name = it }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(Icons.Default.Person, null) }, singleLine = true, shape = MaterialTheme.shapes.medium)
         Spacer(Modifier.height(12.dp))
@@ -203,6 +253,60 @@ fun ForgotPasswordScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
 }
 
 @Composable
+private fun OrDivider(label: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        HorizontalDivider(Modifier.weight(1f), color = UrbanColors.Line)
+        Text("  $label  ", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        HorizontalDivider(Modifier.weight(1f), color = UrbanColors.Line)
+    }
+}
+
+/**
+ * "G" de Google dibujado con 4 arcos de sus colores de marca -- evita
+ * depender de un asset SVG externo para un botón que solo aparece en 2
+ * pantallas.
+ */
+@Composable
+private fun GoogleGlyph(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val strokeWidth = size.minDimension * 0.24f
+        val diameter = size.minDimension - strokeWidth
+        val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+        val stroke = Stroke(strokeWidth)
+        drawArc(Color(0xFF4285F4), startAngle = -90f, sweepAngle = 90f, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+        drawArc(Color(0xFF34A853), startAngle = 0f, sweepAngle = 90f, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+        drawArc(Color(0xFFFBBC05), startAngle = 90f, sweepAngle = 90f, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+        drawArc(Color(0xFFEA4335), startAngle = 180f, sweepAngle = 90f, useCenter = false, topLeft = topLeft, size = arcSize, style = stroke)
+    }
+}
+
+@Composable
+private fun GoogleSignInButton(
+    text: String,
+    loading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = !loading,
+        modifier = modifier.heightIn(min = 52.dp),
+        shape = RoundedCornerShape(15.dp),
+        border = BorderStroke(1.dp, UrbanColors.Line),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = UrbanColors.Ink)
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
+        } else {
+            GoogleGlyph()
+            Spacer(Modifier.width(10.dp))
+            Text(text, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
 private fun AuthShell(
     title: String,
     subtitle: String,
@@ -210,6 +314,12 @@ private fun AuthShell(
     onBack: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // Entrada animada de la tarjeta (una sola vez al montar la pantalla, no
+    // en cada recomposición) -- fade + escala sutil, look más premium que
+    // aparecer de golpe.
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
     UrbanBladeBackground {
         Column(
             modifier = Modifier
@@ -240,15 +350,25 @@ private fun AuthShell(
             Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Muted)
             Spacer(Modifier.height(20.dp))
 
-            UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                content()
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(tween(350, easing = EaseOutCubic)) +
+                    scaleIn(initialScale = 0.96f, animationSpec = tween(350, easing = EaseOutCubic))
+            ) {
+                // Esquinas un poco más grandes que el UrbanPremiumCard por
+                // defecto (24.dp) -- una sensación más de "hoja modal" al
+                // estilo iOS solo en el contexto de auth, sin tocar el resto
+                // de la app que usa UrbanPremiumCard con su shape por defecto.
+                UrbanPremiumCard(Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
+                    content()
+                }
             }
 
             Spacer(Modifier.height(16.dp))
             UrbanInfoBanner(helper, Icons.Default.ContentCut)
             Spacer(Modifier.weight(0.65f))
             Text(
-                "SASTRERÍA NOCTURNA · ANDROID",
+                "${UrbanColors.current.label.uppercase()} · ANDROID",
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 18.dp),
                 style = MaterialTheme.typography.labelMedium,
                 color = UrbanColors.Muted

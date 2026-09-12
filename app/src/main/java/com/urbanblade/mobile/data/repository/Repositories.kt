@@ -22,6 +22,12 @@ class AuthRepository(
         return response.user
     }
 
+    suspend fun googleLogin(idToken: String): AuthUser {
+        val response = api.googleLogin(GoogleLoginRequest(idToken))
+        session.saveToken(response.token)
+        return response.user
+    }
+
     suspend fun forgotPassword(email: String): String {
         return api.forgotPassword(ForgotPasswordRequest(email)).message
             ?: "Si el correo existe, recibirás instrucciones."

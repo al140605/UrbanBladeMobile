@@ -144,16 +144,20 @@ fun UrbanSectionTitle(
 fun UrbanPremiumCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.large,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // GradientTop/GradientBottom son reactivos al tema (ver UrbanColors) --
+    // antes esto usaba dos negros casi-fijos que se veían mal en "libreta"
+    // (el único tema claro).
     val base = modifier
-        .clip(MaterialTheme.shapes.large)
+        .clip(shape)
         .background(
             Brush.linearGradient(
-                listOf(Color(0xFF1B1B1B), Color(0xFF0D0D0D))
+                listOf(UrbanColors.GradientTop, UrbanColors.GradientBottom)
             )
         )
-        .border(1.dp, Color(0xFF2C2C2C), MaterialTheme.shapes.large)
+        .border(1.dp, UrbanColors.Line, shape)
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
 
     Column(base.padding(18.dp), content = content)
