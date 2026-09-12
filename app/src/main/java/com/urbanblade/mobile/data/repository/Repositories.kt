@@ -112,4 +112,34 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun deleteProduct(id: String) = api.deleteProduct(id)
     suspend fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?) =
         api.registerMovement(RegisterMovementRequest(productId, tipo, cantidad, motivo))
+
+    suspend fun reviews(barberId: String? = null, rating: Int? = null): ReviewsResponse {
+        val query = buildMap {
+            if (!barberId.isNullOrBlank()) put("barber_id", barberId)
+            if (rating != null) put("rating", rating.toString())
+        }
+        return api.reviews(query)
+    }
+
+    suspend fun logs(search: String? = null, logName: String? = null, event: String? = null): LogsResponse {
+        val query = buildMap {
+            if (!search.isNullOrBlank()) put("q", search)
+            if (!logName.isNullOrBlank()) put("log_name", logName)
+            if (!event.isNullOrBlank()) put("event", event)
+        }
+        return api.logs(query)
+    }
+
+    suspend fun systemUsers(search: String? = null, role: String? = null): SystemUsersResponse {
+        val query = buildMap {
+            if (!search.isNullOrBlank()) put("q", search)
+            if (!role.isNullOrBlank()) put("role", role)
+        }
+        return api.users(query)
+    }
+    suspend fun createUser(name: String, email: String, password: String, role: String) =
+        api.createUser(CreateUserRequest(name, email, password, password, role))
+    suspend fun updateUser(id: String, name: String, email: String, password: String?, role: String) =
+        api.updateUser(id, UpdateUserRequest(name, email, password?.takeIf { it.isNotBlank() }, password?.takeIf { it.isNotBlank() }, role))
+    suspend fun deleteUser(id: String) = api.deleteUser(id)
 }

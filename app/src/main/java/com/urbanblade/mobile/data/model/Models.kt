@@ -432,6 +432,64 @@ data class RegisterMovementRequest(
     val motivo: String?
 )
 
+// ── Reseñas (reviews, admin-only) ────────────────────────────────────────
+data class ReviewBarberRef(val id: String? = null, val name: String? = null)
+data class ReviewClientRef(val id: String? = null, val name: String? = null)
+data class ReviewRow(
+    val id: String,
+    val rating: Int = 0,
+    val comment: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val barber: ReviewBarberRef? = null,
+    val client: ReviewClientRef? = null
+)
+data class ReviewStats(val total: Int = 0, val promedio: Double = 0.0, val bajas: Int = 0)
+data class ReviewsResponse(
+    val data: List<ReviewRow> = emptyList(),
+    val meta: JsonObject? = null,
+    val barbers: List<ReviewBarberRef> = emptyList(),
+    val stats: ReviewStats = ReviewStats()
+)
+
+// ── Logs de auditoría (admin + ingeniero, solo lectura) ──────────────────
+data class LogCauser(val id: String? = null, val name: String? = null, val email: String? = null)
+data class LogRow(
+    val id: String,
+    @SerializedName("log_name") val logName: String? = null,
+    val description: String? = null,
+    val event: String? = null,
+    @SerializedName("subject_type") val subjectType: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val causer: LogCauser? = null
+)
+data class LogStats(val total: Int = 0, val hoy: Int = 0, val creates: Int = 0, val updates: Int = 0, val deletes: Int = 0)
+data class LogsResponse(
+    val data: List<LogRow> = emptyList(),
+    val meta: JsonObject? = null,
+    @SerializedName("log_names") val logNames: List<String> = emptyList(),
+    val events: List<String> = emptyList(),
+    val stats: LogStats = LogStats()
+)
+
+// ── Usuarios del sistema (admin-only) ────────────────────────────────────
+data class SystemUserRow(
+    val id: String,
+    val name: String,
+    val email: String,
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
+    @SerializedName("email_verified_at") val emailVerifiedAt: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val roles: List<String> = emptyList()
+)
+data class SystemUsersResponse(
+    val data: List<SystemUserRow> = emptyList(),
+    val meta: JsonObject? = null,
+    val roles: List<String> = emptyList()
+)
+data class SystemUserMutationResponse(val message: String? = null)
+data class CreateUserRequest(val name: String, val email: String, val password: String, @SerializedName("password_confirmation") val passwordConfirmation: String, val role: String)
+data class UpdateUserRequest(val name: String, val email: String, val password: String?, @SerializedName("password_confirmation") val passwordConfirmation: String?, val role: String)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

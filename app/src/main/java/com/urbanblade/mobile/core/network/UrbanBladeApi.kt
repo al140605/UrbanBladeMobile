@@ -79,11 +79,14 @@ interface UrbanBladeApi {
     @POST("cash-closes") suspend fun registerCashClose(@Body body: RegisterCashCloseRequest): JsonObject
 
     @GET("reports") suspend fun reports(): JsonObject
-    @GET("logs") suspend fun logs(): JsonObject
+    @GET("logs") suspend fun logs(@QueryMap query: Map<String, String> = emptyMap()): LogsResponse
     @GET("campaigns") suspend fun campaigns(): JsonObject
     @GET("raffles") suspend fun raffles(): RaffleResponse
-    @GET("reviews") suspend fun reviews(): JsonObject
-    @GET("users") suspend fun users(): JsonObject
+    @GET("reviews") suspend fun reviews(@QueryMap query: Map<String, String> = emptyMap()): ReviewsResponse
+    @GET("users") suspend fun users(@QueryMap query: Map<String, String> = emptyMap()): SystemUsersResponse
+    @POST("users") suspend fun createUser(@Body body: CreateUserRequest): SystemUserMutationResponse
+    @PUT("users/{id}") suspend fun updateUser(@Path("id") id: String, @Body body: UpdateUserRequest): SystemUserMutationResponse
+    @DELETE("users/{id}") suspend fun deleteUser(@Path("id") id: String): MessageResponse
     @GET("settings") suspend fun settings(): JsonObject
 
     @GET("admin/dashboard/stats") suspend fun adminStats(): JsonObject

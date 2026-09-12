@@ -174,13 +174,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 module("barber_portfolio", "Portafolio", "barber/portfolio", nav)
                 composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }
                 module("reports", "Reportes", "reports", nav)
-                module("logs", "Logs", "logs", nav)
+                composable("logs") { LogsScreen(onBack = { nav.popBackStack() }) }
                 composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
                 module("insights", "Insights IA", "admin/predictions/insights", nav)
                 module("campaigns", "Campañas", "campaigns", nav)
                 composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
-                module("reviews", "Reseñas", "reviews", nav)
-                module("users", "Usuarios", "users", nav)
+                composable("reviews") { ReviewsScreen(onBack = { nav.popBackStack() }) }
+                composable("users") { UsersScreen(onBack = { nav.popBackStack() }) }
                 module("settings", "Configuración", "settings", nav)
                 composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
             }
