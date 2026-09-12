@@ -243,6 +243,59 @@ class InventoryViewModel : ViewModel() {
     }
 }
 
+class ReportsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _manifest = MutableStateFlow(ReportManifest()); val manifest = _manifest.asStateFlow()
+    private val _report = MutableStateFlow<ReportData?>(null); val report = _report.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun loadManifest() = viewModelScope.launch {
+        try { _manifest.value = repo.reportManifest() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los tipos de reporte.") }
+    }
+
+    fun generate(type: String, startDate: String?, endDate: String?) = viewModelScope.launch {
+        _busy.value = true; _error.value = null; _report.value = null
+        try { _report.value = repo.exportReport(type, "json", startDate, endDate) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo generar el reporte.") }
+        finally { _busy.value = false }
+    }
+}
+
+class SettingsViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _setting = MutableStateFlow(BarbershopSetting()); val setting = _setting.asStateFlow()
+    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
+    private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+
+    fun load() = viewModelScope.launch {
+        _busy.value = true; _error.value = null
+        try { _setting.value = repo.settings() }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar la configuración.") }
+        finally { _busy.value = false }
+    }
+
+    fun save(body: UpdateSettingRequest) = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try { _setting.value = repo.updateSettings(body); _message.value = "Configuración actualizada." }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo guardar la configuración.") }
+        finally { _saving.value = false }
+    }
+
+    fun toggleMaintenance() = viewModelScope.launch {
+        _saving.value = true; _error.value = null
+        try {
+            val res = repo.toggleMaintenance()
+            _setting.value = _setting.value.copy(maintenanceMode = res.data.maintenanceMode)
+            _message.value = res.message
+        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cambiar el modo mantenimiento.") }
+        finally { _saving.value = false }
+    }
+}
+
 class AnalyticsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow(AnalyticsResponse()); val data = _data.asStateFlow()

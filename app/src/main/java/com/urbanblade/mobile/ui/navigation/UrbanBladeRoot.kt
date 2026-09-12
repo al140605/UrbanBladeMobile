@@ -173,7 +173,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 module("barber_agenda", "Mi agenda", "barber/agenda", nav)
                 module("barber_portfolio", "Portafolio", "barber/portfolio", nav)
                 composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }
-                module("reports", "Reportes", "reports", nav)
+                composable("reports") { ReportsScreen(onBack = { nav.popBackStack() }) }
                 composable("logs") { LogsScreen(onBack = { nav.popBackStack() }) }
                 composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
                 module("insights", "Insights IA", "admin/predictions/insights", nav)
@@ -181,7 +181,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
                 composable("reviews") { ReviewsScreen(onBack = { nav.popBackStack() }) }
                 composable("users") { UsersScreen(onBack = { nav.popBackStack() }) }
-                module("settings", "Configuración", "settings", nav)
+                composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
                 composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
             }
         }

@@ -78,7 +78,12 @@ interface UrbanBladeApi {
     @GET("cash-closes/preview") suspend fun cashClosePreview(): CashClosePreviewResponse
     @POST("cash-closes") suspend fun registerCashClose(@Body body: RegisterCashCloseRequest): JsonObject
 
-    @GET("reports") suspend fun reports(): JsonObject
+    @GET("reports") suspend fun reports(): ReportManifest
+    @GET("reports/{type}/{format}") suspend fun exportReport(
+        @Path("type") type: String,
+        @Path("format") format: String,
+        @QueryMap query: Map<String, String> = emptyMap()
+    ): ReportData
     @GET("logs") suspend fun logs(@QueryMap query: Map<String, String> = emptyMap()): LogsResponse
     @GET("campaigns") suspend fun campaigns(): JsonObject
     @GET("raffles") suspend fun raffles(): RaffleResponse
@@ -87,7 +92,9 @@ interface UrbanBladeApi {
     @POST("users") suspend fun createUser(@Body body: CreateUserRequest): SystemUserMutationResponse
     @PUT("users/{id}") suspend fun updateUser(@Path("id") id: String, @Body body: UpdateUserRequest): SystemUserMutationResponse
     @DELETE("users/{id}") suspend fun deleteUser(@Path("id") id: String): MessageResponse
-    @GET("settings") suspend fun settings(): JsonObject
+    @GET("settings") suspend fun settings(): BarbershopSettingResponse
+    @PUT("settings") suspend fun updateSettings(@Body body: UpdateSettingRequest): BarbershopSettingResponse
+    @POST("settings/maintenance") suspend fun toggleMaintenance(): MaintenanceToggleResponse
 
     @GET("admin/dashboard/stats") suspend fun adminStats(): JsonObject
     @GET("admin/dashboard/appointments") suspend fun adminAppointments(): JsonObject

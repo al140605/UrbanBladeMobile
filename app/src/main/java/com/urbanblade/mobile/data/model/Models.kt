@@ -547,6 +547,53 @@ data class AnalyticsResponse(
     @SerializedName("spark_flow") val sparkFlow: List<SparkFlowStep> = emptyList()
 )
 
+// ── Reportes (reports, admin + ingeniero solo lectura) ───────────────────
+data class ReportManifest(val types: List<String> = emptyList(), val formats: List<String> = emptyList())
+data class ReportData(
+    val title: String? = null,
+    val headings: List<String> = emptyList(),
+    val keys: List<String> = emptyList(),
+    val rows: List<Map<String, JsonElement>> = emptyList()
+)
+
+// ── Configuración de la barbería (settings, admin-only) ──────────────────
+data class RedesSociales(val instagram: String? = null, val facebook: String? = null, val tiktok: String? = null)
+data class DatosBancarios(val clabe: String? = null, val banco: String? = null, val beneficiario: String? = null, val concepto: String? = null)
+data class BarbershopSetting(
+    val id: String? = null,
+    val nombre: String = "",
+    val direccion: String? = null,
+    val telefono: String? = null,
+    @SerializedName("horario_apertura") val horarioApertura: String? = null,
+    @SerializedName("horario_cierre") val horarioCierre: String? = null,
+    @SerializedName("politica_cancelacion") val politicaCancelacion: Int = 24,
+    @SerializedName("deposito_no_show_umbral") val depositoNoShowUmbral: Int = 2,
+    @SerializedName("deposito_no_show_porcentaje") val depositoNoShowPorcentaje: Int = 50,
+    @SerializedName("maintenance_mode") val maintenanceMode: Boolean = false,
+    @SerializedName("redes_sociales") val redesSociales: RedesSociales = RedesSociales(),
+    @SerializedName("datos_bancarios") val datosBancarios: DatosBancarios = DatosBancarios()
+)
+data class BarbershopSettingResponse(val data: BarbershopSetting = BarbershopSetting())
+data class UpdateSettingRequest(
+    val nombre: String,
+    val direccion: String?,
+    val telefono: String?,
+    @SerializedName("horario_apertura") val horarioApertura: String?,
+    @SerializedName("horario_cierre") val horarioCierre: String?,
+    @SerializedName("politica_cancelacion") val politicaCancelacion: Int,
+    @SerializedName("deposito_no_show_umbral") val depositoNoShowUmbral: Int?,
+    @SerializedName("deposito_no_show_porcentaje") val depositoNoShowPorcentaje: Int?,
+    val instagram: String?,
+    val facebook: String?,
+    val tiktok: String?,
+    val clabe: String?,
+    val banco: String?,
+    val beneficiario: String?,
+    val concepto: String?
+)
+data class MaintenanceToggleResponse(val message: String? = null, val data: MaintenanceStatus = MaintenanceStatus())
+data class MaintenanceStatus(@SerializedName("maintenance_mode") val maintenanceMode: Boolean = false)
+
 // ── Sorteos ──────────────────────────────────────────────────────────────
 data class RaffleClientUser(val name: String? = null)
 data class RaffleClient(val id: String? = null, val user: RaffleClientUser? = null)

@@ -142,4 +142,17 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun updateUser(id: String, name: String, email: String, password: String?, role: String) =
         api.updateUser(id, UpdateUserRequest(name, email, password?.takeIf { it.isNotBlank() }, password?.takeIf { it.isNotBlank() }, role))
     suspend fun deleteUser(id: String) = api.deleteUser(id)
+
+    suspend fun reportManifest() = api.reports()
+    suspend fun exportReport(type: String, format: String, startDate: String? = null, endDate: String? = null): ReportData {
+        val query = buildMap {
+            if (!startDate.isNullOrBlank()) put("start_date", startDate)
+            if (!endDate.isNullOrBlank()) put("end_date", endDate)
+        }
+        return api.exportReport(type, format, query)
+    }
+
+    suspend fun settings() = api.settings().data
+    suspend fun updateSettings(body: UpdateSettingRequest) = api.updateSettings(body).data
+    suspend fun toggleMaintenance() = api.toggleMaintenance()
 }
