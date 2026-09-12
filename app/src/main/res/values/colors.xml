@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo de la marca UrbanBlade (frontend-urban/public/images/urbanblade-mark.svg) -->
+    <color name="ic_launcher_background">#0B0D0F</color>
+</resources>

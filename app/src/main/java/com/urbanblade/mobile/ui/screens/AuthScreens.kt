@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,8 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.core.auth.GoogleAuthHelper
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.mascotDrawable
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 
@@ -341,7 +346,22 @@ private fun AuthShell(
                 Spacer(Modifier.size(48.dp))
             }
 
-            Spacer(Modifier.weight(0.35f))
+            Spacer(Modifier.weight(0.2f))
+
+            // Mascota del tema activo (mismo mapeo que useBrandMascots.ts en
+            // frontend-urban) -- le da identidad a la pantalla en vez del
+            // ícono genérico que había antes.
+            Image(
+                painter = painterResource(UrbanColors.current.mascotDrawable),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(92.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+            Spacer(Modifier.height(10.dp))
+
+            Spacer(Modifier.weight(0.15f))
 
             Text("URBANBLADE", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
             Spacer(Modifier.height(7.dp))

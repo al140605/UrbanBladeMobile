@@ -58,11 +58,13 @@ fun UrbanBrandMark(compact: Boolean = false) {
                 .border(1.dp, Color(0x55D4AF37), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                Icons.Default.ContentCut,
+            // Marca "UB" real (frontend-urban/public/images/urbanblade-mark.svg,
+            // portada a drawable/ic_launcher_foreground.xml) en vez del ícono
+            // de tijeras genérico que había antes.
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.urbanblade.mobile.R.drawable.ic_launcher_foreground),
                 contentDescription = null,
-                tint = UrbanColors.Gold,
-                modifier = Modifier.size(if (compact) 19.dp else 23.dp)
+                modifier = Modifier.size(if (compact) 26.dp else 32.dp)
             )
         }
         Spacer(Modifier.width(10.dp))

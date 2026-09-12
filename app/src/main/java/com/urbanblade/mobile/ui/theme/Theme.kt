@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.core.view.WindowCompat
+import com.urbanblade.mobile.R
 import com.urbanblade.mobile.core.network.AppContainer
 
 /**
@@ -33,6 +34,17 @@ enum class UrbanTheme(val key: String, val label: String, val isLight: Boolean) 
     SALON("salon", "Salón Inglés", isLight = false),
     LIBRETA("libreta", "Libreta de Barbero", isLight = true),
 }
+
+/**
+ * Mismo mapeo tema→mascota que useBrandMascots.ts en frontend-urban:
+ * "salon" → Nava, "libreta" → Bruno, el resto → Bladebot.
+ */
+val UrbanTheme.mascotDrawable: Int
+    get() = when (this) {
+        UrbanTheme.SALON -> R.drawable.mascot_nava
+        UrbanTheme.LIBRETA -> R.drawable.mascot_bruno
+        UrbanTheme.NOIR, UrbanTheme.ACERO -> R.drawable.mascot_bladebot
+    }
 
 /**
  * Mismos campos que expone UrbanColors -- Success/Warning/Danger/Info NO
