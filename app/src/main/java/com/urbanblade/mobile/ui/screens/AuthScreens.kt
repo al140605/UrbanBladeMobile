@@ -95,8 +95,15 @@ fun RegisterScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var showConfirmation by remember { mutableStateOf(false) }
     val busy by authViewModel.busy.collectAsState()
     val error by authViewModel.error.collectAsState()
+
+    // Mismo mínimo que AuthController::register() ('password' => ['min:8', 'confirmed']) --
+    // validar aquí evita un viaje al servidor que de todos modos rechazaría la contraseña.
+    val passwordTooShort = password.isNotEmpty() && password.length < 8
+    val passwordsMismatch = confirmation.isNotEmpty() && password != confirmation
 
     AuthShell(
         title = "Crea tu cuenta",
@@ -111,16 +118,46 @@ fun RegisterScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
         OutlinedTextField(email, { email = it }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(Icons.Default.AlternateEmail, null) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), shape = MaterialTheme.shapes.medium)
         Spacer(Modifier.height(12.dp))
         UrbanFieldLabel("Contraseña")
-        OutlinedTextField(password, { password = it }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(Icons.Default.Lock, null) }, visualTransformation = PasswordVisualTransformation(), singleLine = true, shape = MaterialTheme.shapes.medium)
+        OutlinedTextField(
+            password,
+            { password = it },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.Lock, null) },
+            trailingIcon = {
+                IconButton(onClick = { showPassword = !showPassword }) {
+                    Icon(if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, "Mostrar contraseña")
+                }
+            },
+            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            singleLine = true,
+            isError = passwordTooShort,
+            supportingText = { if (passwordTooShort) Text("Mínimo 8 caracteres.") },
+            shape = MaterialTheme.shapes.medium
+        )
         Spacer(Modifier.height(12.dp))
         UrbanFieldLabel("Confirmar contraseña")
-        OutlinedTextField(confirmation, { confirmation = it }, modifier = Modifier.fillMaxWidth(), leadingIcon = { Icon(Icons.Default.VerifiedUser, null) }, visualTransformation = PasswordVisualTransformation(), singleLine = true, shape = MaterialTheme.shapes.medium)
+        OutlinedTextField(
+            confirmation,
+            { confirmation = it },
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.VerifiedUser, null) },
+            trailingIcon = {
+                IconButton(onClick = { showConfirmation = !showConfirmation }) {
+                    Icon(if (showConfirmation) Icons.Default.VisibilityOff else Icons.Default.Visibility, "Mostrar confirmación")
+                }
+            },
+            visualTransformation = if (showConfirmation) VisualTransformation.None else PasswordVisualTransformation(),
+            singleLine = true,
+            isError = passwordsMismatch,
+            supportingText = { if (passwordsMismatch) Text("Las contraseñas no coinciden.") },
+            shape = MaterialTheme.shapes.medium
+        )
         Spacer(Modifier.height(14.dp))
         error?.let { UrbanErrorBanner(it); Spacer(Modifier.height(12.dp)) }
         UrbanPrimaryButton(
             text = "Crear cuenta",
             onClick = { authViewModel.register(name, email, password, confirmation) },
-            enabled = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmation.isNotBlank(),
+            enabled = name.isNotBlank() && email.isNotBlank() && password.length >= 8 && confirmation == password,
             loading = busy,
             icon = Icons.Default.HowToReg,
             modifier = Modifier.fillMaxWidth()

@@ -92,6 +92,7 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
     return when (this) {
         is HttpException -> when (code()) {
             401 -> "Credenciales incorrectas o sesión vencida."
+            403 -> "Debes verificar tu correo para iniciar sesión."
             422 -> "Revisa los datos capturados."
             429 -> "Demasiados intentos. Intenta de nuevo más tarde."
             503 -> "UrbanBlade está en mantenimiento."
