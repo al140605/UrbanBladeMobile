@@ -110,3 +110,28 @@ ejecutado por el agente. Checklist para Android Studio.
 - "Cancelar membresía" → confirmar el diálogo, verificar que el estado pasa a
   "se cancelará al finalizar el periodo" sin quitar el acceso inmediato.
 - Botón de copiar código de referido → confirmar que efectivamente copia al portapapeles.
+
+## Checkout de citas (Stripe: tarjeta/transferencia + propina + recibo)
+
+Sin `adb`/emulador aquí: el `PaymentSheet` real de Stripe no se puede ejercitar en este
+entorno. Requiere `STRIPE_PUBLISHABLE_KEY` real en `local.properties` (ver README) antes
+de poder probar nada de esto.
+
+- En "Mis citas", una cita `confirmada`/`en_proceso`/`completada` sin pago debe mostrar
+  el botón "Pagar cita"; una que ya tiene pago (`hasPayment=true`) no debe mostrarlo.
+- Tarjeta: al tocar "Continuar con tarjeta" debe abrir el `PaymentSheet` de Stripe.
+  Con la tarjeta de prueba `4242 4242 4242 4242` (cualquier fecha futura/CVC), tras
+  completar el pago debe aparecer "Confirmando tu pago…" y, en unos segundos, la hoja
+  debe cerrarse sola y la cita debe mostrar el pago reflejado (esto depende de que el
+  webhook de Stripe llegue a `barber` — probar con `stripe listen --forward-to` si se
+  usa un backend local, o contra un entorno con webhook ya configurado).
+- Cancelar el `PaymentSheet` a medio camino → la hoja de checkout debe seguir
+  disponible, sin quedar en un estado roto.
+- Transferencia: elegir un comprobante (foto), tocar "Subir comprobante" → debe
+  responder 201 y la cita debe reflejar el pago "en revisión" hasta que un admin/
+  recepción lo apruebe desde el panel de pagos existente.
+- Propina: probar cada chip (0%/10%/15%/otro monto) y confirmar que el resumen mostrado
+  cambia; confirmar en el recibo final (pantalla de Pagos) que la propina registrada
+  coincide con la elegida.
+- Código de gift card inválido → debe mostrar el error real del servidor ("El código de
+  la tarjeta de regalo no es válido o ya no tiene saldo."), no un mensaje genérico.
