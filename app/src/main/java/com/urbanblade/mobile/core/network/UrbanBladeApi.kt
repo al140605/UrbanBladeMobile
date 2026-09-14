@@ -33,6 +33,19 @@ interface UrbanBladeApi {
     @PATCH("appointments/{code}/status") suspend fun updateAppointmentStatus(@Path("code") code: String, @Body body: JsonObject): MessageResponse
     @DELETE("appointments/{code}") suspend fun cancelAppointment(@Path("code") code: String): MessageResponse
 
+    @POST("waitlist") suspend fun joinWaitlist(@Body body: WaitlistRequest): WaitlistJoinResponse
+    @GET("waitlist") suspend fun waitlist(): WaitlistResponse
+    @DELETE("waitlist/{id}") suspend fun leaveWaitlist(@Path("id") id: String): MessageResponse
+
+    // ── Wallet: autoservicio del cliente, sin cambios de contrato en barber ──
+    @GET("memberships/plans") suspend fun membershipPlans(): MembershipPlansResponse
+    @GET("memberships/mine") suspend fun myMembership(): MyMembershipResponse
+    @POST("memberships/cancel") suspend fun cancelMembership(): MessageResponse
+    @GET("packages") suspend fun myPackages(): MyPackagesResponse
+    @GET("packages/catalog") suspend fun packageCatalog(): PackageCatalogResponse
+    @GET("gift-cards/mine") suspend fun myGiftCards(): GiftCardsResponse
+    @GET("referrals/mine") suspend fun myReferrals(): ReferralInfoResponse
+
     @GET("orders") suspend fun orders(): OrdersResponse
     @POST("orders") suspend fun createOrder(@Body body: OrderRequest): OrderMutationResponse
     @PATCH("orders/{id}/cancel") suspend fun cancelOrder(@Path("id") id: String): OrderMutationResponse

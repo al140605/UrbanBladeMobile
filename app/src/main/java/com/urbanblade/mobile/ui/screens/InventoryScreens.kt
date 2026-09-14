@@ -188,7 +188,10 @@ private fun MovementDialog(
         onDismissRequest = onDismiss,
         title = { Text("Movimiento: ${product.nombre}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UrbanFormScroll(
+                modifier = Modifier.heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (allowEntrada) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(selected = tipo == "entrada", onClick = { tipo = "entrada" }, label = { Text("Entrada") })
@@ -238,7 +241,10 @@ private fun ProductFormDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UrbanFormScroll(
+                modifier = Modifier.heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val previewModel = imageUri ?: initial?.imagenUrl
                     if (previewModel != null) {

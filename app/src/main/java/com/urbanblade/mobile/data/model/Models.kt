@@ -736,3 +736,105 @@ data class RaffleResponse(
     val meta: JsonObject? = null,
     val stats: RaffleStats = RaffleStats()
 )
+
+// ── Lista de espera (waitlist) ───────────────────────────────────────────
+data class WaitlistRef(val id: String? = null, val name: String? = null)
+data class WaitlistServiceRef(val id: String? = null, val nombre: String? = null)
+data class WaitlistEntry(
+    val id: String,
+    val estado: String,
+    val fecha: String? = null,
+    @SerializedName("notificado_en") val notificadoEn: String? = null,
+    val client: WaitlistRef? = null,
+    val barber: WaitlistRef? = null,
+    val service: WaitlistServiceRef? = null
+)
+data class WaitlistResponse(val data: List<WaitlistEntry> = emptyList())
+data class WaitlistJoinResponse(val message: String? = null, val data: WaitlistEntry? = null)
+data class WaitlistRequest(
+    @SerializedName("barber_id") val barberId: String,
+    @SerializedName("service_id") val serviceId: String,
+    val fecha: String
+)
+
+// ── Wallet: membresías (memberships/*, autoservicio del cliente) ─────────
+data class MembershipPlan(
+    val id: String,
+    val nombre: String,
+    val descripcion: String? = null,
+    @SerializedName("precio_mensual") val precioMensual: Double = 0.0,
+    @SerializedName("descuento_pct") val descuentoPct: Double = 0.0
+)
+data class MembershipPlansResponse(val data: List<MembershipPlan> = emptyList())
+data class MyMembership(
+    val id: String,
+    val estado: String,
+    @SerializedName("cancelar_al_finalizar") val cancelarAlFinalizar: Boolean = false,
+    @SerializedName("periodo_actual_fin") val periodoActualFin: String? = null,
+    val plan: MembershipPlan? = null
+)
+data class MyMembershipResponse(val data: MyMembership? = null)
+
+// ── Wallet: paquetes (packages, packages/catalog) ─────────────────────────
+data class PackageServiceRef(val id: String? = null, val nombre: String? = null)
+data class MyPackage(
+    val id: String,
+    val nombre: String? = null,
+    val service: PackageServiceRef? = null,
+    @SerializedName("usos_totales") val usosTotales: Int = 0,
+    @SerializedName("usos_restantes") val usosRestantes: Int = 0,
+    @SerializedName("precio_pagado") val precioPagado: Double = 0.0,
+    @SerializedName("metodo_pago") val metodoPago: String? = null,
+    @SerializedName("comprado_en") val compradoEn: String? = null,
+    @SerializedName("expira_en") val expiraEn: String? = null,
+    val estado: String? = null
+)
+data class MyPackagesResponse(val data: List<MyPackage> = emptyList())
+data class PackageCatalogItem(
+    val id: String,
+    val nombre: String,
+    val service: PackageServiceRef? = null,
+    @SerializedName("cantidad_usos") val cantidadUsos: Int = 0,
+    val precio: Double = 0.0,
+    @SerializedName("vigencia_dias") val vigenciaDias: Int = 0
+)
+data class PackageCatalogResponse(val data: List<PackageCatalogItem> = emptyList())
+
+// ── Wallet: gift cards (gift-cards/mine) ──────────────────────────────────
+data class GiftCard(
+    val code: String,
+    val saldo: Double = 0.0,
+    @SerializedName("monto_inicial") val montoInicial: Double = 0.0,
+    val estado: String? = null,
+    @SerializedName("comprado_en") val compradoEn: String? = null
+)
+data class GiftCardsResponse(val data: List<GiftCard> = emptyList())
+
+// ── Wallet: referidos (referrals/mine) ────────────────────────────────────
+data class ReferralEntry(
+    val referido: String? = null,
+    val estado: String? = null,
+    @SerializedName("recompensa_otorgada_en") val recompensaOtorgadaEn: String? = null
+)
+data class ReferralInfo(
+    @SerializedName("codigo_referido") val codigoReferido: String? = null,
+    @SerializedName("puntos_por_referido") val puntosPorReferido: Int = 0,
+    val referidos: List<ReferralEntry> = emptyList(),
+    val completados: Int = 0
+)
+data class ReferralInfoResponse(val data: ReferralInfo = ReferralInfo())
+
+// ── Wallet: lealtad (embebida en GET dashboard, rol cliente -- ver
+// DashboardService::clientMetrics(); no existe endpoint propio) ───────────
+data class LoyaltyTransaction(val descripcion: String? = null, val puntos: Int = 0)
+data class ClientLoyalty(
+    val nivel: String? = null,
+    val nivelLabel: String? = null,
+    val puntos: Int = 0,
+    val discountPct: Double = 0.0,
+    val nextNivel: String? = null,
+    val nextNivelLabel: String? = null,
+    val citasFaltan: Int = 0,
+    val progressPct: Double = 0.0,
+    val recentTransactions: List<LoyaltyTransaction> = emptyList()
+)

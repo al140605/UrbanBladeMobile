@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -18,12 +19,17 @@ import com.urbanblade.mobile.BuildConfig
  * flujo web (redirect/callback), que no aplica aquí.
  */
 object GoogleAuthHelper {
+    sealed interface Result {
+        data class Token(val value: String) : Result
+        data object Cancelled : Result
+        data object Unavailable : Result
+    }
+
     /**
-     * @return el ID token si el usuario eligió una cuenta, o null si
-     * canceló / no hay credencial disponible -- ambos son flujos normales,
-     * no errores que mostrar al usuario.
+     * Distingue una cancelación voluntaria de una indisponibilidad real de
+     * Google Play services, para que la UI no silencie un problema de acceso.
      */
-    suspend fun requestGoogleIdToken(context: Context): String? {
+    suspend fun requestGoogleIdToken(context: Context): Result {
         val option = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
@@ -37,14 +43,16 @@ object GoogleAuthHelper {
             val result = CredentialManager.create(context).getCredential(context, request)
             val credential = result.credential
             if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                GoogleIdTokenCredential.createFrom(credential.data).idToken
+                Result.Token(GoogleIdTokenCredential.createFrom(credential.data).idToken)
             } else {
-                null
+                Result.Unavailable
             }
+        } catch (e: GetCredentialCancellationException) {
+            Result.Cancelled
         } catch (e: GetCredentialException) {
-            null
+            Result.Unavailable
         } catch (e: GoogleIdTokenParsingException) {
-            null
+            Result.Unavailable
         }
     }
 }

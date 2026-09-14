@@ -332,15 +332,38 @@ La URL se encuentra en:
 app/build.gradle.kts
 ```
 
+`API_BASE_URL` ahora se define por variante dentro de `buildTypes` (antes vivía en
+`defaultConfig`, compartido sin querer entre debug y release):
+
 ### 🖥️ Emulador
 
 ```kotlin
-buildConfigField(
-    "String",
-    "API_BASE_URL",
-    "\"http://10.0.2.2:8000/api/v1/\""
-)
+buildTypes {
+    debug {
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"http://10.0.2.2:8000/api/v1/\""
+        )
+    }
+}
 ```
+
+### Google Sign-In nativo
+
+Antes de ejecutar la app, agrega el mismo **Web Client ID** que Laravel usa
+para verificar tokens a tu `local.properties` (ese archivo está ignorado por
+Git):
+
+```properties
+GOOGLE_CLIENT_ID=tu-web-client-id.apps.googleusercontent.com
+```
+
+También puede inyectarse en CI con `-PGOOGLE_CLIENT_ID=...`. No copies
+`GOOGLE_CLIENT_SECRET` a Android: el secreto pertenece exclusivamente al
+backend. Si el inicio de sesión muestra un error de desarrollador, confirma
+en Google Cloud la configuración OAuth para el paquete Android y la huella del
+certificado de firma de la variante que estás probando.
 
 ### 📱 Dispositivo físico
 
@@ -358,7 +381,7 @@ Ejemplo:
 IPv4: 192.168.100.11
 ```
 
-Configura:
+Configura (dentro del mismo bloque `debug { }` de arriba):
 
 ```kotlin
 buildConfigField(
@@ -373,6 +396,23 @@ Y desde Chrome en el celular verifica:
 ```text
 http://192.168.100.11:8000/api/v1/services
 ```
+
+### 🚀 Release
+
+Los builds release **no** usan `10.0.2.2` ni HTTP: exigen una URL HTTPS real, que se
+inyecta igual que `GOOGLE_CLIENT_ID` (nunca hardcodeada en el repo). Agrega a tu
+`local.properties`:
+
+```properties
+RELEASE_API_BASE_URL=https://tu-dominio-real.example/api/v1/
+```
+
+O para CI: `-PRELEASE_API_BASE_URL=...`. Sin este valor, un build release compila con
+un placeholder obviamente inválido (`https://PENDIENTE_CONFIGURAR.example/api/v1/`)
+que falla en tiempo de ejecución en vez de apuntar accidentalmente al emulador o a
+HTTP sin cifrar. El cleartext (`usesCleartextTraffic`) también quedó scoped solo a
+debug (`app/src/debug/AndroidManifest.xml`) — release usa el valor seguro por defecto
+de Android (`false`).
 
 ---
 

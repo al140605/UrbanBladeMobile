@@ -65,6 +65,27 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun createAppointment(body: AppointmentRequest) = api.createAppointment(body)
     suspend fun updateAppointment(code: String, body: AppointmentRequest) = api.updateAppointment(code, body)
     suspend fun cancelAppointment(code: String) = api.cancelAppointment(code)
+
+    suspend fun joinWaitlist(barberId: String, serviceId: String, fecha: String) =
+        api.joinWaitlist(WaitlistRequest(barberId, serviceId, fecha))
+    suspend fun waitlist() = api.waitlist().data
+    suspend fun leaveWaitlist(id: String) = api.leaveWaitlist(id)
+
+    suspend fun membershipPlans() = api.membershipPlans().data
+    suspend fun myMembership() = api.myMembership().data
+    suspend fun cancelMembership() = api.cancelMembership()
+    suspend fun myPackages() = api.myPackages().data
+    suspend fun packageCatalog() = api.packageCatalog().data
+    suspend fun myGiftCards() = api.myGiftCards().data
+    suspend fun myReferrals() = api.myReferrals().data
+
+    // El backend no expone un endpoint propio de lealtad -- viene embebido en
+    // GET dashboard (rama "cliente"), que hoy solo se tipa como JsonObject
+    // crudo. Se extrae aquí sin tocar el resto de DashboardResponse.
+    suspend fun clientLoyalty(): ClientLoyalty? {
+        val loyaltyJson = api.dashboard().data.getAsJsonObject("loyalty") ?: return null
+        return com.google.gson.Gson().fromJson(loyaltyJson, ClientLoyalty::class.java)
+    }
     suspend fun profile() = api.profile().user
     suspend fun updateProfile(body: UpdateProfileRequest) = api.updateProfile(body)
     suspend fun products(query: String? = null) = api.products(query).data

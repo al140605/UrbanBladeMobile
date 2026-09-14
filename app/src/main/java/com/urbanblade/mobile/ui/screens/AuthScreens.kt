@@ -9,8 +9,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -58,9 +60,13 @@ fun LoginScreen(authViewModel: AuthViewModel, onRegister: () -> Unit, onForgot: 
             onClick = {
                 scope.launch {
                     googleBusy = true
-                    val idToken = GoogleAuthHelper.requestGoogleIdToken(context)
+                    val result = GoogleAuthHelper.requestGoogleIdToken(context)
                     googleBusy = false
-                    if (idToken != null) authViewModel.loginWithGoogle(idToken)
+                    when (result) {
+                        is GoogleAuthHelper.Result.Token -> authViewModel.loginWithGoogle(result.value)
+                        GoogleAuthHelper.Result.Unavailable -> authViewModel.reportGoogleUnavailable()
+                        GoogleAuthHelper.Result.Cancelled -> authViewModel.reportGoogleCancelled()
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -155,9 +161,13 @@ fun RegisterScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
             onClick = {
                 scope.launch {
                     googleBusy = true
-                    val idToken = GoogleAuthHelper.requestGoogleIdToken(context)
+                    val result = GoogleAuthHelper.requestGoogleIdToken(context)
                     googleBusy = false
-                    if (idToken != null) authViewModel.loginWithGoogle(idToken)
+                    when (result) {
+                        is GoogleAuthHelper.Result.Token -> authViewModel.loginWithGoogle(result.value)
+                        GoogleAuthHelper.Result.Unavailable -> authViewModel.reportGoogleUnavailable()
+                        GoogleAuthHelper.Result.Cancelled -> authViewModel.reportGoogleCancelled()
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -330,6 +340,8 @@ private fun AuthShell(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
             Row(
@@ -346,7 +358,7 @@ private fun AuthShell(
                 Spacer(Modifier.size(48.dp))
             }
 
-            Spacer(Modifier.weight(0.2f))
+            Spacer(Modifier.height(24.dp))
 
             // Mascota del tema activo (mismo mapeo que useBrandMascots.ts en
             // frontend-urban) -- le da identidad a la pantalla en vez del
@@ -361,7 +373,7 @@ private fun AuthShell(
             )
             Spacer(Modifier.height(10.dp))
 
-            Spacer(Modifier.weight(0.15f))
+            Spacer(Modifier.height(18.dp))
 
             Text("URBANBLADE", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
             Spacer(Modifier.height(7.dp))
@@ -386,7 +398,7 @@ private fun AuthShell(
 
             Spacer(Modifier.height(16.dp))
             UrbanInfoBanner(helper, Icons.Default.ContentCut)
-            Spacer(Modifier.weight(0.65f))
+            Spacer(Modifier.height(24.dp))
             Text(
                 "${UrbanColors.current.label.uppercase()} · ANDROID",
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 18.dp),

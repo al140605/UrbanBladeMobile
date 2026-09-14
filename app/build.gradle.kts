@@ -1,8 +1,27 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) {
+        file.inputStream().use(::load)
+    }
+}
+
+val googleClientId = providers.gradleProperty("GOOGLE_CLIENT_ID").orNull
+    ?: localProperties.getProperty("GOOGLE_CLIENT_ID")
+    ?: "PENDIENTE_CONFIGURAR.apps.googleusercontent.com"
+
+// Mismo mecanismo que GOOGLE_CLIENT_ID: la URL de producción no se inventa ni se
+// versiona -- solo release la necesita, vía local.properties o -P para CI.
+val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
+    ?: localProperties.getProperty("RELEASE_API_BASE_URL")
+    ?: "https://PENDIENTE_CONFIGURAR.example/api/v1/"
 
 android {
     namespace = "com.urbanblade.mobile"
@@ -15,28 +34,31 @@ android {
         versionCode = 3
         versionName = "3.0.0"
 
-        buildConfigField(
-            "String",
-            "API_BASE_URL",
-            "\"http://10.0.2.2:8000/api/v1/\""
-        )
-
-        // Mismo Web Client ID que ya usa barber (services.google.client_id,
-        // ver SocialAuthController) -- Credential Manager lo usa como
-        // "serverClientId" para pedir un ID token que el backend pueda
-        // verificar contra esa misma audiencia. Placeholder a propósito:
-        // reemplazar con el valor real (termina en .apps.googleusercontent.com)
-        // antes de probar el login con Google.
+        // Credential Manager solicita un ID token para el mismo Web Client ID
+        // que Laravel verifica. Se inyecta desde local.properties (ignorado por
+        // Git) o -PGOOGLE_CLIENT_ID para CI; nunca se deja en código versionado.
         buildConfigField(
             "String",
             "GOOGLE_CLIENT_ID",
-            "\"PENDIENTE_CONFIGURAR.apps.googleusercontent.com\""
+            "\"$googleClientId\""
         )
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    buildTypes {
+        // API_BASE_URL se define por variante, no en defaultConfig: debug solo habla
+        // con el emulador (10.0.2.2, HTTP -- loopback, no es un secreto); release
+        // exige HTTPS real, inyectada igual que GOOGLE_CLIENT_ID (nunca hardcodeada).
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/v1/\"")
+        }
+        release {
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
+        }
     }
 
     compileOptions {
@@ -81,4 +103,14 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // Pruebas JVM de ViewModels/contrato -- ver app/src/test
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    // Mockito 5.x mockea AuthRepository (clase final) sin necesitar un
+    // SessionManager real (que exige un Context de Android/DataStore no
+    // disponible en pruebas JVM puras).
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }

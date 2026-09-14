@@ -167,7 +167,10 @@ private fun UploadWorkDialog(
         onDismissRequest = onDismiss,
         title = { Text("Subir trabajo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UrbanFormScroll(
+                modifier = Modifier.heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 OutlinedTextField(title, { title = it }, label = { Text("Título") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(description, { description = it }, label = { Text("Descripción (opcional)") }, modifier = Modifier.fillMaxWidth())
                 UrbanOutlineButton(

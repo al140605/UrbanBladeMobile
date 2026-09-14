@@ -40,7 +40,14 @@ fun ReportsScreen(onBack: () -> Unit, vm: ReportsViewModel = viewModel()) {
         topBar = { UrbanTopBar("Reportes", onBack) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Solo imePadding (sin verticalScroll) -- este Column usa weight(1f) más
+            // abajo para la tabla de resultados, incompatible con un scroll vertical
+            // en el mismo contenedor. Los campos de fecha están arriba de todo, así
+            // que empujarlos con el teclado alcanza sin necesitar scroll propio.
+            Column(
+                Modifier.padding(horizontal = 18.dp, vertical = 12.dp).imePadding(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     manifest.types.forEach { t ->
                         FilterChip(selected = type == t, onClick = { type = t }, label = { Text(TYPE_LABEL[t] ?: t) })

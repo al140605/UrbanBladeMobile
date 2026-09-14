@@ -16,6 +16,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.urbanblade.mobile.core.booking.PendingBooking
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanBladeBackground
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
@@ -25,6 +26,16 @@ import com.urbanblade.mobile.ui.viewmodel.AuthState
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
 
 private data class NavItem(val route: String, val label: String, val icon: ImageVector)
+
+private const val BOOKING_ROUTE_PATTERN = "booking?serviceId={serviceId}&barberId={barberId}"
+
+private fun bookingRoute(serviceId: String?, barberId: String?): String {
+    val params = buildList {
+        serviceId?.let { add("serviceId=$it") }
+        barberId?.let { add("barberId=$it") }
+    }
+    return if (params.isEmpty()) "booking" else "booking?" + params.joinToString("&")
+}
 
 @Composable
 fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
@@ -51,7 +62,20 @@ fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
 @Composable
 private fun GuestNav(authViewModel: AuthViewModel) {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = "login") {
+    NavHost(navController = nav, startDestination = "catalog") {
+        composable("catalog") {
+            CatalogScreen(
+                isGuest = true,
+                onBook = { serviceId, barberId ->
+                    // Conserva la selección y exige login/registro para
+                    // confirmar -- BookingScreen la recoge de PendingBooking
+                    // en cuanto AuthenticatedNav monta (ver más abajo).
+                    PendingBooking.set(serviceId, barberId)
+                    nav.navigate("login")
+                },
+                onLogin = { nav.navigate("login") }
+            )
+        }
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -69,17 +93,40 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
+    val isClient = user.roles.contains("cliente")
     val engineerOnly = user.roles.contains("ingeniero") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "cliente") }
 
-    val items = buildList {
-        add(NavItem("home", "Inicio", Icons.Default.Home))
-        if (!engineerOnly) add(NavItem("appointments", "Citas", Icons.Default.CalendarMonth))
-        if (user.roles.contains("cliente")) add(NavItem("store", "Tienda", Icons.Default.Storefront))
-        add(NavItem("more", "Más", Icons.Default.GridView))
-        add(NavItem("profile", "Perfil", Icons.Default.Person))
+    // Nav por rol: el cliente tiene su propia barra (Inicio/Explorar/Mis
+    // citas/Wallet/Perfil); el resto de roles conserva la barra de siempre
+    // (Inicio/Citas/Más/Perfil) sin cambios.
+    val items = if (isClient) {
+        listOf(
+            NavItem("home", "Inicio", Icons.Default.Home),
+            NavItem("catalog", "Explorar", Icons.Default.Explore),
+            NavItem("appointments", "Mis citas", Icons.Default.CalendarMonth),
+            NavItem("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
+            NavItem("profile", "Perfil", Icons.Default.Person)
+        )
+    } else {
+        buildList {
+            add(NavItem("home", "Inicio", Icons.Default.Home))
+            if (!engineerOnly) add(NavItem("appointments", "Citas", Icons.Default.CalendarMonth))
+            add(NavItem("more", "Más", Icons.Default.GridView))
+            add(NavItem("profile", "Perfil", Icons.Default.Person))
+        }
     }
     val rootRoutes = items.map { it.route }
+
+    // Selección hecha como invitado en el catálogo (ver GuestNav): se
+    // consume UNA sola vez, al montar la sesión autenticada, y redirige
+    // directo al wizard de reserva con esa preselección.
+    LaunchedEffect(Unit) {
+        val (pendingService, pendingBarber) = PendingBooking.consume()
+        if (pendingService != null || pendingBarber != null) {
+            nav.navigate(bookingRoute(pendingService, pendingBarber))
+        }
+    }
 
     Scaffold(
         containerColor = UrbanColors.Background,
@@ -130,17 +177,31 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("appointments") {
                     AppointmentsScreen(user = user, onBook = { nav.navigate("booking") })
                 }
-                composable("booking") {
+                composable(
+                    BOOKING_ROUTE_PATTERN,
+                    arguments = listOf(
+                        navArgument("serviceId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("barberId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    )
+                ) { entry ->
                     BookingScreen(
+                        initialServiceId = entry.arguments?.getString("serviceId"),
+                        initialBarberId = entry.arguments?.getString("barberId"),
                         onBack = { nav.popBackStack() },
                         onCreated = {
                             nav.navigate("appointments") {
-                                popUpTo("booking") { inclusive = true }
+                                popUpTo(BOOKING_ROUTE_PATTERN) { inclusive = true }
                             }
                         }
                     )
                 }
-                composable("catalog") { CatalogScreen(onBook = { nav.navigate("booking") }) }
+                composable("catalog") {
+                    CatalogScreen(
+                        onBook = { serviceId, barberId -> nav.navigate(bookingRoute(serviceId, barberId)) },
+                        onOpenStore = { nav.navigate("store") }
+                    )
+                }
+                composable("wallet") { WalletScreen(onBack = { nav.popBackStack() }) }
                 composable("store") { StoreScreen(user = user, onOrders = { nav.navigate("orders") }) }
                 composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }

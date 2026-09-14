@@ -1,6 +1,15 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -8,203 +17,395 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.data.model.BarberItem
+import com.urbanblade.mobile.data.model.ServiceItem
+import com.urbanblade.mobile.data.model.SlotItem
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BookingViewModel
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
+private enum class BookingStep(val label: String) {
+    SERVICE("Servicio"), BARBER("Profesional"), CALENDAR("Calendario"), REVIEW("Revisión")
+}
+
+/**
+ * Wizard visual de reserva: un paso a la vez (servicio -> profesional ->
+ * calendario con horarios reales del servidor -> revisión), reemplaza el
+ * diseño anterior de dropdowns + fecha de texto libre. `initialServiceId`/
+ * `initialBarberId` llegan de un tap en el catálogo (autenticado, por
+ * argumento de ruta) o de PendingBooking (invitado que acaba de iniciar
+ * sesión) -- ver UrbanBladeRoot.kt.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingScreen(onBack: () -> Unit, onCreated: () -> Unit, vm: BookingViewModel = viewModel()) {
+fun BookingScreen(
+    initialServiceId: String? = null,
+    initialBarberId: String? = null,
+    onBack: () -> Unit,
+    onCreated: () -> Unit,
+    vm: BookingViewModel = viewModel()
+) {
     val services by vm.services.collectAsState()
     val barbers by vm.barbers.collectAsState()
     val slots by vm.slots.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
-    var barberId by remember { mutableStateOf("") }
-    var serviceId by remember { mutableStateOf("") }
+    val waitlistJoined by vm.waitlistJoined.collectAsState()
+
+    var step by remember { mutableStateOf(BookingStep.SERVICE) }
+    var serviceId by remember { mutableStateOf(initialServiceId.orEmpty()) }
+    var barberId by remember { mutableStateOf(initialBarberId.orEmpty()) }
     var date by remember { mutableStateOf(vm.defaultDate()) }
     var time by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var barberMenu by remember { mutableStateOf(false) }
-    var serviceMenu by remember { mutableStateOf(false) }
-    var slotMenu by remember { mutableStateOf(false) }
+    var slotsRequested by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.loadCatalog() }
     LaunchedEffect(barberId, serviceId, date) {
         time = ""
-        vm.loadSlots(barberId, serviceId, date)
+        slotsRequested = false
+        if (barberId.isNotBlank() && serviceId.isNotBlank() && date.isNotBlank()) {
+            vm.loadSlots(barberId, serviceId, date)
+            slotsRequested = true
+        }
+    }
+
+    val selectedService = services.firstOrNull { it.id == serviceId }
+    val selectedBarber = barbers.firstOrNull { it.id == barberId }
+
+    val canAdvance = when (step) {
+        BookingStep.SERVICE -> serviceId.isNotBlank()
+        BookingStep.BARBER -> barberId.isNotBlank()
+        BookingStep.CALENDAR -> time.isNotBlank()
+        BookingStep.REVIEW -> true
     }
 
     Scaffold(
         containerColor = Color.Transparent,
         topBar = { UrbanTopBar(title = "Reservar cita", onBack = onBack) }
     ) { padding ->
-        androidx.compose.foundation.lazy.LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                UrbanPageHeader(
-                    title = "Tu próximo corte",
-                    subtitle = "Elige profesional, servicio y fecha. Solo mostramos horarios disponibles.",
-                    eyebrow = "Reserva inteligente"
-                )
-            }
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            BookingProgress(step)
+            Spacer(Modifier.height(4.dp))
 
-            item {
-                UrbanInfoBanner(
-                    "La disponibilidad se consulta en tiempo real antes de confirmar la cita.",
-                    Icons.Default.Bolt
-                )
-            }
-
-            item {
-                BookingStep(number = "01", title = "Elige tu barbero", icon = Icons.Default.PersonSearch) {
-                    ExposedDropdownMenuBox(expanded = barberMenu, onExpandedChange = { barberMenu = !barberMenu }) {
-                        OutlinedTextField(
-                            value = barbers.firstOrNull { it.id == barberId }?.user?.name.orEmpty(),
-                            onValueChange = {},
-                            readOnly = true,
-                            placeholder = { Text("Selecciona un profesional") },
-                            leadingIcon = { Icon(Icons.Default.ContentCut, null) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(barberMenu) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        )
-                        ExposedDropdownMenu(expanded = barberMenu, onDismissRequest = { barberMenu = false }) {
-                            barbers.forEach { barber ->
-                                DropdownMenuItem(
-                                    text = { Text(barber.user?.name ?: "Barbero") },
-                                    onClick = { barberId = barber.id; barberMenu = false }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                BookingStep(number = "02", title = "Selecciona el servicio", icon = Icons.Default.AutoFixHigh) {
-                    ExposedDropdownMenuBox(expanded = serviceMenu, onExpandedChange = { serviceMenu = !serviceMenu }) {
-                        OutlinedTextField(
-                            value = services.firstOrNull { it.id == serviceId }?.let { "${it.nombre} · \$${"%.0f".format(it.precio)}" }.orEmpty(),
-                            onValueChange = {},
-                            readOnly = true,
-                            placeholder = { Text("Corte, barba o servicio") },
-                            leadingIcon = { Icon(Icons.Default.Spa, null) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(serviceMenu) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        )
-                        ExposedDropdownMenu(expanded = serviceMenu, onDismissRequest = { serviceMenu = false }) {
-                            services.forEach { s ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column {
-                                            Text(s.nombre)
-                                            Text("${s.duracionMin} min · \$${"%.0f".format(s.precio)}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                                        }
-                                    },
-                                    onClick = { serviceId = s.id; serviceMenu = false }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                BookingStep(number = "03", title = "Fecha y horario", icon = Icons.Default.EventAvailable) {
-                    OutlinedTextField(
-                        date,
-                        { date = it },
-                        label = { Text("Fecha") },
-                        supportingText = { Text("Formato AAAA-MM-DD") },
-                        leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp)
+            ) {
+                when (step) {
+                    BookingStep.SERVICE -> ServiceStep(services, serviceId) { serviceId = it }
+                    BookingStep.BARBER -> BarberStep(barbers, barberId) { barberId = it }
+                    BookingStep.CALENDAR -> CalendarStep(
+                        date = date,
+                        onDateChange = { date = it },
+                        slots = slots,
+                        time = time,
+                        onTimeChange = { time = it },
+                        showEmptyState = slotsRequested && slots.isEmpty(),
+                        waitlistJoined = waitlistJoined,
+                        onJoinWaitlist = { vm.joinWaitlist(barberId, serviceId, date) }
                     )
-                    Spacer(Modifier.height(12.dp))
-                    ExposedDropdownMenuBox(expanded = slotMenu, onExpandedChange = { slotMenu = !slotMenu }) {
-                        OutlinedTextField(
-                            value = slots.firstOrNull { it.time == time }?.label.orEmpty(),
-                            onValueChange = {},
-                            readOnly = true,
-                            placeholder = { Text(if (slots.isEmpty()) "Sin horarios cargados" else "Selecciona una hora") },
-                            leadingIcon = { Icon(Icons.Default.Schedule, null) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(slotMenu) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        )
-                        ExposedDropdownMenu(expanded = slotMenu, onDismissRequest = { slotMenu = false }) {
-                            if (slots.isEmpty()) {
-                                DropdownMenuItem(text = { Text("Sin horarios disponibles") }, onClick = { slotMenu = false })
-                            }
-                            slots.forEach { s ->
-                                DropdownMenuItem(text = { Text("${s.label}${s.endLabel?.let { " — $it" } ?: ""}") }, onClick = { time = s.time; slotMenu = false })
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                BookingStep(number = "04", title = "Últimos detalles", icon = Icons.Default.EditNote) {
-                    OutlinedTextField(
-                        notes,
-                        { notes = it },
-                        label = { Text("Notas (opcional)") },
-                        placeholder = { Text("Ej. degradado bajo, barba corta…") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        shape = MaterialTheme.shapes.medium
+                    BookingStep.REVIEW -> ReviewStep(
+                        service = selectedService,
+                        barber = selectedBarber,
+                        date = date,
+                        time = time,
+                        notes = notes,
+                        onNotesChange = { notes = it }
                     )
                 }
             }
 
-            error?.let { item { UrbanErrorBanner(it) } }
+            error?.let {
+                Box(Modifier.padding(horizontal = 18.dp)) { UrbanErrorBanner(it) }
+                Spacer(Modifier.height(8.dp))
+            }
 
-            item {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (step != BookingStep.SERVICE) {
+                    UrbanOutlineButton(
+                        text = "Atrás",
+                        onClick = { step = BookingStep.entries[step.ordinal - 1] },
+                        icon = Icons.Default.ArrowBack,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 UrbanPrimaryButton(
-                    text = "Confirmar cita",
-                    onClick = { vm.create(barberId, serviceId, date, time, notes, onCreated) },
-                    enabled = barberId.isNotBlank() && serviceId.isNotBlank() && date.isNotBlank() && time.isNotBlank(),
-                    loading = busy,
-                    icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth()
+                    text = if (step == BookingStep.REVIEW) "Confirmar cita" else "Siguiente",
+                    onClick = {
+                        if (step == BookingStep.REVIEW) {
+                            vm.create(barberId, serviceId, date, time, notes, onCreated)
+                        } else {
+                            step = BookingStep.entries[step.ordinal + 1]
+                        }
+                    },
+                    enabled = canAdvance,
+                    loading = busy && step == BookingStep.REVIEW,
+                    icon = if (step == BookingStep.REVIEW) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            item { Spacer(Modifier.height(8.dp)) }
         }
     }
 }
 
 @Composable
-private fun BookingStep(
-    number: String,
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = UrbanColors.Gold,
-                contentColor = Color(0xFF080808)
-            ) {
-                Text(number, Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
+private fun BookingProgress(step: BookingStep) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            BookingStep.entries.forEach { s ->
+                val active = s.ordinal <= step.ordinal
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(4.dp)
+                        .background(if (active) UrbanColors.Gold else UrbanColors.Line, RoundedCornerShape(2.dp))
+                )
             }
-            Spacer(Modifier.width(10.dp))
-            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium)
         }
-        Spacer(Modifier.height(16.dp))
-        content()
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Paso ${step.ordinal + 1} de ${BookingStep.entries.size} · ${step.label}",
+            style = MaterialTheme.typography.labelMedium,
+            color = UrbanColors.Muted
+        )
+    }
+}
+
+@Composable
+private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelect: (String) -> Unit) {
+    Column {
+        UrbanSectionTitle("Elige tu servicio", "Precio y duración confirmados por UrbanBlade")
+        Spacer(Modifier.height(10.dp))
+        if (services.isEmpty()) {
+            UrbanEmptyState("Cargando servicios…", null, Icons.Default.ContentCut)
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(1),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(services, key = { it.id }) { service ->
+                    SelectableRow(
+                        selected = service.id == selectedId,
+                        onClick = { onSelect(service.id) },
+                        title = service.nombre,
+                        subtitle = "${service.duracionMin} min",
+                        trailing = "\$${"%.0f".format(service.precio)}"
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BarberStep(barbers: List<BarberItem>, selectedId: String, onSelect: (String) -> Unit) {
+    Column {
+        UrbanSectionTitle("Elige tu profesional", "Cada barbero confirma su propia disponibilidad")
+        Spacer(Modifier.height(10.dp))
+        if (barbers.isEmpty()) {
+            UrbanEmptyState("Cargando profesionales…", null, Icons.Default.Groups)
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(1),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(barbers, key = { it.id }) { barber ->
+                    SelectableRow(
+                        selected = barber.id == selectedId,
+                        onClick = { onSelect(barber.id) },
+                        title = barber.user?.name ?: "Barbero",
+                        subtitle = barber.especialidades
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectableRow(selected: Boolean, onClick: () -> Unit, title: String, subtitle: String?, trailing: String? = null) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) Color(0x22D4AF37) else UrbanColors.Card,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.padding(14.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                if (selected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                null,
+                tint = if (selected) UrbanColors.Gold else UrbanColors.Muted
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                subtitle?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
+            }
+            trailing?.let {
+                Text(it, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarStep(
+    date: String,
+    onDateChange: (String) -> Unit,
+    slots: List<SlotItem>,
+    time: String,
+    onTimeChange: (String) -> Unit,
+    showEmptyState: Boolean,
+    waitlistJoined: Boolean,
+    onJoinWaitlist: () -> Unit
+) {
+    val days = remember { (0..29).map { LocalDate.now().plusDays(it.toLong()) } }
+    val selectedDate = remember(date) { runCatching { LocalDate.parse(date) }.getOrNull() }
+
+    Column {
+        UrbanSectionTitle("Elige el día", "Horarios reales, consultados al servidor")
+        Spacer(Modifier.height(10.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(days) { day ->
+                val selected = day == selectedDate
+                Surface(
+                    onClick = { onDateChange(day.toString()) },
+                    shape = RoundedCornerShape(14.dp),
+                    color = if (selected) UrbanColors.Gold else UrbanColors.Card,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
+                    modifier = Modifier.width(58.dp)
+                ) {
+                    Column(
+                        Modifier.padding(vertical = 10.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es", "MX")).replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (selected) Color(0xFF080808) else UrbanColors.Muted
+                        )
+                        Text(
+                            day.dayOfMonth.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (selected) Color(0xFF080808) else UrbanColors.Ink
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(18.dp))
+        UrbanSectionTitle("Elige la hora", null)
+        Spacer(Modifier.height(10.dp))
+        when {
+            slots.isNotEmpty() -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.heightIn(max = 260.dp)
+                ) {
+                    items(slots, key = { it.time }) { slot ->
+                        val selected = slot.time == time
+                        Surface(
+                            onClick = { onTimeChange(slot.time) },
+                            shape = MaterialTheme.shapes.medium,
+                            color = if (selected) UrbanColors.Gold else UrbanColors.Card,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line)
+                        ) {
+                            Box(Modifier.padding(vertical = 12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    slot.label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (selected) Color(0xFF080808) else UrbanColors.Ink
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            showEmptyState -> {
+                UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                    UrbanEmptyState(
+                        title = "Sin horarios este día",
+                        subtitle = "Prueba otro día o únete a la lista de espera y te avisamos si se libera un horario.",
+                        icon = Icons.Default.EventBusy,
+                        actionLabel = if (!waitlistJoined) "Unirme a la lista de espera" else null,
+                        onAction = if (!waitlistJoined) onJoinWaitlist else null
+                    )
+                    if (waitlistJoined) {
+                        Spacer(Modifier.height(8.dp))
+                        UrbanInfoBanner("Ya te anotamos en la lista de espera para este día.", Icons.Default.NotificationsActive)
+                    }
+                }
+            }
+            else -> LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold)
+        }
+    }
+}
+
+@Composable
+private fun ReviewStep(
+    service: ServiceItem?,
+    barber: BarberItem?,
+    date: String,
+    time: String,
+    notes: String,
+    onNotesChange: (String) -> Unit
+) {
+    Column {
+        UrbanSectionTitle("Revisa tu cita", "Confirma los detalles antes de reservar")
+        Spacer(Modifier.height(10.dp))
+        UrbanPremiumCard(Modifier.fillMaxWidth()) {
+            ReviewRow(Icons.Default.ContentCut, service?.nombre ?: "—", service?.let { "${it.duracionMin} min · \$${"%.0f".format(it.precio)}" })
+            Spacer(Modifier.height(12.dp))
+            ReviewRow(Icons.Default.Person, barber?.user?.name ?: "—", null)
+            Spacer(Modifier.height(12.dp))
+            ReviewRow(Icons.Default.CalendarMonth, date, null)
+            Spacer(Modifier.height(12.dp))
+            ReviewRow(Icons.Default.Schedule, time.takeIf { it.isNotBlank() } ?: "—", null)
+        }
+        Spacer(Modifier.height(14.dp))
+        UrbanFieldLabel("Notas (opcional)")
+        OutlinedTextField(
+            notes,
+            onNotesChange,
+            placeholder = { Text("Ej. degradado bajo, barba corta…") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            shape = MaterialTheme.shapes.medium
+        )
+        Spacer(Modifier.height(80.dp))
+    }
+}
+
+@Composable
+private fun ReviewRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
+        }
     }
 }

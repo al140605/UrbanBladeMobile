@@ -121,7 +121,10 @@ private fun CreateClientDialog(onDismiss: () -> Unit, onCreate: (String, String,
         onDismissRequest = onDismiss,
         title = { Text("Nuevo cliente") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UrbanFormScroll(
+                modifier = Modifier.heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(email, { email = it }, label = { Text("Correo") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(telefono, { telefono = it }, label = { Text("Teléfono (opcional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())

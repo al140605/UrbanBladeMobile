@@ -26,7 +26,13 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CatalogViewModel
 
 @Composable
-fun CatalogScreen(onBook: () -> Unit, vm: CatalogViewModel = viewModel()) {
+fun CatalogScreen(
+    isGuest: Boolean = false,
+    onBook: (serviceId: String?, barberId: String?) -> Unit,
+    onOpenStore: (() -> Unit)? = null,
+    onLogin: (() -> Unit)? = null,
+    vm: CatalogViewModel = viewModel()
+) {
     val services by vm.services.collectAsState()
     val barbers by vm.barbers.collectAsState()
     val loading by vm.loading.collectAsState()
@@ -45,8 +51,26 @@ fun CatalogScreen(onBook: () -> Unit, vm: CatalogViewModel = viewModel()) {
                 eyebrow = "Catálogo"
             )
         }
+        if (isGuest) {
+            item {
+                UrbanInfoBanner(
+                    "Explora como invitado. Para confirmar una reserva, te pediremos iniciar sesión o crear tu cuenta.",
+                    Icons.Default.Info
+                )
+            }
+            if (onLogin != null) {
+                item {
+                    UrbanOutlineButton(
+                        text = "Ya tengo cuenta, iniciar sesión",
+                        onClick = onLogin,
+                        icon = Icons.Default.Login,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
         item {
-            UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onBook) {
+            UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = { onBook(null, null) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("¿Ya sabes qué quieres?", style = MaterialTheme.typography.titleLarge)
@@ -62,15 +86,25 @@ fun CatalogScreen(onBook: () -> Unit, vm: CatalogViewModel = viewModel()) {
                 }
             }
         }
+        if (!isGuest && onOpenStore != null) {
+            item {
+                UrbanOutlineButton(
+                    text = "Ver tienda de productos",
+                    onClick = onOpenStore,
+                    icon = Icons.Default.Storefront,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
         if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         error?.let { item { UrbanErrorBanner(it) } }
 
         item { UrbanSectionTitle("Servicios", "Elige el acabado que va contigo") }
-        items(services, key = { it.id }) { service -> ServiceCard(service, onBook) }
+        items(services, key = { it.id }) { service -> ServiceCard(service) { onBook(service.id, null) } }
         if (!loading && services.isEmpty()) item { UrbanEmptyState("Sin servicios disponibles", "Vuelve a intentarlo más tarde.", Icons.Default.ContentCut) }
 
         item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
-        items(barbers, key = { it.id }) { barber -> BarberCard(barber) }
+        items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
         if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
         item { Spacer(Modifier.height(8.dp)) }
     }
@@ -110,8 +144,8 @@ private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
 }
 
 @Composable
-private fun BarberCard(barber: BarberItem) {
-    UrbanCard(Modifier.fillMaxWidth()) {
+private fun BarberCard(barber: BarberItem, onBook: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onBook) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!barber.foto.isNullOrBlank()) {
                 AsyncImage(

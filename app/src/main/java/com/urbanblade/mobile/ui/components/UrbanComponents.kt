@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,6 +23,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
+
+/**
+ * Envoltura para contenido de formulario (diálogos, columnas planas) que debe
+ * seguir siendo alcanzable cuando el teclado está abierto -- mismo patrón que
+ * ya usa `AuthShell` en AuthScreens.kt, extraído aquí para no repetirlo por
+ * cada diálogo con campos de texto.
+ */
+@Composable
+fun UrbanFormScroll(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .imePadding(),
+        verticalArrangement = verticalArrangement,
+        horizontalAlignment = horizontalAlignment,
+        content = content
+    )
+}
 
 @Composable
 fun UrbanBladeBackground(

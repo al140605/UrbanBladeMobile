@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.AuthUser
+import com.urbanblade.mobile.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,8 +17,9 @@ sealed interface AuthState {
     data class Authenticated(val user: AuthUser) : AuthState
 }
 
-class AuthViewModel : ViewModel() {
-    private val repository = AppContainer.authRepository
+class AuthViewModel @JvmOverloads constructor(
+    private val repository: AuthRepository = AppContainer.authRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
     val state: StateFlow<AuthState> = _state.asStateFlow()
@@ -66,6 +68,14 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    fun reportGoogleUnavailable() {
+        _error.value = "No pudimos abrir Google. Revisa tu conexión o intenta de nuevo."
+    }
+
+    fun reportGoogleCancelled() {
+        _error.value = "Selecciona una cuenta de Google para continuar o inicia con correo."
+    }
+
     fun register(name: String, email: String, password: String, confirmation: String) {
         if (_busy.value) return
         if (password != confirmation) {
@@ -101,6 +111,19 @@ class AuthViewModel : ViewModel() {
         }
     }
 }
+
+/**
+ * Extrae el campo "message" real que Laravel devuelve en un 422 (p.ej. el
+ * motivo exacto de un rechazo por política de cancelación/reagendado), en
+ * vez del mensaje genérico de toFriendlyMessage(). errorBody() solo se puede
+ * leer una vez -- se llama justo al capturar la excepción, antes de que algo
+ * más la consuma.
+ */
+internal fun HttpException.serverMessage(): String? = try {
+    val body = response()?.errorBody()?.string()
+    if (body.isNullOrBlank()) null
+    else com.google.gson.JsonParser.parseString(body).asJsonObject.get("message")?.asString
+} catch (_: Exception) { null }
 
 internal fun Exception.toFriendlyMessage(fallback: String): String {
     return when (this) {

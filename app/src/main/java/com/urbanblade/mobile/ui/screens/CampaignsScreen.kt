@@ -123,7 +123,10 @@ private fun CreateCampaignDialog(
         onDismissRequest = onDismiss,
         title = { Text("Nueva campaña") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            UrbanFormScroll(
+                modifier = Modifier.heightIn(max = 460.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 OutlinedTextField(titulo, { titulo = it }, label = { Text("Título") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(cuerpo, { cuerpo = it }, label = { Text("Mensaje") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(ctaLabel, { ctaLabel = it }, label = { Text("Texto del botón (opcional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
