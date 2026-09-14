@@ -23,6 +23,13 @@ val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
     ?: localProperties.getProperty("RELEASE_API_BASE_URL")
     ?: "https://PENDIENTE_CONFIGURAR.example/api/v1/"
 
+// Publishable key de Stripe -- es pública por diseño (Stripe la espera embebida
+// en apps cliente), pero igual se inyecta sin hardcodear: debe coincidir con la
+// misma clave que ya usan barber/frontend-urban, nunca se inventa aquí.
+val stripePublishableKey = providers.gradleProperty("STRIPE_PUBLISHABLE_KEY").orNull
+    ?: localProperties.getProperty("STRIPE_PUBLISHABLE_KEY")
+    ?: "pk_test_PENDIENTE_CONFIGURAR"
+
 android {
     namespace = "com.urbanblade.mobile"
     compileSdk = 35
@@ -41,6 +48,14 @@ android {
             "String",
             "GOOGLE_CLIENT_ID",
             "\"$googleClientId\""
+        )
+
+        // Checkout con Stripe (PaymentSheet) -- ver core/payment/UrbanPaymentSheet.kt.
+        // Mismo mecanismo de inyección segura que GOOGLE_CLIENT_ID.
+        buildConfigField(
+            "String",
+            "STRIPE_PUBLISHABLE_KEY",
+            "\"$stripePublishableKey\""
         )
     }
 
@@ -103,6 +118,15 @@ dependencies {
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // Checkout con Stripe (PaymentSheet) -- ver core/payment/UrbanPaymentSheet.kt.
+    // Fijado a esta versión (no la más reciente): versiones más nuevas jalan
+    // transitivos de AndroidX que exigen compileSdk 36 + AGP 8.9.1, y este
+    // proyecto está en compileSdk 35 / AGP 8.8.2 -- subir esos dos para una
+    // sola dependencia es un cambio de mayor alcance que no correspondía a
+    // esta ronda. Revisar si conviene actualizar cuando el proyecto suba de
+    // compileSdk por otro motivo.
+    implementation("com.stripe:stripe-android:21.19.0")
 
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")

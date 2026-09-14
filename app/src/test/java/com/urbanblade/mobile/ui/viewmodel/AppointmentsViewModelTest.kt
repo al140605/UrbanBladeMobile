@@ -1,6 +1,11 @@
 package com.urbanblade.mobile.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import com.urbanblade.mobile.data.model.AppointmentRow
+import com.urbanblade.mobile.data.model.StripeIntentResponseData
+import com.urbanblade.mobile.data.model.UploadPaymentReceiptData
+import com.urbanblade.mobile.data.model.UploadPaymentReceiptResponse
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,7 +17,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.any
@@ -109,5 +116,77 @@ class AppointmentsViewModelTest {
 
         assertEquals(true, doneCalled)
         assertNull(vm.error.value)
+    }
+
+    @Test
+    fun `startStripeCheckout exitoso guarda el client secret`() = runTest(dispatcher) {
+        whenever(repo.stripeIntent(any())).thenReturn(
+            StripeIntentResponseData(clientSecret = "pi_test_secret", paymentIntentId = "pi_test")
+        )
+
+        val vm = AppointmentsViewModel(repo)
+        vm.startStripeCheckout("1", 0, null, 20.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("pi_test_secret", vm.stripeClientSecret.value)
+        assertNull(vm.error.value)
+    }
+
+    @Test
+    fun `startStripeCheckout con 422 muestra el mensaje real del servidor`() = runTest(dispatcher) {
+        whenever(repo.stripeIntent(any())).thenThrow(
+            httpException(422, "La cita ya tiene un pago registrado.")
+        )
+
+        val vm = AppointmentsViewModel(repo)
+        vm.startStripeCheckout("1", 0, null, 0.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("La cita ya tiene un pago registrado.", vm.error.value)
+        assertNull(vm.stripeClientSecret.value)
+    }
+
+    @Test
+    fun `clearStripeClientSecret limpia el estado`() = runTest(dispatcher) {
+        whenever(repo.stripeIntent(any())).thenReturn(
+            StripeIntentResponseData(clientSecret = "pi_test_secret", paymentIntentId = "pi_test")
+        )
+
+        val vm = AppointmentsViewModel(repo)
+        vm.startStripeCheckout("1", 0, null, 0.0)
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.clearStripeClientSecret()
+
+        assertNull(vm.stripeClientSecret.value)
+    }
+
+    @Test
+    fun `uploadPaymentReceipt exitoso llama onDone y recarga`() = runTest(dispatcher) {
+        whenever(repo.uploadPaymentReceipt(any(), any(), any(), any())).thenReturn(
+            UploadPaymentReceiptResponse(data = UploadPaymentReceiptData(id = "p1", estado = "pendiente_verificacion"))
+        )
+
+        val vm = AppointmentsViewModel(repo)
+        var doneCalled = false
+        vm.uploadPaymentReceipt(mock<Context>(), "abc123", 15.0, mock<Uri>()) { doneCalled = true }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(doneCalled)
+        assertNull(vm.error.value)
+    }
+
+    @Test
+    fun `uploadPaymentReceipt con 422 muestra el mensaje real del servidor`() = runTest(dispatcher) {
+        whenever(repo.uploadPaymentReceipt(any(), any(), any(), any())).thenThrow(
+            httpException(422, "La cita ya tiene un pago registrado o en revision.")
+        )
+
+        val vm = AppointmentsViewModel(repo)
+        var doneCalled = false
+        vm.uploadPaymentReceipt(mock<Context>(), "abc123", 0.0, mock<Uri>()) { doneCalled = true }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("La cita ya tiene un pago registrado o en revision.", vm.error.value)
+        assertFalse(doneCalled)
     }
 }

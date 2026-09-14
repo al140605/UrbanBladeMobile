@@ -1,11 +1,14 @@
 package com.urbanblade.mobile.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.*
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import com.google.gson.JsonObject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +58,70 @@ class AppointmentsViewModel @JvmOverloads constructor(
     val barbers = _barbers.asStateFlow()
     private val _rescheduleSlots = MutableStateFlow<List<SlotItem>>(emptyList())
     val rescheduleSlots = _rescheduleSlots.asStateFlow()
+
+    // Checkout de cita: crear el intent de Stripe tiene su propio busy;
+    // subir comprobante de transferencia también, para no bloquear el resto
+    // de la hoja mientras cualquiera de los dos está en curso.
+    private val _checkoutBusy = MutableStateFlow(false)
+    val checkoutBusy = _checkoutBusy.asStateFlow()
+    private val _uploadingReceipt = MutableStateFlow(false)
+    val uploadingReceipt = _uploadingReceipt.asStateFlow()
+    private val _stripeClientSecret = MutableStateFlow<String?>(null)
+    val stripeClientSecret = _stripeClientSecret.asStateFlow()
+
+    // La confirmación real del pago con tarjeta la hace el webhook de
+    // Stripe en barber, no la respuesta del intent -- tras un
+    // PaymentSheetResult.Completed hay una ventana real donde la cita
+    // todavía no trae hasPayment=true. Este flag solo controla el mensaje
+    // "confirmando tu pago" mientras se reintenta un refresco corto.
+    private val _confirmingPayment = MutableStateFlow(false)
+    val confirmingPayment = _confirmingPayment.asStateFlow()
+
+    fun startStripeCheckout(appointmentId: String, puntosCanjeados: Int, codigoGiftCard: String?, propina: Double) =
+        viewModelScope.launch {
+            _checkoutBusy.value = true; _error.value = null
+            try {
+                val data = repo.stripeIntent(
+                    StripeIntentRequest(appointmentId, puntosCanjeados, codigoGiftCard?.takeIf { it.isNotBlank() }, propina)
+                )
+                _stripeClientSecret.value = data.clientSecret
+            } catch (e: HttpException) {
+                _error.value = if (e.code() == 422) e.serverMessage() ?: e.toFriendlyMessage("No se pudo iniciar el pago.")
+                else e.toFriendlyMessage("No se pudo iniciar el pago.")
+            } catch (e: Exception) {
+                _error.value = e.toFriendlyMessage("No se pudo iniciar el pago.")
+            } finally { _checkoutBusy.value = false }
+        }
+
+    fun clearStripeClientSecret() { _stripeClientSecret.value = null }
+
+    /** Reintenta cargar las citas hasta ~10s esperando a que el webhook confirme el pago. */
+    fun confirmAppointmentPayment(appointmentId: String) = viewModelScope.launch {
+        _confirmingPayment.value = true
+        repeat(5) {
+            delay(2000)
+            try {
+                val fresh = repo.appointments()
+                _data.value = fresh
+                if (fresh.data.any { it.id == appointmentId && it.hasPayment }) return@launch
+            } catch (_: Exception) { /* se reintenta en el próximo ciclo */ }
+        }
+    }.also { it.invokeOnCompletion { _confirmingPayment.value = false } }
+
+    fun uploadPaymentReceipt(context: Context, appointmentCode: String, propina: Double, receiptUri: Uri, onDone: () -> Unit) =
+        viewModelScope.launch {
+            _uploadingReceipt.value = true; _error.value = null
+            try {
+                repo.uploadPaymentReceipt(context, appointmentCode, propina, receiptUri)
+                load()
+                onDone()
+            } catch (e: HttpException) {
+                _error.value = if (e.code() == 422) e.serverMessage() ?: e.toFriendlyMessage("No se pudo subir el comprobante.")
+                else e.toFriendlyMessage("No se pudo subir el comprobante.")
+            } catch (e: Exception) {
+                _error.value = e.toFriendlyMessage("No se pudo subir el comprobante.")
+            } finally { _uploadingReceipt.value = false }
+        }
 
     fun loadBarbers() = viewModelScope.launch {
         try { _barbers.value = repo.barbers() } catch (_: Exception) { }

@@ -55,7 +55,14 @@ interface UrbanBladeApi {
     @GET("payments/pending") suspend fun pendingPayments(): PendingPaymentsResponse
     @POST("payments/{id}/approve") suspend fun approvePayment(@Path("id") id: String): MessageResponse
     @POST("payments/{id}/reject") suspend fun rejectPayment(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
-    @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): JsonObject
+    @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse
+    @Multipart
+    @POST("appointments/{code}/payment/receipt")
+    suspend fun uploadPaymentReceipt(
+        @Path("code") code: String,
+        @Part comprobante: MultipartBody.Part,
+        @Part propina: MultipartBody.Part?
+    ): UploadPaymentReceiptResponse
 
     @GET("profile") suspend fun profile(): ProfileResponse
     @PUT("profile") suspend fun updateProfile(@Body body: UpdateProfileRequest): UpdateProfileResponse

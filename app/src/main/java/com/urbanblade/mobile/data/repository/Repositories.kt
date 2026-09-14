@@ -6,6 +6,7 @@ import com.urbanblade.mobile.core.media.MediaUploadHelper
 import com.urbanblade.mobile.core.network.UrbanBladeApi
 import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.model.*
+import okhttp3.MultipartBody
 
 class AuthRepository(
     private val api: UrbanBladeApi,
@@ -65,6 +66,15 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun createAppointment(body: AppointmentRequest) = api.createAppointment(body)
     suspend fun updateAppointment(code: String, body: AppointmentRequest) = api.updateAppointment(code, body)
     suspend fun cancelAppointment(code: String) = api.cancelAppointment(code)
+
+    suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
+
+    suspend fun uploadPaymentReceipt(context: Context, code: String, propina: Double, receiptUri: Uri): UploadPaymentReceiptResponse {
+        val comprobante = MediaUploadHelper.uriToPart(context, receiptUri, "comprobante")
+            ?: error("No se pudo leer el comprobante seleccionado.")
+        val propinaPart = if (propina > 0) MultipartBody.Part.createFormData("propina", propina.toString()) else null
+        return api.uploadPaymentReceipt(code, comprobante, propinaPart)
+    }
 
     suspend fun joinWaitlist(barberId: String, serviceId: String, fecha: String) =
         api.joinWaitlist(WaitlistRequest(barberId, serviceId, fecha))

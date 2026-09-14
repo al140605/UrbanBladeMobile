@@ -243,7 +243,19 @@ data class PendingPaymentRow(
 )
 data class PendingPaymentsResponse(val data: List<PendingPaymentRow> = emptyList())
 data class RejectPaymentRequest(@SerializedName("motivo_rechazo") val motivo: String)
-data class StripeIntentRequest(@SerializedName("appointment_id") val appointmentId: String, @SerializedName("puntos_canjeados") val puntos: Int = 0)
+data class StripeIntentRequest(
+    @SerializedName("appointment_id") val appointmentId: String,
+    @SerializedName("puntos_canjeados") val puntos: Int = 0,
+    @SerializedName("codigo_gift_card") val codigoGiftCard: String? = null,
+    val propina: Double = 0.0
+)
+data class StripeIntentResponseData(
+    @SerializedName("client_secret") val clientSecret: String,
+    @SerializedName("payment_intent_id") val paymentIntentId: String
+)
+data class StripeIntentResponse(val data: StripeIntentResponseData)
+data class UploadPaymentReceiptResponse(val message: String? = null, val data: UploadPaymentReceiptData? = null)
+data class UploadPaymentReceiptData(val id: String, val estado: String)
 
 // ── Horario de barbero ──────────────────────────────────────────────────
 data class BarberScheduleDay(

@@ -414,6 +414,21 @@ HTTP sin cifrar. El cleartext (`usesCleartextTraffic`) también quedó scoped so
 debug (`app/src/debug/AndroidManifest.xml`) — release usa el valor seguro por defecto
 de Android (`false`).
 
+### 💳 Checkout con Stripe
+
+El pago de citas (tarjeta vía `PaymentSheet`) necesita la misma **publishable key**
+que ya usan `barber`/`frontend-urban`. Es una clave pública por diseño de Stripe (no
+un secreto), pero igual se inyecta sin hardcodear, para no tener que tocar código
+versionado si cambia:
+
+```properties
+STRIPE_PUBLISHABLE_KEY=pk_test_tu-clave-publica-aqui
+```
+
+O para CI: `-PSTRIPE_PUBLISHABLE_KEY=...`. Sin este valor, el build compila con un
+placeholder obviamente inválido (`pk_test_PENDIENTE_CONFIGURAR`) que Stripe rechaza en
+tiempo de ejecución en vez de fallar en silencio.
+
 ---
 
 ## 🔐 Flujo de autenticación
