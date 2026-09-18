@@ -23,6 +23,12 @@ val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
     ?: localProperties.getProperty("RELEASE_API_BASE_URL")
     ?: "https://PENDIENTE_CONFIGURAR.example/api/v1/"
 
+// Staging en AWS (CloudFront, HTTPS). La URL no es un secreto; se puede sobreescribir
+// con STAGING_API_BASE_URL (local.properties o -P) cuando cambie o exista dominio propio.
+val stagingApiBaseUrl = providers.gradleProperty("STAGING_API_BASE_URL").orNull
+    ?: localProperties.getProperty("STAGING_API_BASE_URL")
+    ?: "https://d1s2thm3f8g40t.cloudfront.net/api/v1/"
+
 // Publishable key de Stripe -- es pública por diseño (Stripe la espera embebida
 // en apps cliente), pero igual se inyecta sin hardcodear: debe coincidir con la
 // misma clave que ya usan barber/frontend-urban, nunca se inventa aquí.
@@ -73,6 +79,14 @@ android {
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
+        }
+        // Build de prueba contra el staging de AWS: se instala igual que debug (mismo
+        // applicationId, así el login con Google sigue funcionando), pero habla HTTPS con
+        // CloudFront. No usa el manifest de debug, así que NO permite HTTP en claro.
+        create("staging") {
+            initWith(getByName("debug"))
+            buildConfigField("String", "API_BASE_URL", "\"$stagingApiBaseUrl\"")
+            matchingFallbacks += listOf("debug")
         }
     }
 

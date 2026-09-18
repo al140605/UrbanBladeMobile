@@ -335,6 +335,28 @@ app/build.gradle.kts
 `API_BASE_URL` ahora se define por variante dentro de `buildTypes` (antes vivía en
 `defaultConfig`, compartido sin querer entre debug y release):
 
+### ☁️ Staging en AWS (HTTPS)
+
+El build type `staging` apunta al backend desplegado en AWS (CloudFront, HTTPS) para
+probar la app contra datos reales de pruebas sin levantar Laravel local:
+
+```powershell
+# Android Studio: Build Variants -> app -> staging, o por línea de comandos:
+gradle assembleStaging
+```
+
+- Usa el mismo `applicationId` que debug (el login con Google sigue funcionando) y **no**
+  permite HTTP en claro: solo HTTPS.
+- La URL viene de `STAGING_API_BASE_URL` (en `local.properties` o `-P`); por defecto
+  `https://d1s2thm3f8g40t.cloudfront.net/api/v1/`. Si cambia (por ejemplo al tener dominio
+  propio), solo hay que actualizar esa propiedad.
+- Para pagar con tarjeta hace falta `STRIPE_PUBLISHABLE_KEY` de la cuenta Stripe que usa el
+  staging, en `local.properties` (es una clave pública; nunca la secreta).
+- Los servicios de staging se apagan para ahorrar costo: si la app responde 503, hay que
+  encenderlos (ver `barber/docs/DESPLIEGUE_AWS_STAGING.md`, sección Runbook).
+- El login con Google en staging requiere que la URI de redirección de la API esté
+  registrada en Google Cloud (`barber/docs/GOOGLE_CLOUD_OAUTH.md`).
+
 ### 🖥️ Emulador
 
 ```kotlin
