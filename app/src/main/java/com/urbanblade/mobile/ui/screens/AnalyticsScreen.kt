@@ -52,6 +52,17 @@ private fun JsonElement.toNumberOrNull(): Double? = try {
 private fun InsightGraph(graph: AnalyticsGraph) {
     val values = graph.valores.mapNotNull { it.toNumberOrNull() }
     if (values.isEmpty()) return
+    // Series de tiempo -> línea; distribuciones -> dona; el resto conserva las barras proporcionales.
+    when (graph.tipo?.lowercase()) {
+        "line" -> if (values.size >= 2) {
+            UrbanLineChart(graph.labels, values, Modifier.padding(top = 10.dp))
+            return
+        }
+        "doughnut", "pie" -> if (values.any { it > 0 }) {
+            UrbanDonutChart(graph.labels, values, Modifier.padding(top = 10.dp))
+            return
+        }
+    }
     val max = values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {

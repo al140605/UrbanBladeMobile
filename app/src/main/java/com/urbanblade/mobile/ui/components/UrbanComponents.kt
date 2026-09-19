@@ -229,7 +229,7 @@ fun UrbanMetricCard(
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(value, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-                Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

@@ -65,6 +65,7 @@ fun BookingScreen(
     var time by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var slotsRequested by remember { mutableStateOf(false) }
+    var confirmed by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.loadCatalog() }
     LaunchedEffect(barberId, serviceId, date) {
@@ -84,6 +85,23 @@ fun BookingScreen(
         BookingStep.BARBER -> barberId.isNotBlank()
         BookingStep.CALENDAR -> time.isNotBlank()
         BookingStep.REVIEW -> true
+    }
+
+    // Momento de éxito antes de salir del flujo (antes se saltaba de pantalla sin confirmar nada).
+    if (confirmed) {
+        UrbanSuccessScreen(
+            title = "¡Cita reservada!",
+            message = "Te avisaremos cuando el barbero la confirme.",
+            details = listOfNotNull(
+                selectedService?.let { "Servicio" to it.nombre },
+                selectedBarber?.user?.name?.let { "Barbero" to it },
+                "Fecha" to date,
+                "Hora" to time
+            ),
+            primaryText = "Ver mis citas",
+            onPrimary = onCreated
+        )
+        return
     }
 
     Scaffold(
@@ -145,7 +163,7 @@ fun BookingScreen(
                     text = if (step == BookingStep.REVIEW) "Confirmar cita" else "Siguiente",
                     onClick = {
                         if (step == BookingStep.REVIEW) {
-                            vm.create(barberId, serviceId, date, time, notes, onCreated)
+                            vm.create(barberId, serviceId, date, time, notes) { confirmed = true }
                         } else {
                             step = BookingStep.entries[step.ordinal + 1]
                         }

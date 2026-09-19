@@ -133,7 +133,6 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze:1.6.10")                       // desenfoque tipo cristal
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.3")         // esqueletos de carga
     implementation("com.airbnb.android:lottie-compose:6.6.10")              // animaciones
-    implementation("com.patrykandpatrick.vico:compose-m3:2.1.4")            // gráficas de analítica
 
     // Login con Google nativo (Credential Manager) -- ver core/auth/GoogleAuthHelper.kt
     implementation("androidx.credentials:credentials:1.3.0")
