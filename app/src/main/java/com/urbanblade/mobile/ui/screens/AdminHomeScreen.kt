@@ -18,9 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Payments
@@ -169,6 +171,10 @@ fun AdminHomeScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     HomeTile("Reportes", "Datos del negocio", Icons.Default.Assessment, { onNavigate("reports") }, Modifier.weight(1f))
                     HomeTile("Corte de caja", "Resumen del turno", Icons.Default.PointOfSale, { onNavigate("cash") }, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HomeTile("Servicios", "Catálogo y precios", Icons.Default.ContentCut, { onNavigate("services_admin") }, Modifier.weight(1f))
+                    HomeTile("Barberos", "Equipo y comisiones", Icons.Default.Badge, { onNavigate("barbers_admin") }, Modifier.weight(1f))
                 }
             }
         }

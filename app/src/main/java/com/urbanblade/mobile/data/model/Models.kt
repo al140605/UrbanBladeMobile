@@ -157,6 +157,49 @@ data class ServiceUpsertRequest(
     val activo: Boolean
 )
 
+data class BarberAdminUser(val id: String? = null, val name: String = "", val email: String = "")
+
+/** Barbero tal como lo ve el administrador (GET /barbers/manage). */
+data class BarberAdminItem(
+    val id: String = "",
+    val slug: String = "",
+    val especialidades: String? = null,
+    val descripcion: String? = null,
+    val foto: String? = null,
+    val activo: Boolean = true,
+    @SerializedName("comision_pct") val comisionPct: Double = 0.0,
+    val user: BarberAdminUser = BarberAdminUser()
+)
+
+data class BarbersAdminResponse(
+    val data: List<BarberAdminItem> = emptyList(),
+    val meta: ServicesAdminMeta = ServicesAdminMeta()
+)
+
+/**
+ * El servidor reescribe todo el perfil en cada PUT (lo que falte queda en null/false), por eso
+ * siempre se manda el perfil completo, incluida la foto que hoy no se edita desde la app.
+ */
+data class BarberUpsertRequest(
+    val name: String,
+    val email: String,
+    val especialidades: String?,
+    val descripcion: String?,
+    val foto: String?,
+    val activo: Boolean,
+    @SerializedName("comision_pct") val comisionPct: Double
+)
+
+data class BarberPerformance(
+    val appointmentsThisMonth: Int = 0,
+    val appointmentsLastMonth: Int = 0,
+    val growth: Int = 0,
+    val averageRating: Double = 0.0,
+    val totalClients: Int = 0
+)
+
+data class BarberPerformanceResponse(val data: BarberPerformance = BarberPerformance())
+
 /** Bloque `meta` que el servidor agrega solo cuando se pide `page`. */
 data class PageMeta(
     val page: Int = 1,

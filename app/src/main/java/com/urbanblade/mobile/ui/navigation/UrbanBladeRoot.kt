@@ -248,6 +248,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 }
                 composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
+                composable("barbers_admin") { BarbersAdminScreen(onBack = { nav.popBackStack() }) }
                 composable("services_admin") { ServicesAdminScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_portfolio") { BarberPortfolioScreen(onBack = { nav.popBackStack() }) }
