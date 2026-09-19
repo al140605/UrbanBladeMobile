@@ -417,22 +417,41 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                 )
             }
 
-            if (preview.esperado.isNotEmpty()) {
-                item { UrbanSectionTitle("Esperado por método") }
-                items(preview.esperado.entries.toList()) { (metodo, monto) ->
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        UrbanKeyValue(METODO_LABEL[metodo] ?: metodo.replaceFirstChar { it.uppercase() }, "\$${"%.2f".format(monto)}")
+            item {
+                UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                    Text("Total esperado", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                    Text(
+                        "$" + "%,.2f".format(preview.esperadoTotal),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = UrbanColors.Ink
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Efectivo en caja", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                            Text("$" + "%,.2f".format(preview.efectivoEsperado), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text("Propinas", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                            Text("$" + "%,.2f".format(preview.propinas), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                        }
                     }
                 }
             }
 
-            item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    UrbanKeyValue("Total esperado", "\$${"%.2f".format(preview.esperadoTotal)}")
-                    Spacer(Modifier.height(8.dp))
-                    UrbanKeyValue("Efectivo esperado en caja", "\$${"%.2f".format(preview.efectivoEsperado)}")
-                    Spacer(Modifier.height(8.dp))
-                    UrbanKeyValue("Propinas", "\$${"%.2f".format(preview.propinas)}")
+            if (preview.esperado.values.any { it > 0.0 }) {
+                item {
+                    val byMethod = preview.esperado.entries.filter { it.value > 0.0 }.sortedByDescending { it.value }
+                    UrbanCard(Modifier.fillMaxWidth()) {
+                        UrbanSectionTitle("Por método de pago")
+                        Spacer(Modifier.height(12.dp))
+                        UrbanHBars(
+                            labels = byMethod.map { METODO_LABEL[it.key] ?: it.key.replaceFirstChar { c -> c.uppercase() } },
+                            values = byMethod.map { it.value },
+                            format = { "$" + "%,.2f".format(it) }
+                        )
+                    }
                 }
             }
 
@@ -457,7 +476,16 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                         Text("Caja ya cerrada hoy", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
                         Spacer(Modifier.height(8.dp))
                         UrbanKeyValue("Efectivo contado", "\$${"%.2f".format(cierre.efectivoContado)}")
-                        UrbanKeyValue("Diferencia", "\$${"%.2f".format(cierre.diferencia)}", Modifier.padding(top = 6.dp))
+                        val diff = cierre.diferencia
+                        val (diffText, diffTone) = when {
+                            kotlin.math.abs(diff) < 0.005 -> "Cuadró" to UrbanColors.Success
+                            diff > 0 -> "Sobran $" + "%,.2f".format(diff) to UrbanColors.Warning
+                            else -> "Faltan $" + "%,.2f".format(-diff) to UrbanColors.Danger
+                        }
+                        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Diferencia", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                            Text(diffText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = diffTone)
+                        }
                         cierre.cerradoPorNombre?.let { UrbanKeyValue("Cerrado por", it, Modifier.padding(top = 6.dp)) }
                         cierre.notas?.takeIf { it.isNotBlank() }?.let {
                             Spacer(Modifier.height(6.dp))

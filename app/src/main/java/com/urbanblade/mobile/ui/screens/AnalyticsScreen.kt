@@ -63,39 +63,12 @@ private fun InsightGraph(graph: AnalyticsGraph) {
             return
         }
     }
-    val max = values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
-        values.forEachIndexed { index, value ->
-            val label = graph.labels.getOrNull(index).orEmpty()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = UrbanColors.Muted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(76.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(UrbanColors.Line)
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth((value / max).toFloat().coerceIn(0f, 1f))
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(UrbanColors.Gold)
-                    )
-                }
-            }
-        }
-    }
+    // Cualquier otro tipo de gráfica: ranking en barras horizontales del kit común.
+    UrbanHBars(
+        labels = values.indices.map { graph.labels.getOrNull(it).orEmpty() },
+        values = values,
+        modifier = Modifier.padding(top = 10.dp)
+    )
 }
 
 @Composable

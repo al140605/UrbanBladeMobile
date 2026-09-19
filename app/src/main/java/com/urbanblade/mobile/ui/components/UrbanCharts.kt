@@ -4,6 +4,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.setValue
@@ -66,24 +70,64 @@ private fun formatNumber(value: Double): String =
         String.format(Locale("es", "MX"), "%,.1f", value)
     }
 
-/** Serie de tiempo: línea con área degradada y puntos. Requiere al menos 2 valores. */
+/** Índice del punto más cercano a la posición [x] de un trazo con [count] puntos y márgenes [pad]. */
+private fun nearestIndex(x: Float, width: Float, pad: Float, count: Int): Int =
+    Math.round(((x - pad) / (width - pad * 2)) * (count - 1)).coerceIn(0, count - 1)
+
+/**
+ * Serie de tiempo: línea con área degradada. Al tocar o arrastrar sobre ella se muestra el valor de
+ * cada punto (por defecto, el último). Requiere al menos 2 valores.
+ */
 @Composable
 fun UrbanLineChart(
     labels: List<String>,
     values: List<Double>,
     modifier: Modifier = Modifier,
-    color: Color = UrbanColors.Gold
+    color: Color = UrbanColors.Gold,
+    format: (Double) -> String = ::defaultFormat
 ) {
     if (values.size < 2) return
     val progress = remember(values) { Animatable(0f) }
     LaunchedEffect(values) { progress.animateTo(1f, tween(durationMillis = 800)) }
+    var selected by remember(values) { mutableStateOf<Int?>(null) }
+    val focus = selected ?: values.lastIndex
 
     val lineColor = color
     val gridColor = UrbanColors.Line
-    val summary = "Gráfica de línea de ${values.size} puntos, de ${formatNumber(values.first())} a ${formatNumber(values.last())}"
+    val guideColor = UrbanColors.Muted.copy(alpha = 0.5f)
+    val summary = "Gráfica de línea de ${values.size} puntos, de ${format(values.first())} a ${format(values.last())}"
 
     Column(modifier.fillMaxWidth().semantics { contentDescription = summary }) {
-        Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                labels.getOrElse(focus) { "" },
+                style = MaterialTheme.typography.labelMedium,
+                color = UrbanColors.Muted,
+                modifier = Modifier.weight(1f)
+            )
+            Text(format(values[focus]), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+        }
+        Spacer(Modifier.height(8.dp))
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(132.dp)
+                .pointerInput(values) {
+                    detectTapGestures(onPress = { offset ->
+                        selected = nearestIndex(offset.x, size.width.toFloat(), 6.dp.toPx(), values.size)
+                    })
+                }
+                .pointerInput(values) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            selected = nearestIndex(offset.x, size.width.toFloat(), 6.dp.toPx(), values.size)
+                        },
+                        onHorizontalDrag = { change, _ ->
+                            selected = nearestIndex(change.position.x, size.width.toFloat(), 6.dp.toPx(), values.size)
+                        }
+                    )
+                }
+        ) {
             val padTop = 8.dp.toPx()
             val padBottom = 8.dp.toPx()
             val padH = 6.dp.toPx()
@@ -125,11 +169,16 @@ fun UrbanLineChart(
                     style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
                 if (values.size <= 14) {
-                    values.forEachIndexed { i, v -> drawCircle(lineColor, radius = 3.5.dp.toPx(), center = Offset(x(i), y(v))) }
+                    values.forEachIndexed { i, v -> drawCircle(lineColor.copy(alpha = 0.55f), radius = 3.dp.toPx(), center = Offset(x(i), y(v))) }
                 }
             }
+            // Guía vertical y punto resaltado del valor seleccionado.
+            drawLine(guideColor, Offset(x(focus), padTop), Offset(x(focus), padTop + plotH), strokeWidth = 1.dp.toPx())
+            drawCircle(lineColor, radius = 5.5.dp.toPx(), center = Offset(x(focus), y(values[focus])))
+            drawCircle(Color.White.copy(alpha = 0.9f), radius = 2.2.dp.toPx(), center = Offset(x(focus), y(values[focus])))
         }
         if (labels.size >= 2) {
+            Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(labels.first(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 Spacer(Modifier.width(8.dp))
@@ -357,5 +406,36 @@ fun UrbanRingGauge(
             )
         }
         Text(centerText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+    }
+}
+
+/**
+ * Nivel de stock: barra llena hasta las existencias actuales con una marca en el mínimo. Roja si está
+ * en el mínimo o por debajo, verde si no. La escala llega al doble del mínimo para que la marca se vea.
+ */
+@Composable
+fun UrbanStockBar(current: Int, minimum: Int, modifier: Modifier = Modifier) {
+    val low = current <= minimum
+    val scale = maxOf(minimum * 2, current, 1).toFloat()
+    val fillTarget = (current / scale).coerceIn(0f, 1f)
+    val markTarget = (minimum / scale).coerceIn(0f, 1f)
+    val progress = remember(current, minimum) { Animatable(0f) }
+    LaunchedEffect(current, minimum) { progress.animateTo(1f, tween(durationMillis = 600)) }
+    val tone = if (low) UrbanColors.Danger else UrbanColors.Success
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(RoundedCornerShape(50))
+            .background(UrbanColors.Line.copy(alpha = 0.5f))
+            .semantics { contentDescription = "Stock $current, mínimo $minimum" }
+    ) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(fillTarget * progress.value).clip(RoundedCornerShape(50)).background(tone))
+        if (minimum > 0) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(markTarget), contentAlignment = Alignment.CenterEnd) {
+                Box(Modifier.fillMaxHeight().width(2.dp).background(UrbanColors.Ink.copy(alpha = 0.55f)))
+            }
+        }
     }
 }

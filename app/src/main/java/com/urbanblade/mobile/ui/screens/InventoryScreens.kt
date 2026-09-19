@@ -112,6 +112,8 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
                         }
                     }
                     Spacer(Modifier.height(10.dp))
+                    UrbanStockBar(product.stockActual, product.stockMinimo)
+                    Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         UrbanOutlineButton(text = "Movimiento", onClick = { showMovement = product }, icon = Icons.Default.SwapVert, modifier = Modifier.weight(1f))
                         if (isAdmin) {
