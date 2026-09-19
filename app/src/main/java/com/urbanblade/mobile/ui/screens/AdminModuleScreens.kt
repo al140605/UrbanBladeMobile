@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,11 +43,51 @@ fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
 
-            item { UrbanMetricCard("Clientes totales", metrics.totalClients.toString(), Icons.Default.Groups, Modifier.fillMaxWidth()) }
-            item { UrbanMetricCard("Barberos activos", metrics.activeBarbers.toString(), Icons.Default.ContentCut, Modifier.fillMaxWidth()) }
-            item { UrbanMetricCard("Tasa de cancelación", "${"%.1f".format(metrics.cancellationRate)}%", Icons.Default.EventBusy, Modifier.fillMaxWidth()) }
-            item { UrbanMetricCard("Ingreso promedio por cita", "\$${"%.2f".format(metrics.averageRevenuePerAppointment)}", Icons.Default.Payments, Modifier.fillMaxWidth()) }
-            item { UrbanMetricCard("Ingreso total", "\$${"%.2f".format(metrics.totalRevenue)}", Icons.Default.AccountBalanceWallet, Modifier.fillMaxWidth()) }
+            item {
+                UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                    Text("Ingreso total", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                    Text(
+                        "$" + "%,.2f".format(metrics.totalRevenue),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = UrbanColors.Ink
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    UrbanKeyValue("Ingreso promedio por cita", "$" + "%,.2f".format(metrics.averageRevenuePerAppointment))
+                }
+            }
+            item {
+                val rate = metrics.cancellationRate
+                // Hasta 10 % de cancelaciones es normal; más de 20 % ya pide intervenir (recordatorios, depósitos).
+                val tone = when {
+                    rate < 10.0 -> UrbanColors.Success
+                    rate < 20.0 -> UrbanColors.Warning
+                    else -> UrbanColors.Danger
+                }
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        UrbanRingGauge(fraction = (rate / 100.0).toFloat(), centerText = "%.1f%%".format(rate), color = tone)
+                        Column(Modifier.weight(1f)) {
+                            Text("Tasa de cancelación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                            Text(
+                                when {
+                                    rate < 10.0 -> "Saludable: pocas citas se pierden."
+                                    rate < 20.0 -> "Vigílala: recordatorios y depósitos ayudan a bajarla."
+                                    else -> "Alta: cada cancelación es un hueco sin ingreso."
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = UrbanColors.Muted
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    UrbanMetricCard("Clientes", metrics.totalClients.toString(), Icons.Default.Groups, Modifier.weight(1f))
+                    UrbanMetricCard("Barberos activos", metrics.activeBarbers.toString(), Icons.Default.ContentCut, Modifier.weight(1f))
+                }
+            }
         }
     }
 }

@@ -4,6 +4,15 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -196,5 +205,157 @@ fun UrbanDonutChart(
                 }
             }
         }
+    }
+}
+
+private fun defaultFormat(value: Double): String = formatNumber(value)
+
+/**
+ * Barras verticales: resalta la más alta (o la que se toque) y muestra su valor arriba, en lugar de
+ * rotular cada barra. Con muchas barras solo se rotulan algunas para que el eje no se amontone.
+ */
+@Composable
+fun UrbanBarChart(
+    labels: List<String>,
+    values: List<Double>,
+    modifier: Modifier = Modifier,
+    color: Color = UrbanColors.Gold,
+    format: (Double) -> String = ::defaultFormat
+) {
+    if (values.isEmpty() || values.all { it <= 0.0 }) return
+    val progress = remember(values) { Animatable(0f) }
+    LaunchedEffect(values) { progress.animateTo(1f, tween(durationMillis = 700)) }
+    var selected by remember(values) { mutableStateOf<Int?>(null) }
+    val max = values.max()
+    val focus = selected ?: values.indexOf(max)
+    val step = if (values.size <= 8) 1 else (values.size + 5) / 6
+
+    Column(
+        modifier.fillMaxWidth().semantics {
+            contentDescription = "Gráfica de barras con ${values.size} valores; el más alto es ${format(max)}"
+        }
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                labels.getOrElse(focus) { "" },
+                style = MaterialTheme.typography.labelMedium,
+                color = UrbanColors.Muted,
+                modifier = Modifier.weight(1f)
+            )
+            Text(format(values[focus]), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            Modifier.fillMaxWidth().height(128.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            values.forEachIndexed { i, v ->
+                val fraction = if (v <= 0.0) 0f else ((v / max).toFloat() * progress.value).coerceIn(0.03f, 1f)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                            selected = if (selected == i) null else i
+                        },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(fraction)
+                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                            .background(if (i == focus) color else color.copy(alpha = 0.32f))
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            values.indices.forEach { i ->
+                Text(
+                    if (i % step == 0) labels.getOrElse(i) { "" } else "",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = UrbanColors.Muted
+                )
+            }
+        }
+    }
+}
+
+/** Ranking o desglose: una fila por elemento con su barra proporcional al mayor. */
+@Composable
+fun UrbanHBars(
+    labels: List<String>,
+    values: List<Double>,
+    modifier: Modifier = Modifier,
+    color: Color = UrbanColors.Gold,
+    format: (Double) -> String = ::defaultFormat
+) {
+    if (values.isEmpty() || values.all { it <= 0.0 }) return
+    val progress = remember(values) { Animatable(0f) }
+    LaunchedEffect(values) { progress.animateTo(1f, tween(durationMillis = 700)) }
+    val max = values.max()
+
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        values.forEachIndexed { i, v ->
+            Column(Modifier.semantics { contentDescription = "${labels.getOrElse(i) { "" }}: ${format(v)}" }) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        labels.getOrElse(i) { "" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = UrbanColors.Ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(format(v), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = UrbanColors.Ink)
+                }
+                Spacer(Modifier.height(5.dp))
+                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50)).background(UrbanColors.Line.copy(alpha = 0.5f))) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(((v / max).toFloat() * progress.value).coerceIn(0f, 1f))
+                            .clip(RoundedCornerShape(50))
+                            .background(if (i == 0) color else color.copy(alpha = 0.55f))
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Medidor circular de un porcentaje (0 a 1) con el valor al centro. */
+@Composable
+fun UrbanRingGauge(
+    fraction: Float,
+    centerText: String,
+    modifier: Modifier = Modifier,
+    color: Color = UrbanColors.Gold,
+    diameter: androidx.compose.ui.unit.Dp = 96.dp
+) {
+    val target = fraction.coerceIn(0f, 1f)
+    val progress = remember(target) { Animatable(0f) }
+    LaunchedEffect(target) { progress.animateTo(target, tween(durationMillis = 800)) }
+    val track = UrbanColors.Line.copy(alpha = 0.5f)
+
+    Box(modifier.size(diameter).semantics { contentDescription = centerText }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(diameter)) {
+            val stroke = 10.dp.toPx()
+            val d = size.minDimension - stroke
+            drawArc(track, -90f, 360f, useCenter = false, topLeft = Offset(stroke / 2, stroke / 2), size = Size(d, d), style = Stroke(stroke))
+            drawArc(
+                color, -90f, 360f * progress.value, useCenter = false,
+                topLeft = Offset(stroke / 2, stroke / 2), size = Size(d, d), style = Stroke(stroke, cap = StrokeCap.Round)
+            )
+        }
+        Text(centerText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
     }
 }

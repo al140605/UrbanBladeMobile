@@ -295,6 +295,8 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = v
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
 
+            if (payments.data.isNotEmpty()) item { PaymentsSummary(payments.data, staff) }
+
             if (staff && pending.data.isNotEmpty()) {
                 item { UrbanSectionTitle("Por revisar", "${pending.data.size} transferencias pendientes") }
                 items(pending.data, key = { it.id }) { payment ->

@@ -696,11 +696,19 @@ data class AnalyticsResponse(
 
 // ── Reportes (reports, admin + ingeniero solo lectura) ───────────────────
 data class ReportManifest(val types: List<String> = emptyList(), val formats: List<String> = emptyList())
+/** Gráfica que el servidor calcula para cada reporte (misma que lleva el PDF). */
+data class ReportChart(
+    val title: String? = null,
+    val labels: List<String> = emptyList(),
+    val values: List<Double> = emptyList(),
+    val unit: String? = null
+)
 data class ReportData(
     val title: String? = null,
     val headings: List<String> = emptyList(),
     val keys: List<String> = emptyList(),
-    val rows: List<Map<String, JsonElement>> = emptyList()
+    val rows: List<Map<String, JsonElement>> = emptyList(),
+    val chart: ReportChart? = null
 )
 
 // ── Configuración de la barbería (settings, admin-only) ──────────────────

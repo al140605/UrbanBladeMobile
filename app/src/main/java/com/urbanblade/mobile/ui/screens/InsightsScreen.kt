@@ -1,13 +1,20 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.ui.components.*
@@ -21,6 +28,13 @@ private fun statusColor(status: String?) = when (status) {
     else -> UrbanColors.Info
 }
 
+private fun statusLabel(status: String?) = when (status) {
+    "positive" -> "Va bien"
+    "warning" -> "Atención"
+    "negative" -> "En riesgo"
+    else -> "Informativo"
+}
+
 @Composable
 fun InsightsScreen(onBack: () -> Unit, vm: InsightsViewModel = viewModel()) {
     val data by vm.data.collectAsState()
@@ -32,7 +46,7 @@ fun InsightsScreen(onBack: () -> Unit, vm: InsightsViewModel = viewModel()) {
     val isEmpty = data.revenue == null && data.appointments == null && data.serviceConcentration == null
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = Color.Transparent,
         topBar = { UrbanTopBar("Insights IA", onBack) { IconButton(onClick = { vm.load() }, enabled = !busy) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
@@ -55,41 +69,55 @@ fun InsightsScreen(onBack: () -> Unit, vm: InsightsViewModel = viewModel()) {
 
             data.revenue?.let { revenue ->
                 item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Ingresos", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                            Icon(Icons.Default.TrendingUp, null, tint = statusColor(revenue.status))
-                        }
-                        revenue.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp)) }
-                        revenue.avgDaily?.let { UrbanKeyValue("Promedio diario", "\$${"%.2f".format(it)}", Modifier.padding(top = 8.dp)) }
+                    InsightCard("Ingresos", Icons.Default.TrendingUp, revenue.status, revenue.message) {
+                        revenue.avgDaily?.let { BigNumber("Promedio diario", "$" + "%,.0f".format(it)) }
                     }
                 }
             }
 
             data.appointments?.let { appts ->
                 item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Citas", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                            Icon(Icons.Default.CalendarMonth, null, tint = statusColor(appts.status))
+                    InsightCard("Citas", Icons.Default.CalendarMonth, appts.status, appts.message) {
+                        val avg = appts.avgDaily
+                        val recent = appts.trend7d
+                        if (avg != null && recent != null) {
+                            // Comparar el ritmo reciente contra el promedio se lee mejor con barras que con dos números.
+                            UrbanHBars(
+                                labels = listOf("Promedio diario", "Últimos 7 días"),
+                                values = listOf(avg, recent),
+                                color = statusColor(appts.status),
+                                format = { "%.1f".format(it) }
+                            )
+                        } else {
+                            avg?.let { BigNumber("Promedio diario", "%.1f".format(it)) }
                         }
-                        appts.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp)) }
-                        appts.avgDaily?.let { UrbanKeyValue("Promedio diario", "%.1f".format(it), Modifier.padding(top = 8.dp)) }
-                        appts.trend7d?.let { UrbanKeyValue("Últimos 7 días", "%.1f".format(it), Modifier.padding(top = 6.dp)) }
                     }
                 }
             }
 
             data.serviceConcentration?.let { service ->
                 item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Concentración de servicios", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                            Icon(Icons.Default.PieChart, null, tint = statusColor(service.status))
+                    InsightCard("Concentración de servicios", Icons.Default.PieChart, service.status, service.message) {
+                        val percent = service.percentage
+                        if (percent != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                UrbanRingGauge(
+                                    fraction = (percent / 100.0).toFloat(),
+                                    centerText = "%.0f%%".format(percent),
+                                    color = statusColor(service.status)
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    service.topService?.let { BigNumber("Servicio principal", it) }
+                                    Text(
+                                        "de los ingresos vienen de un solo servicio",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = UrbanColors.Muted
+                                    )
+                                }
+                            }
+                        } else {
+                            service.topService?.let { BigNumber("Servicio principal", it) }
                         }
-                        service.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp)) }
-                        service.topService?.let { UrbanKeyValue("Servicio top", it, Modifier.padding(top = 8.dp)) }
-                        service.percentage?.let { UrbanKeyValue("Participación", "${"%.1f".format(it)}%", Modifier.padding(top = 6.dp)) }
                     }
                 }
             }
@@ -98,5 +126,48 @@ fun InsightsScreen(onBack: () -> Unit, vm: InsightsViewModel = viewModel()) {
                 item { UrbanEmptyState("Sin insights todavía", "Se necesitan más datos históricos para generar recomendaciones.", Icons.Default.Lightbulb) }
             }
         }
+    }
+}
+
+/** Tarjeta de un insight: icono y etiqueta de estado con su color, el mensaje del servidor y una visualización. */
+@Composable
+private fun InsightCard(
+    title: String,
+    icon: ImageVector,
+    status: String?,
+    message: String?,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val tone = statusColor(status)
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(tone.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(icon, null, tint = tone, modifier = Modifier.size(22.dp)) }
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
+            Surface(shape = RoundedCornerShape(50), color = tone.copy(alpha = 0.14f)) {
+                Text(
+                    statusLabel(status),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = tone,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
+        }
+        message?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(12.dp))
+            Text(it, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Ink)
+        }
+        Spacer(Modifier.height(14.dp))
+        content()
+    }
+}
+
+@Composable
+private fun BigNumber(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+        Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
     }
 }
