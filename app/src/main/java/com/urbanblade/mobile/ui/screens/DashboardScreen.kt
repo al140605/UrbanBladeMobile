@@ -51,7 +51,7 @@ fun DashboardScreen(
             UrbanPremiumCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
-                        Text("SASTRERÍA NOCTURNA", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+                        Text(UrbanColors.current.label.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
                         Spacer(Modifier.height(6.dp))
                         Text("Todo el negocio,\nen tu bolsillo.", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(8.dp))
@@ -154,6 +154,10 @@ private fun extractKpis(data: JsonObject): List<Pair<String, String>> {
         "total_clients" to "Clientes",
         "pending_appointments" to "Citas pendientes",
         "appointments_month" to "Citas del mes",
+        "total_appointments" to "Citas totales",
+        "completion_rate" to "Tasa de finalización",
+        "cancellation_rate" to "Tasa de cancelación",
+        "no_show_rate" to "Tasa de inasistencia",
         "income_today" to "Ingresos hoy",
         "income_week" to "Ingresos de la semana",
         "income_month" to "Ingresos del mes",
@@ -193,7 +197,9 @@ private fun extractKpis(data: JsonObject): List<Pair<String, String>> {
         // para que la traducción no dependa de cómo venga escrita.
         val normalized = key.trim().lowercase().replace(' ', '_')
         val label = friendly[normalized] ?: key.replace('_', ' ').replaceFirstChar { it.uppercase() }
-        result += label to primitive.asString
+        // Tasas y crecimientos vienen como número suelto; con el símbolo se entienden solos.
+        val isPercent = primitive.isNumber && (normalized.endsWith("_rate") || normalized.endsWith("_growth"))
+        result += label to (primitive.asString + if (isPercent) "%" else "")
         if (result.size == 4) break
     }
     return result

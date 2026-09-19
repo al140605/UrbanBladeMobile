@@ -368,8 +368,9 @@ fun UrbanOutlineButton(
 }
 
 @Composable
-fun UrbanErrorBanner(text: String) {
+fun UrbanErrorBanner(text: String, modifier: Modifier = Modifier.fillMaxWidth()) {
     Surface(
+        modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         color = UrbanColors.Danger.copy(alpha = 0.12f),
         border = BorderStroke(1.dp, UrbanColors.Danger.copy(alpha = 0.3f))

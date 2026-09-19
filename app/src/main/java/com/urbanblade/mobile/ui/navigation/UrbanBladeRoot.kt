@@ -62,7 +62,20 @@ fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
 @Composable
 private fun GuestNav(authViewModel: AuthViewModel) {
     val nav = rememberNavController()
-    NavHost(navController = nav, startDestination = "catalog") {
+    // Sin Scaffold/fondo propio (AuthenticatedNav sí lo tiene), el catálogo de invitado salía sobre gris
+    // y con texto negro sin color explícito (nombres de servicio ilegibles): se le da fondo y color base.
+    UrbanBladeBackground {
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.material3.LocalContentColor provides UrbanColors.Ink
+        ) {
+    NavHost(navController = nav, startDestination = "welcome") {
+        composable("welcome") {
+            com.urbanblade.mobile.ui.screens.WelcomeScreen(
+                onRegister = { nav.navigate("register") },
+                onLogin = { nav.navigate("login") },
+                onExplore = { nav.navigate("catalog") }
+            )
+        }
         composable("catalog") {
             CatalogScreen(
                 isGuest = true,
@@ -80,11 +93,20 @@ private fun GuestNav(authViewModel: AuthViewModel) {
             LoginScreen(
                 authViewModel = authViewModel,
                 onRegister = { nav.navigate("register") },
-                onForgot = { nav.navigate("forgot") }
+                onForgot = { nav.navigate("forgot") },
+                onBack = { nav.popBackStack() }
             )
         }
-        composable("register") { RegisterScreen(authViewModel = authViewModel, onBack = { nav.popBackStack() }) }
+        composable("register") {
+            RegisterScreen(
+                authViewModel = authViewModel,
+                onBack = { nav.popBackStack() },
+                onLogin = { nav.navigate("login") { popUpTo("register") { inclusive = true } } }
+            )
+        }
         composable("forgot") { ForgotPasswordScreen(authViewModel = authViewModel, onBack = { nav.popBackStack() }) }
+    }
+        }
     }
 }
 

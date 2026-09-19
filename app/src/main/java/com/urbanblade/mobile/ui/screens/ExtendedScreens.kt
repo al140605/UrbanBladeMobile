@@ -149,11 +149,30 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
             Column(Modifier.weight(1f)) {
                 item.categoria?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
                 Text(item.nombre, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                item.descripcion?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // Muchas descripciones empiezan repitiendo el nombre ("Aceite — producto…"): se quita ese prefijo.
+                item.descripcion
+                    ?.removePrefix(item.nombre)
+                    ?.trimStart(' ', '—', '–', '-', ':')
+                    ?.trim()?.replaceFirstChar { c -> c.uppercase() }
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                // El comprador no necesita el inventario exacto: solo avisar si se agota.
+                when {
+                    item.stockActual <= 0 -> {
+                        Spacer(Modifier.height(7.dp))
+                        Text("Agotado", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Danger)
+                    }
+                    item.stockActual <= 5 -> {
+                        Spacer(Modifier.height(7.dp))
+                        Text(
+                            if (item.stockActual == 1) "Última pieza" else "Últimas ${item.stockActual} piezas",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = UrbanColors.Warning
+                        )
+                    }
                 }
-                Spacer(Modifier.height(7.dp))
-                Text("Stock ${item.stockActual}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
             }
             Spacer(Modifier.width(10.dp))
             Column(horizontalAlignment = Alignment.End) {
@@ -162,14 +181,16 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (qty > 0) {
-                            SmallFloatingActionButton(onClick = remove, containerColor = UrbanColors.CardAlt, contentColor = UrbanColors.Ink) { Icon(Icons.Default.Remove, null) }
+                            SmallFloatingActionButton(onClick = remove, containerColor = UrbanColors.CardAlt, contentColor = UrbanColors.Ink) { Icon(Icons.Default.Remove, "Quitar del carrito") }
                             Text(qty.toString(), Modifier.padding(horizontal = 9.dp), style = MaterialTheme.typography.titleMedium)
                         }
-                        SmallFloatingActionButton(
-                            onClick = add,
-                            containerColor = UrbanColors.Gold,
-                            contentColor = UrbanColors.OnGold,
-                        ) { Icon(Icons.Default.Add, null) }
+                        if (item.stockActual > 0) {
+                            SmallFloatingActionButton(
+                                onClick = add,
+                                containerColor = UrbanColors.Gold,
+                                contentColor = UrbanColors.OnGold,
+                            ) { Icon(Icons.Default.Add, "Agregar al carrito") }
+                        }
                     }
                 }
             }

@@ -65,6 +65,9 @@ private data class UrbanPalette(
     val gradientBottom: Color,
 )
 
+/** Fondo y acento de un tema, para pintar su vista previa en el selector de apariencia. */
+fun UrbanTheme.previewColors(): Pair<Color, Color> = palettes.getValue(this).let { it.background to it.gold }
+
 private val palettes = mapOf(
     UrbanTheme.NOIR to UrbanPalette(
         background = Color(0xFF0A0A0A),

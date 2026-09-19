@@ -4,6 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import com.urbanblade.mobile.ui.theme.previewColors
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +54,14 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
             sex = it.client?.sexo.orEmpty()
         }
     }
+
+    // "Guardar cambios" solo se activa cuando algo cambió respecto a lo que devolvió el servidor.
+    val dirty = name != user.name || email != user.email ||
+        (user.roles.contains("cliente") && (
+            phone != user.client?.telefono.orEmpty() ||
+                birth != user.client?.fechaNacimiento.orEmpty() ||
+                sex != user.client?.sexo.orEmpty()
+            ))
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -161,14 +174,18 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
                     Spacer(Modifier.height(14.dp))
                     UrbanFieldLabel("Sexo")
                     Spacer(Modifier.height(6.dp))
-                    OutlinedTextField(
-                        sex,
-                        { sex = it },
-                        leadingIcon = { Icon(Icons.Default.Badge, null) },
-                        supportingText = { Text("masculino, femenino o prefiero_no_decir") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium
-                    )
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("masculino" to "Masculino", "femenino" to "Femenino", "prefiero_no_decir" to "Prefiero no decir").forEach { (value, label) ->
+                            FilterChip(
+                                selected = sex == value,
+                                onClick = { sex = if (sex == value) "" else value },
+                                label = { Text(label) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -180,6 +197,7 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
             UrbanPrimaryButton(
                 text = "Guardar cambios",
                 onClick = { vm.save(name, email, phone, birth, sex) },
+                enabled = dirty,
                 loading = busy,
                 icon = Icons.Default.Save,
                 modifier = Modifier.fillMaxWidth()
@@ -197,7 +215,7 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
 
         item {
             Text(
-                "Tu sesión está protegida con Bearer Token y la autorización real se valida en Laravel.",
+                "Tus datos están protegidos. Puedes cerrar tu sesión en cualquier momento.",
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Muted,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
@@ -208,35 +226,34 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
 
 @Composable
 private fun UrbanThemeSwatch(theme: UrbanTheme, selected: Boolean, onClick: () -> Unit) {
-    // Mismo color "gold" que cada tema usa como acento (ver palettes en
-    // ui/theme/Theme.kt) -- se repite aquí en vez de exponer `palettes`
-    // porque es solo para pintar el swatch, no lógica de tema real.
-    val swatchColor = when (theme) {
-        UrbanTheme.NOIR -> Color(0xFFD4AF37)
-        UrbanTheme.ACERO -> Color(0xFFC1703D)
-        UrbanTheme.SALON -> Color(0xFFC9A24A)
-        UrbanTheme.LIBRETA -> Color(0xFFB8860B)
-    }
+    // Vista previa de dos tonos: fondo del tema + acento, para distinguir un tema de otro
+    // (los acentos de Noir, Salón y Libreta son tres dorados muy parecidos por sí solos).
+    val (previewBackground, previewAccent) = theme.previewColors()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
             .padding(vertical = 4.dp)
     ) {
         Box(
             Modifier
-                .size(44.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(swatchColor)
-                .then(
-                    if (selected) {
-                        Modifier.border(BorderStroke(2.dp, UrbanColors.Ink), CircleShape)
-                    } else {
-                        Modifier
-                    }
-                )
-        )
+                .background(previewBackground)
+                .border(
+                    BorderStroke(if (selected) 2.5.dp else 1.dp, if (selected) UrbanColors.Ink else UrbanColors.Line),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(previewAccent)
+            )
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             theme.label,

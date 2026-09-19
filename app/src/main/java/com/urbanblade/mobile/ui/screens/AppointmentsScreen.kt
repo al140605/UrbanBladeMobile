@@ -77,7 +77,11 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 )
             }
 
-            item {
+            // Si la carga falló y no hay nada que mostrar, no se pintan contadores en 0 ni
+            // "agenda libre": sería afirmar algo que no sabemos. Solo el error y "Reintentar".
+            val failed = error != null && response.data.isEmpty()
+
+            if (!failed) item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     UrbanMetricCard(
                         label = "Próximas",
@@ -96,8 +100,18 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
 
             if (loading) item { UrbanSkeletonList(3) }
             error?.let { item { UrbanErrorBanner(it) } }
+            if (failed && !loading) {
+                item {
+                    UrbanOutlineButton(
+                        text = "Reintentar",
+                        onClick = { vm.load() },
+                        icon = Icons.Default.Refresh,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
-            if (!loading && response.data.isEmpty()) {
+            if (!loading && !failed && response.data.isEmpty()) {
                 item {
                     UrbanPremiumCard(Modifier.fillMaxWidth()) {
                         UrbanEmptyState(
@@ -112,7 +126,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             }
 
             if (response.data.isNotEmpty()) {
-                item { UrbanSectionTitle("Tu agenda", "${response.stats.total} citas registradas") }
+                item { UrbanSectionTitle("Tu agenda", UrbanFormat.count(response.stats.total, "cita registrada", "citas registradas")) }
             }
 
             items(response.data, key = { it.id }) { appt ->
@@ -159,7 +173,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             title = { Text("Cancelar cita") },
             text = {
                 Text(
-                    "¿Quieres cancelar la cita del ${appt.fecha} a las ${appt.horaInicio.take(5)}? Esta acción se enviará al backend.",
+                    "¿Quieres cancelar tu cita del ${UrbanFormat.date(appt.fecha)} a las ${UrbanFormat.time(appt.horaInicio)}?",
                     color = UrbanColors.Muted
                 )
             },
@@ -205,7 +219,7 @@ private fun AppointmentCard(
                     UrbanStatusPill(appt.estado)
                 }
                 Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-                Text(appt.fecha, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 appt.notas?.takeIf { it.isNotBlank() }?.let {
                     Text("“$it”", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
                 }

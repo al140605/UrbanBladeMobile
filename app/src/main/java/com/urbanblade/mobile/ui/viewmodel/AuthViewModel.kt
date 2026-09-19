@@ -40,6 +40,11 @@ class AuthViewModel @JvmOverloads constructor(
         }
     }
 
+    /** Cada pantalla de acceso empieza sin el error de la anterior (el estado se comparte). */
+    fun clearError() {
+        _error.value = null
+    }
+
     fun login(email: String, password: String) {
         if (_busy.value) return
         viewModelScope.launch {
@@ -49,7 +54,13 @@ class AuthViewModel @JvmOverloads constructor(
                 val user = repository.login(email.trim(), password)
                 _state.value = AuthState.Authenticated(user)
             } catch (e: Exception) {
-                _error.value = e.toFriendlyMessage("No se pudo iniciar sesión.")
+                // En el acceso, un 422 significa correo o contraseña con formato inaceptable: el genérico
+                // "Revisa los datos capturados" no dice qué revisar.
+                _error.value = if (e is HttpException && e.code() == 422) {
+                    "Revisa tu correo y tu contraseña e inténtalo de nuevo."
+                } else {
+                    e.toFriendlyMessage("No se pudo iniciar sesión.")
+                }
             } finally { _busy.value = false }
         }
     }
@@ -99,7 +110,14 @@ class AuthViewModel @JvmOverloads constructor(
             _busy.value = true
             _error.value = null
             try { onResult(repository.forgotPassword(email.trim())) }
-            catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo enviar el correo.") }
+            catch (e: Exception) {
+                // El servidor responde 400 cuando el correo no pertenece a ninguna cuenta.
+                _error.value = if (e is HttpException && e.code() == 400) {
+                    "No encontramos una cuenta con ese correo. Revisa que esté bien escrito."
+                } else {
+                    e.toFriendlyMessage("No se pudo enviar el correo.")
+                }
+            }
             finally { _busy.value = false }
         }
     }

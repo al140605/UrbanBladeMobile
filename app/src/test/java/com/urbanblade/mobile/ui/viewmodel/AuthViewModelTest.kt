@@ -94,7 +94,7 @@ class AuthViewModelTest {
         vm.login("ana@test.com", "secret123")
         dispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("Revisa los datos capturados.", vm.error.value)
+        assertEquals("Revisa tu correo y tu contraseña e inténtalo de nuevo.", vm.error.value)
     }
 
     @Test

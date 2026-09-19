@@ -104,8 +104,8 @@ fun BookingScreen(
             details = listOfNotNull(
                 selectedService?.let { "Servicio" to it.nombre },
                 selectedBarber?.user?.name?.let { "Barbero" to it },
-                "Fecha" to date,
-                "Hora" to time
+                "Fecha" to UrbanFormat.date(date),
+                "Hora" to UrbanFormat.time(time)
             ),
             primaryText = "Ver mis citas",
             onPrimary = onCreated
@@ -462,9 +462,9 @@ private fun ReviewStep(
             Spacer(Modifier.height(12.dp))
             ReviewRow(Icons.Default.Person, barber?.user?.name ?: "—", null)
             Spacer(Modifier.height(12.dp))
-            ReviewRow(Icons.Default.CalendarMonth, date, null)
+            ReviewRow(Icons.Default.CalendarMonth, UrbanFormat.date(date), null)
             Spacer(Modifier.height(12.dp))
-            ReviewRow(Icons.Default.Schedule, time.takeIf { it.isNotBlank() } ?: "—", null)
+            ReviewRow(Icons.Default.Schedule, time.takeIf { it.isNotBlank() }?.let { UrbanFormat.time(it) } ?: "—", null)
         }
         Spacer(Modifier.height(14.dp))
         UrbanFieldLabel("Notas (opcional)")
