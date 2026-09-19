@@ -70,7 +70,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
                 contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+                urbanLoadingItem(busy, clients.data.isEmpty())
                 error?.let { item { UrbanErrorBanner(it) } }
                 if (clients.data.isEmpty() && !busy) {
                     item { UrbanEmptyState("Sin clientes", "No hay clientes que coincidan con la búsqueda.", Icons.Default.Groups) }

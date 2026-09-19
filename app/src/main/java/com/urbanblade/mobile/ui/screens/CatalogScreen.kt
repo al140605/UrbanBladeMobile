@@ -40,7 +40,9 @@ fun CatalogScreen(
     LaunchedEffect(Unit) { vm.load() }
 
     LazyColumn(
-        Modifier.fillMaxSize(),
+        // Como invitado no hay Scaffold que reserve la barra de estado (AuthenticatedNav sí),
+        // así que el contenido quedaba debajo del reloj y la barra de gestos.
+        Modifier.fillMaxSize().then(if (isGuest) Modifier.systemBarsPadding() else Modifier),
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -73,14 +75,14 @@ fun CatalogScreen(
             UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = { onBook(null, null) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("¿Ya sabes qué quieres?", style = MaterialTheme.typography.titleLarge)
+                        Text("¿Ya sabes qué quieres?", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
                         Spacer(Modifier.height(5.dp))
                         Text("Ve directo a reservar y consulta disponibilidad real.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                     }
                     Spacer(Modifier.width(12.dp))
                     Surface(shape = CircleShape, color = UrbanColors.Gold, modifier = Modifier.size(48.dp)) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.ArrowForward, null, tint = Color(0xFF080808))
+                            Icon(Icons.Default.ArrowForward, null, tint = UrbanColors.OnGold)
                         }
                     }
                 }
@@ -96,7 +98,7 @@ fun CatalogScreen(
                 )
             }
         }
-        if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (loading) item { UrbanSkeletonList(3) }
         error?.let { item { UrbanErrorBanner(it) } }
 
         item { UrbanSectionTitle("Servicios", "Elige el acabado que va contigo") }
@@ -116,9 +118,9 @@ private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 shape = MaterialTheme.shapes.medium,
-                color = Color(0x18D4AF37),
+                color = UrbanColors.Gold.copy(alpha = 0.09f),
                 modifier = Modifier.size(54.dp),
-                border = BorderStroke(1.dp, Color(0x35D4AF37))
+                border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.21f))
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.ContentCut, null, tint = UrbanColors.Gold)

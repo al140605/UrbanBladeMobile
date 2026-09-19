@@ -40,7 +40,7 @@ fun SocialFeedScreen(onBack: () -> Unit, vm: SocialFeedViewModel = viewModel()) 
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            urbanLoadingItem(busy, feed.data.isEmpty())
             error?.let { item { UrbanErrorBanner(it) } }
 
             if (feed.data.isEmpty() && !busy) {
@@ -124,9 +124,11 @@ private fun WorkPost(
                 icon = if (work.isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 count = work.reactionsCount,
                 tint = if (work.isReacted) UrbanColors.Danger else UrbanColors.Muted,
+                description = if (work.isReacted) "Quitar me gusta" else "Me gusta",
                 onClick = onReact
             )
-            IconRow(icon = Icons.Default.ChatBubbleOutline, count = work.commentsCount, tint = UrbanColors.Muted, onClick = {})
+            // Solo informativo (el campo de comentario está debajo): antes era un botón que no hacía nada.
+            IconRow(icon = Icons.Default.ChatBubbleOutline, count = work.commentsCount, tint = UrbanColors.Muted, description = "Comentarios", onClick = null)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onSave) {
                 Icon(
@@ -170,10 +172,20 @@ private fun WorkPost(
 }
 
 @Composable
-private fun IconRow(icon: androidx.compose.ui.graphics.vector.ImageVector, count: Int, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+private fun IconRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    count: Int,
+    tint: androidx.compose.ui.graphics.Color,
+    description: String,
+    onClick: (() -> Unit)?
+) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(8.dp))) {
-        IconButton(onClick = onClick, modifier = Modifier.size(28.dp)) { Icon(icon, null, tint = tint) }
-        Spacer(Modifier.width(4.dp))
+        if (onClick != null) {
+            // Área táctil estándar de 48 dp (antes 28 dp) y descripción para lectores de pantalla.
+            IconButton(onClick = onClick) { Icon(icon, description, tint = tint) }
+        } else {
+            Icon(icon, description, tint = tint, modifier = Modifier.padding(horizontal = 12.dp))
+        }
         Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
     }
 }

@@ -133,7 +133,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         bottomBar = {
             if (current in rootRoutes) {
                 Surface(
-                    color = Color(0xFF0E0E0E),
+                    color = UrbanColors.Surface,
                     shadowElevation = 18.dp,
                     tonalElevation = 0.dp,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -152,7 +152,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                 icon = { Icon(item.icon, item.label) },
                                 label = { Text(item.label, style = MaterialTheme.typography.labelMedium) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = Color(0xFF090909),
+                                    selectedIconColor = UrbanColors.OnGold,
                                     selectedTextColor = UrbanColors.Gold,
                                     indicatorColor = UrbanColors.Gold,
                                     unselectedIconColor = UrbanColors.Muted,
@@ -165,7 +165,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
             }
         }
     ) { padding ->
-        UrbanBladeBackground(Modifier.padding(padding)) {
+        // consumeWindowInsets: el Scaffold externo ya reservó barra de estado y barra inferior; sin
+        // marcarlos como consumidos, cada pantalla con su propio Scaffold/TopAppBar los sumaba otra vez
+        // (hueco vacío sobre el título en todas las pantallas secundarias).
+        UrbanBladeBackground(Modifier.padding(padding).consumeWindowInsets(padding)) {
             NavHost(navController = nav, startDestination = "home", modifier = Modifier.fillMaxSize()) {
                 composable("home") {
                     DashboardScreen(

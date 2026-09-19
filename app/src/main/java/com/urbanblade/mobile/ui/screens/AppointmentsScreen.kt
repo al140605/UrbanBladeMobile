@@ -57,7 +57,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 ExtendedFloatingActionButton(
                     onClick = onBook,
                     containerColor = UrbanColors.Gold,
-                    contentColor = Color(0xFF080808),
+                    contentColor = UrbanColors.OnGold,
                     icon = { Icon(Icons.Default.Add, null) },
                     text = { Text("Nueva cita", fontWeight = FontWeight.Bold) }
                 )
@@ -94,7 +94,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 }
             }
 
-            if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            if (loading) item { UrbanSkeletonList(3) }
             error?.let { item { UrbanErrorBanner(it) } }
 
             if (!loading && response.data.isEmpty()) {
@@ -184,9 +184,9 @@ private fun AppointmentCard(
         Row(verticalAlignment = Alignment.Top) {
             Surface(
                 modifier = Modifier.size(width = 66.dp, height = 72.dp),
-                color = Color(0x18D4AF37),
+                color = UrbanColors.Gold.copy(alpha = 0.09f),
                 shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x40D4AF37))
+                border = androidx.compose.foundation.BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.25f))
             ) {
                 Column(
                     Modifier.fillMaxSize(),
@@ -301,7 +301,7 @@ private fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onD
                             barber.user?.name ?: "Barbero",
                             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (selected) Color(0xFF080808) else UrbanColors.Ink
+                            color = if (selected) UrbanColors.OnGold else UrbanColors.Ink
                         )
                     }
                 }
@@ -326,9 +326,9 @@ private fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onD
                             Text(
                                 day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es", "MX")).replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (selected) Color(0xFF080808) else UrbanColors.Muted
+                                color = if (selected) UrbanColors.OnGold else UrbanColors.Muted
                             )
-                            Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.titleMedium, color = if (selected) Color(0xFF080808) else UrbanColors.Ink)
+                            Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.titleMedium, color = if (selected) UrbanColors.OnGold else UrbanColors.Ink)
                         }
                     }
                 }
@@ -355,7 +355,7 @@ private fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onD
                             border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line)
                         ) {
                             Box(Modifier.padding(vertical = 10.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text(slot.label, style = MaterialTheme.typography.labelLarge, color = if (selected) Color(0xFF080808) else UrbanColors.Ink)
+                                Text(slot.label, style = MaterialTheme.typography.labelLarge, color = if (selected) UrbanColors.OnGold else UrbanColors.Ink)
                             }
                         }
                     }

@@ -232,10 +232,6 @@ fun AnalyticsScreen(onBack: () -> Unit, vm: AnalyticsViewModel = viewModel()) {
                 item { UrbanSectionTitle("Calidad de los datos", "Diagnóstico del pipeline analítico") }
                 items(data.diagnosticoInsights) { InsightCard(it) }
             }
-
-            if (data.kpis.isEmpty() && data.secciones.resumen.insights.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin analítica disponible todavía", "Vuelve más tarde conforme haya más actividad registrada.", Icons.Default.Insights) }
-            }
         }
     }
 }

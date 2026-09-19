@@ -80,7 +80,7 @@ fun UrbanBrandMark(compact: Boolean = false) {
                         listOf(Color(0xFF302712), Color(0xFF17130A))
                     )
                 )
-                .border(1.dp, Color(0x55D4AF37), RoundedCornerShape(12.dp)),
+                .border(1.dp, UrbanColors.Gold.copy(alpha = 0.33f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             // Marca "UB" real (frontend-urban/public/images/urbanblade-mark.svg,
@@ -221,7 +221,7 @@ fun UrbanMetricCard(
                 Modifier
                     .size(38.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0x22D4AF37)),
+                    .background(UrbanColors.Gold.copy(alpha = 0.13f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
@@ -252,7 +252,7 @@ fun UrbanQuickAction(
                     .background(UrbanColors.Gold),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = Color(0xFF080808), modifier = Modifier.size(22.dp))
+                Icon(icon, null, tint = UrbanColors.OnGold, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -292,8 +292,8 @@ fun UrbanStatusPill(status: String) {
 fun UrbanRolePill(role: String) {
     Surface(
         shape = CircleShape,
-        color = Color(0x1FD4AF37),
-        border = BorderStroke(1.dp, Color(0x55D4AF37))
+        color = UrbanColors.Gold.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.33f))
     ) {
         Text(
             role.replace('_', ' ').replaceFirstChar { it.uppercase() },
@@ -311,8 +311,8 @@ fun UrbanAvatar(name: String, modifier: Modifier = Modifier) {
         modifier
             .size(46.dp)
             .clip(CircleShape)
-            .background(Color(0x22D4AF37))
-            .border(1.dp, Color(0x55D4AF37), CircleShape),
+            .background(UrbanColors.Gold.copy(alpha = 0.13f))
+            .border(1.dp, UrbanColors.Gold.copy(alpha = 0.33f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Text(initials.ifBlank { "UB" }, style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
@@ -335,13 +335,13 @@ fun UrbanPrimaryButton(
         shape = RoundedCornerShape(15.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = UrbanColors.Gold,
-            contentColor = Color(0xFF080808),
+            contentColor = UrbanColors.OnGold,
             disabledContainerColor = UrbanColors.GoldDim.copy(alpha = 0.35f),
-            disabledContentColor = Color(0xFF080808).copy(alpha = 0.5f)
+            disabledContentColor = UrbanColors.OnGold.copy(alpha = 0.5f)
         )
     ) {
         if (loading) {
-            CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = Color(0xFF080808))
+            CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = UrbanColors.OnGold)
         } else {
             icon?.let { Icon(it, null, modifier = Modifier.size(19.dp)); Spacer(Modifier.width(8.dp)) }
             Text(text, fontWeight = FontWeight.Bold)
@@ -377,7 +377,7 @@ fun UrbanErrorBanner(text: String) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.ErrorOutline, null, tint = UrbanColors.Danger)
             Spacer(Modifier.width(10.dp))
-            Text(text, style = MaterialTheme.typography.bodySmall, color = Color(0xFFFFC7C7))
+            Text(text, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
         }
     }
 }
@@ -386,8 +386,8 @@ fun UrbanErrorBanner(text: String) {
 fun UrbanInfoBanner(text: String, icon: ImageVector = Icons.Default.Info) {
     Surface(
         shape = MaterialTheme.shapes.medium,
-        color = Color(0x18D4AF37),
-        border = BorderStroke(1.dp, Color(0x40D4AF37))
+        color = UrbanColors.Gold.copy(alpha = 0.09f),
+        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.25f))
     ) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = UrbanColors.Gold)
@@ -413,7 +413,7 @@ fun UrbanEmptyState(
             Modifier
                 .size(62.dp)
                 .clip(CircleShape)
-                .background(Color(0x18D4AF37)),
+                .background(UrbanColors.Gold.copy(alpha = 0.09f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(28.dp))

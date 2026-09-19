@@ -160,6 +160,9 @@ object UrbanColors {
     val Success = Color(0xFF4BB983)
     val Warning = Color(0xFFE2A84D)
     val Danger = Color(0xFFE36D6D)
+
+    /** Texto/ícono sobre fondos dorados (botones, chips seleccionados): oscuro en los 4 temas. */
+    val OnGold = Color(0xFF080808)
     val Info = Color(0xFF72A5D8)
 
     fun applyTheme(theme: UrbanTheme) {

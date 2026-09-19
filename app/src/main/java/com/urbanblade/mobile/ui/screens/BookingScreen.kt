@@ -241,7 +241,7 @@ private fun SelectableRow(selected: Boolean, onClick: () -> Unit, title: String,
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
-        color = if (selected) Color(0x22D4AF37) else UrbanColors.Card,
+        color = if (selected) UrbanColors.Gold.copy(alpha = 0.13f) else UrbanColors.Card,
         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -302,12 +302,12 @@ private fun CalendarStep(
                         Text(
                             day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es", "MX")).replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) Color(0xFF080808) else UrbanColors.Muted
+                            color = if (selected) UrbanColors.OnGold else UrbanColors.Muted
                         )
                         Text(
                             day.dayOfMonth.toString(),
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (selected) Color(0xFF080808) else UrbanColors.Ink
+                            color = if (selected) UrbanColors.OnGold else UrbanColors.Ink
                         )
                     }
                 }
@@ -336,7 +336,7 @@ private fun CalendarStep(
                                 Text(
                                     slot.label,
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = if (selected) Color(0xFF080808) else UrbanColors.Ink
+                                    color = if (selected) UrbanColors.OnGold else UrbanColors.Ink
                                 )
                             }
                         }

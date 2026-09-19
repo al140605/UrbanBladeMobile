@@ -56,7 +56,7 @@ fun DashboardScreen(
                         Text("Todo el negocio,\nen tu bolsillo.", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Agenda, clientes, pagos y operación conectados al mismo backend.",
+                            "Agenda, clientes, pagos y operación, siempre a la mano.",
                             style = MaterialTheme.typography.bodySmall,
                             color = UrbanColors.Muted
                         )
@@ -77,7 +77,7 @@ fun DashboardScreen(
             }
         }
 
-        if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (loading) item { UrbanSkeletonList(3) }
         error?.let { item { UrbanErrorBanner(it) } }
 
         dashboard?.let { response ->
@@ -86,7 +86,7 @@ fun DashboardScreen(
                 item {
                     UrbanSectionTitle(
                         title = "Resumen",
-                        subtitle = "Indicadores principales de ${primaryRole.replace('_', ' ')}"
+                        subtitle = "Tus indicadores clave"
                     )
                 }
                 items(kpis.chunked(2)) { row ->
@@ -132,12 +132,6 @@ fun DashboardScreen(
             }
         }
 
-        item {
-            UrbanInfoBanner(
-                "La app adapta cada módulo a tus roles, pero Laravel sigue siendo la autoridad de permisos y datos.",
-                Icons.Default.VerifiedUser
-            )
-        }
         item { Spacer(Modifier.height(4.dp)) }
     }
 }
@@ -158,14 +152,36 @@ private fun extractKpis(data: JsonObject): List<Pair<String, String>> {
         "revenue_month" to "Ingresos del mes",
         "clients_total" to "Clientes",
         "total_clients" to "Clientes",
-        "pending_appointments" to "Citas pendientes"
+        "pending_appointments" to "Citas pendientes",
+        "appointments" to "Citas",
+        "appointment_growth" to "Crecimiento de citas",
+        "appointments_growth" to "Crecimiento de citas",
+        "completed_appointments" to "Citas completadas",
+        "cancelled_appointments" to "Citas canceladas",
+        "no_shows" to "Inasistencias",
+        "revenue" to "Ingresos",
+        "revenue_week" to "Ingresos de la semana",
+        "clients" to "Clientes",
+        "new_clients" to "Clientes nuevos",
+        "barbers" to "Barberos",
+        "products" to "Productos",
+        "low_stock" to "Stock bajo",
+        "orders" to "Pedidos",
+        "orders_today" to "Pedidos hoy",
+        "payments" to "Pagos",
+        "growth" to "Crecimiento",
+        "rating" to "Calificación",
+        "average_rating" to "Calificación promedio"
     )
     val result = mutableListOf<Pair<String, String>>()
     for ((key, value) in source.entrySet()) {
         if (!value.isJsonPrimitive) continue
         val primitive = value.asJsonPrimitive
         if (!primitive.isNumber && !primitive.isString) continue
-        val label = friendly[key] ?: key.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        // La API puede mandar la clave con mayúsculas o espacios ("Appointments"); se normaliza
+        // para que la traducción no dependa de cómo venga escrita.
+        val normalized = key.trim().lowercase().replace(' ', '_')
+        val label = friendly[normalized] ?: key.replace('_', ' ').replaceFirstChar { it.uppercase() }
         result += label to primitive.asString
         if (result.size == 4) break
     }

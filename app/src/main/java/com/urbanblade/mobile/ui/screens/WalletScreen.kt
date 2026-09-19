@@ -116,7 +116,7 @@ private fun LoyaltyCard(loyalty: ClientLoyalty) {
                 Text("${loyalty.puntos} puntos", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
             }
             if (loyalty.discountPct > 0) {
-                Surface(shape = RoundedCornerShape(12.dp), color = Color(0x22D4AF37)) {
+                Surface(shape = RoundedCornerShape(12.dp), color = UrbanColors.Gold.copy(alpha = 0.13f)) {
                     Text(
                         "${loyalty.discountPct.toInt()}% dto.",
                         Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

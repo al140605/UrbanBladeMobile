@@ -49,7 +49,7 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
         bottomBar = {
             if (cart.isNotEmpty() && isClient) {
                 Surface(
-                    color = Color(0xFF111111),
+                    color = UrbanColors.Surface,
                     shadowElevation = 18.dp,
                     border = BorderStroke(1.dp, UrbanColors.Line),
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -139,7 +139,7 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
                 )
             } else {
                 Box(
-                    Modifier.size(70.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x18D4AF37)),
+                    Modifier.size(70.dp).clip(RoundedCornerShape(16.dp)).background(UrbanColors.Gold.copy(alpha = 0.09f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Inventory2, null, tint = UrbanColors.Gold, modifier = Modifier.size(29.dp))
@@ -168,7 +168,7 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
                         SmallFloatingActionButton(
                             onClick = add,
                             containerColor = UrbanColors.Gold,
-                            contentColor = Color(0xFF080808),
+                            contentColor = UrbanColors.OnGold,
                         ) { Icon(Icons.Default.Add, null) }
                     }
                 }
@@ -364,7 +364,7 @@ private fun JsonCard(label: String, value: JsonElement) {
         when {
             value.isJsonArray -> value.asJsonArray.take(20).forEachIndexed { index, element ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.Top) {
-                    Surface(shape = CircleShape, color = Color(0x18D4AF37), modifier = Modifier.size(24.dp)) {
+                    Surface(shape = CircleShape, color = UrbanColors.Gold.copy(alpha = 0.09f), modifier = Modifier.size(24.dp)) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
                     }
                     Spacer(Modifier.width(9.dp))
@@ -398,7 +398,7 @@ fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
         containerColor = Color.Transparent,
         topBar = { UrbanTopBar("Bladebot", onBack) },
         bottomBar = {
-            Surface(color = Color(0xFF111111), shadowElevation = 16.dp, border = BorderStroke(1.dp, UrbanColors.Line)) {
+            Surface(color = UrbanColors.Surface, shadowElevation = 16.dp, border = BorderStroke(1.dp, UrbanColors.Line)) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         text,
@@ -413,7 +413,7 @@ fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
                     FloatingActionButton(
                         onClick = { val current = text; text = ""; vm.send(current) },
                         containerColor = UrbanColors.Gold,
-                        contentColor = Color(0xFF080808),
+                        contentColor = UrbanColors.OnGold,
                         modifier = Modifier.size(50.dp)
                     ) { Icon(Icons.Default.Send, "Enviar") }
                 }
@@ -429,7 +429,7 @@ fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
                 item {
                     UrbanPremiumCard(Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(shape = CircleShape, color = Color(0x18D4AF37), modifier = Modifier.size(54.dp)) {
+                            Surface(shape = CircleShape, color = UrbanColors.Gold.copy(alpha = 0.09f), modifier = Modifier.size(54.dp)) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(Icons.Default.SmartToy, null, tint = UrbanColors.Gold) }
                             }
                             Spacer(Modifier.width(12.dp))
@@ -456,7 +456,7 @@ fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
                             bottomEnd = if (fromUser) 5.dp else 18.dp
                         ),
                         color = if (fromUser) UrbanColors.Gold else UrbanColors.Card,
-                        contentColor = if (fromUser) Color(0xFF080808) else UrbanColors.Ink,
+                        contentColor = if (fromUser) UrbanColors.OnGold else UrbanColors.Ink,
                         border = if (fromUser) null else BorderStroke(1.dp, UrbanColors.Line)
                     ) {
                         Text(message.second, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), style = MaterialTheme.typography.bodyMedium)
@@ -544,7 +544,7 @@ private fun ModuleCard(module: ModuleItem, onNavigate: (String) -> Unit) {
     UrbanCard(Modifier.fillMaxWidth(), onClick = { onNavigate(module.route) }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(Color(0x18D4AF37)),
+                Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(UrbanColors.Gold.copy(alpha = 0.09f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(module.icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
