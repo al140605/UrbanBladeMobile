@@ -22,8 +22,19 @@ fun DashboardScreen(
     user: AuthUser,
     onAppointments: () -> Unit,
     onBook: () -> Unit,
+    onWallet: () -> Unit = {},
+    onStore: () -> Unit = {},
+    onExplore: () -> Unit = {},
     vm: DashboardViewModel = viewModel()
 ) {
+    // El cliente tiene su propio inicio (próxima cita y atajos); el personal conserva el tablero.
+    val clientOnly = user.roles.contains("cliente") &&
+        user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }
+    if (clientOnly) {
+        ClientHomeScreen(user, onAppointments, onBook, onWallet, onStore, onExplore)
+        return
+    }
+
     val dashboard by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()

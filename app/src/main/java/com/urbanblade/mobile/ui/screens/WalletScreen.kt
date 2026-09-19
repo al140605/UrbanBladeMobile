@@ -66,20 +66,20 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
                 if (membership != null) {
                     MembershipCard(membership, busy) { confirmCancelMembership = true }
                 } else {
-                    UrbanEmptyState("Sin membresía activa", "Pregunta en recepción por los planes disponibles.", Icons.Default.CardMembership)
+                    UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
                 }
             }
 
             item { UrbanSectionTitle("Mis paquetes", null) }
             if (data.packages.isEmpty()) {
-                item { UrbanEmptyState("Sin paquetes activos", null, Icons.Default.Redeem) }
+                item { UrbanInlineEmpty("Sin paquetes activos", Icons.Default.Redeem, subtitle = "Tus paquetes prepagados aparecerán aquí.") }
             } else {
                 items(data.packages, key = { it.id }) { PackageCard(it) }
             }
 
             item { UrbanSectionTitle("Mis gift cards", null) }
             if (data.giftCards.isEmpty()) {
-                item { UrbanEmptyState("Sin gift cards", null, Icons.Default.CardGiftcard) }
+                item { UrbanInlineEmpty("Sin gift cards", Icons.Default.CardGiftcard, subtitle = "Tus tarjetas de regalo aparecerán aquí.") }
             } else {
                 items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
             }

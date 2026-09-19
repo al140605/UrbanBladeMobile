@@ -1,0 +1,294 @@
+package com.urbanblade.mobile.ui.screens
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.data.model.AppointmentRow
+import com.urbanblade.mobile.data.model.AuthUser
+import com.urbanblade.mobile.ui.components.UrbanAvatar
+import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanErrorBanner
+import com.urbanblade.mobile.ui.components.UrbanFormat
+import com.urbanblade.mobile.ui.components.UrbanOutlineButton
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanPremiumCard
+import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
+import com.urbanblade.mobile.ui.components.UrbanSectionTitle
+import com.urbanblade.mobile.ui.components.UrbanSkeletonList
+import com.urbanblade.mobile.ui.components.UrbanStatusPill
+import com.urbanblade.mobile.ui.theme.MascotMood
+import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.mascot
+import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
+import java.time.LocalTime
+
+/**
+ * Inicio del cliente: lo único que necesita al abrir la app es su próxima cita (o una invitación
+ * a reservar) y cuatro atajos. El personal conserva el tablero con indicadores de DashboardScreen.
+ */
+@Composable
+fun ClientHomeScreen(
+    user: AuthUser,
+    onAppointments: () -> Unit,
+    onBook: () -> Unit,
+    onWallet: () -> Unit,
+    onStore: () -> Unit,
+    onExplore: () -> Unit = {},
+    vm: AppointmentsViewModel = viewModel()
+) {
+    val response by vm.data.collectAsState()
+    val loading by vm.loading.collectAsState()
+    val error by vm.error.collectAsState()
+    LaunchedEffect(Unit) { vm.load() }
+
+    val firstName = user.name.substringBefore(' ')
+    val greeting = remember {
+        when (LocalTime.now().hour) {
+            in 5..11 -> "Buenos días"
+            in 12..18 -> "Buenas tardes"
+            else -> "Buenas noches"
+        }
+    }
+    val next = response.next
+    val failed = error != null && next == null
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        item {
+            UrbanPageHeader(
+                title = firstName,
+                subtitle = "¿Listo para tu próximo corte?",
+                eyebrow = greeting.uppercase(),
+                trailing = { UrbanAvatar(user.name) }
+            )
+        }
+
+        when {
+            loading && next == null -> item { UrbanSkeletonList(1) }
+            failed -> item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    UrbanErrorBanner(error.orEmpty())
+                    UrbanOutlineButton(
+                        text = "Reintentar",
+                        onClick = { vm.load() },
+                        icon = Icons.Default.Refresh,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+            next != null -> item { NextAppointmentCard(next, onClick = onAppointments) }
+            else -> item { EmptyAgendaCard(onBook = onBook) }
+        }
+
+        item { UrbanSectionTitle("Atajos", "Lo que más usas, a un toque.") }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Sin cita, la tarjeta de arriba ya invita a reservar: el atajo destacado es otro.
+                    if (next == null) {
+                        HomeTile(
+                            title = "Explorar",
+                            subtitle = "Servicios y barberos",
+                            icon = Icons.Default.Explore,
+                            onClick = onExplore,
+                            highlighted = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        HomeTile(
+                            title = "Reservar cita",
+                            subtitle = "Horarios reales",
+                            icon = Icons.Default.ContentCut,
+                            onClick = onBook,
+                            highlighted = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    HomeTile(
+                        title = "Mis citas",
+                        subtitle = UrbanFormat.count(response.stats.proximas, "próxima", "próximas"),
+                        icon = Icons.Default.CalendarMonth,
+                        onClick = onAppointments,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HomeTile(
+                        title = "Wallet",
+                        subtitle = "Puntos y membresía",
+                        icon = Icons.Default.AccountBalanceWallet,
+                        onClick = onWallet,
+                        modifier = Modifier.weight(1f)
+                    )
+                    HomeTile(
+                        title = "Tienda",
+                        subtitle = "Productos UrbanBlade",
+                        icon = Icons.Default.Storefront,
+                        onClick = onStore,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        item { Spacer(Modifier.height(4.dp)) }
+    }
+}
+
+@Composable
+private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
+    UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "TU PRÓXIMA CITA",
+                style = MaterialTheme.typography.labelMedium,
+                color = UrbanColors.Gold,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() }
+            )
+            UrbanStatusPill(next.estado)
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(UrbanFormat.date(next.fecha), style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Ink)
+        Text(
+            UrbanFormat.time(next.horaInicio),
+            style = MaterialTheme.typography.titleLarge,
+            color = UrbanColors.Gold
+        )
+        Spacer(Modifier.height(16.dp))
+        HorizontalDivider(color = UrbanColors.Line)
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    next.service?.nombre ?: "Servicio",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = UrbanColors.Ink
+                )
+                Text(
+                    next.barber?.user?.name ?: "Barbero por confirmar",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+            }
+            (next.precioCobrado ?: next.service?.precio)?.let {
+                Text(
+                    "\$${"%.0f".format(it)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = UrbanColors.Gold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyAgendaCard(onBook: () -> Unit) {
+    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Tu agenda está libre",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = UrbanColors.Ink,
+                    modifier = Modifier.semantics { heading() }
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Reserva tu próximo horario en menos de un minuto.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Image(
+                painter = painterResource(UrbanColors.current.mascot(MascotMood.WELCOME)),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(84.dp)
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        UrbanPrimaryButton(
+            text = "Reservar cita",
+            onClick = onBook,
+            icon = Icons.Default.ContentCut,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun HomeTile(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false
+) {
+    UrbanCard(modifier.heightIn(min = 132.dp), onClick = onClick) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(if (highlighted) UrbanColors.Gold else UrbanColors.Gold.copy(alpha = 0.13f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                null,
+                tint = if (highlighted) UrbanColors.OnGold else UrbanColors.Gold,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+        Spacer(Modifier.height(2.dp))
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
+    }
+}

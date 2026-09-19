@@ -196,7 +196,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     DashboardScreen(
                         user = user,
                         onAppointments = { nav.navigate("appointments") },
-                        onBook = { nav.navigate("booking") }
+                        onBook = { nav.navigate("booking") },
+                        onWallet = { nav.navigate("wallet") },
+                        onStore = { nav.navigate("store") },
+                        onExplore = { nav.navigate("catalog") }
                     )
                 }
                 composable("appointments") {
