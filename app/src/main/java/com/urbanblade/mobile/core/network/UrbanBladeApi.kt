@@ -49,6 +49,8 @@ interface UrbanBladeApi {
     @GET("packages") suspend fun myPackages(): MyPackagesResponse
     @GET("packages/catalog") suspend fun packageCatalog(): PackageCatalogResponse
     @GET("gift-cards/mine") suspend fun myGiftCards(): GiftCardsResponse
+    @POST("gift-cards") suspend fun sellGiftCardCash(@Body body: CashGiftCardRequest): GiftCardSaleResponse
+    @GET("gift-cards/{code}") suspend fun giftCardByCode(@Path("code") code: String): GiftCardLookupResponse
     @GET("referrals/mine") suspend fun myReferrals(): ReferralInfoResponse
 
     @GET("orders") suspend fun orders(): OrdersResponse

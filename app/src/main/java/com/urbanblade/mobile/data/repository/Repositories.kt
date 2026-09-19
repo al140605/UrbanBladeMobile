@@ -111,6 +111,8 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun myPackages() = api.myPackages().data
     suspend fun packageCatalog() = api.packageCatalog().data
     suspend fun myGiftCards() = api.myGiftCards().data
+    suspend fun sellGiftCardCash(body: CashGiftCardRequest) = api.sellGiftCardCash(body).data
+    suspend fun giftCardByCode(code: String) = api.giftCardByCode(code).data
     suspend fun myReferrals() = api.myReferrals().data
 
     // El backend no expone un endpoint propio de lealtad -- viene embebido en

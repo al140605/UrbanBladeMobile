@@ -973,6 +973,16 @@ data class GiftCard(
 )
 data class GiftCardsResponse(val data: List<GiftCard> = emptyList())
 
+/** Venta de una gift card en efectivo por el personal (POST /gift-cards). */
+data class CashGiftCardRequest(
+    val monto: Double,
+    @SerializedName("comprador_nombre") val compradorNombre: String? = null,
+    @SerializedName("destinatario_email") val destinatarioEmail: String? = null
+)
+data class GiftCardSold(val code: String, val saldo: Double = 0.0)
+data class GiftCardSaleResponse(val message: String? = null, val data: GiftCardSold? = null)
+data class GiftCardLookupResponse(val data: GiftCard? = null)
+
 // ── Wallet: referidos (referrals/mine) ────────────────────────────────────
 data class ReferralEntry(
     val referido: String? = null,
