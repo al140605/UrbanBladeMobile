@@ -74,6 +74,13 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun cancelAppointment(code: String) = api.cancelAppointment(code)
     suspend fun createPayment(request: CreatePaymentRequest) = api.createPayment(request)
 
+    suspend fun adminMembershipPlans() = api.adminMembershipPlans().data
+    suspend fun createMembershipPlan(body: MembershipPlanRequest) = api.createMembershipPlan(body)
+    suspend fun updateMembershipPlan(id: String, body: MembershipPlanRequest) = api.updateMembershipPlan(id, body)
+    suspend fun servicePackages() = api.servicePackages().data
+    suspend fun createServicePackage(body: ServicePackageRequest) = api.createServicePackage(body)
+    suspend fun updateServicePackage(id: String, body: ServicePackageRequest) = api.updateServicePackage(id, body)
+
     suspend fun barbersAdmin(page: Int, q: String?, activo: String?) = api.barbersAdmin(page, q, activo)
     suspend fun updateBarber(slug: String, body: BarberUpsertRequest) = api.updateBarber(slug, body)
     suspend fun barberPerformance(slug: String) = api.barberPerformance(slug).data

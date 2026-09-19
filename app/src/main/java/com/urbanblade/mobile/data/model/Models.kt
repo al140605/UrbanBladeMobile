@@ -200,6 +200,49 @@ data class BarberPerformance(
 
 data class BarberPerformanceResponse(val data: BarberPerformance = BarberPerformance())
 
+/** Plan de membresía recurrente (GET /admin/membership-plans). */
+data class MembershipPlanItem(
+    val id: String = "",
+    val nombre: String = "",
+    val descripcion: String? = null,
+    @SerializedName("precio_mensual") val precioMensual: Double = 0.0,
+    @SerializedName("descuento_pct") val descuentoPct: Int = 0,
+    val activo: Boolean = true
+)
+
+data class AdminMembershipPlansResponse(val data: List<MembershipPlanItem> = emptyList())
+
+/** Crear o cambiar el precio de un plan crea un Price nuevo en Stripe; activar/desactivar no. */
+data class MembershipPlanRequest(
+    val nombre: String,
+    val descripcion: String?,
+    @SerializedName("precio_mensual") val precioMensual: Double,
+    @SerializedName("descuento_pct") val descuentoPct: Int,
+    val activo: Boolean
+)
+
+/** Paquete prepagado de usos de un servicio (GET /admin/service-packages). */
+data class ServicePackageItem(
+    val id: String = "",
+    val nombre: String = "",
+    val service: PackageServiceRef = PackageServiceRef(),
+    @SerializedName("cantidad_usos") val cantidadUsos: Int = 0,
+    val precio: Double = 0.0,
+    @SerializedName("vigencia_dias") val vigenciaDias: Int? = null,
+    val activo: Boolean = true
+)
+
+data class ServicePackagesResponse(val data: List<ServicePackageItem> = emptyList())
+
+data class ServicePackageRequest(
+    val nombre: String,
+    @SerializedName("service_id") val serviceId: String,
+    @SerializedName("cantidad_usos") val cantidadUsos: Int,
+    val precio: Double,
+    @SerializedName("vigencia_dias") val vigenciaDias: Int?,
+    val activo: Boolean
+)
+
 /** Bloque `meta` que el servidor agrega solo cuando se pide `page`. */
 data class PageMeta(
     val page: Int = 1,

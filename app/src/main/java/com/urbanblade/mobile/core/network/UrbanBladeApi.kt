@@ -60,6 +60,14 @@ interface UrbanBladeApi {
     @GET("payments/pending") suspend fun pendingPayments(): PendingPaymentsResponse
     @POST("payments") suspend fun createPayment(@Body body: CreatePaymentRequest): JsonObject
 
+    @GET("admin/membership-plans") suspend fun adminMembershipPlans(): AdminMembershipPlansResponse
+    @POST("admin/membership-plans") suspend fun createMembershipPlan(@Body body: MembershipPlanRequest): JsonObject
+    @PUT("admin/membership-plans/{id}") suspend fun updateMembershipPlan(@Path("id") id: String, @Body body: MembershipPlanRequest): JsonObject
+
+    @GET("admin/service-packages") suspend fun servicePackages(): ServicePackagesResponse
+    @POST("admin/service-packages") suspend fun createServicePackage(@Body body: ServicePackageRequest): JsonObject
+    @PUT("admin/service-packages/{id}") suspend fun updateServicePackage(@Path("id") id: String, @Body body: ServicePackageRequest): JsonObject
+
     @GET("barbers/manage") suspend fun barbersAdmin(
         @Query("page") page: Int = 1,
         @Query("q") q: String? = null,
