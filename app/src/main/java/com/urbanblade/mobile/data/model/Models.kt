@@ -58,7 +58,8 @@ data class ServiceItem(
     val nombre: String,
     val precio: Double = 0.0,
     @SerializedName("duracion_min") val duracionMin: Int = 0,
-    val descripcion: String? = null
+    val descripcion: String? = null,
+    val imagen: String? = null
 )
 
 data class BarberUser(val id: String? = null, val name: String? = null)
@@ -69,7 +70,9 @@ data class BarberItem(
     val user: BarberUser? = null,
     val descripcion: String? = null,
     val foto: String? = null,
-    val especialidades: String? = null
+    val especialidades: String? = null,
+    @SerializedName("avg_rating") val avgRating: Double? = null,
+    @SerializedName("total_reviews") val totalReviews: Int = 0
 )
 
 data class SlotItem(

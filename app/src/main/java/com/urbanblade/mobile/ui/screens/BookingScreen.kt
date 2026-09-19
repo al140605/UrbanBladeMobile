@@ -16,8 +16,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import coil.compose.AsyncImage
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.BarberItem
@@ -220,7 +229,8 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
                         onClick = { onSelect(service.id) },
                         title = service.nombre,
                         subtitle = "${service.duracionMin} min",
-                        trailing = "\$${"%.0f".format(service.precio)}"
+                        trailing = "\$${"%.0f".format(service.precio)}",
+                        imageUrl = service.imagen
                     )
                 }
             }
@@ -246,7 +256,12 @@ private fun BarberStep(barbers: List<BarberItem>, selectedId: String, onSelect: 
                         selected = barber.id == selectedId,
                         onClick = { onSelect(barber.id) },
                         title = barber.user?.name ?: "Barbero",
-                        subtitle = barber.especialidades
+                        subtitle = listOfNotNull(
+                            barber.avgRating?.takeIf { barber.totalReviews > 0 }?.let { "★ %.1f (%d)".format(java.util.Locale.US, it, barber.totalReviews) },
+                            barber.especialidades?.takeIf { it.isNotBlank() }
+                        ).joinToString(" · ").ifBlank { "Aún sin reseñas" },
+                        imageUrl = barber.foto,
+                        avatarName = barber.user?.name ?: "Barbero"
                     )
                 }
             }
@@ -255,13 +270,27 @@ private fun BarberStep(barbers: List<BarberItem>, selectedId: String, onSelect: 
 }
 
 @Composable
-private fun SelectableRow(selected: Boolean, onClick: () -> Unit, title: String, subtitle: String?, trailing: String? = null) {
+private fun SelectableRow(
+    selected: Boolean,
+    onClick: () -> Unit,
+    title: String,
+    subtitle: String?,
+    trailing: String? = null,
+    imageUrl: String? = null,
+    avatarName: String? = null
+) {
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         color = if (selected) UrbanColors.Gold.copy(alpha = 0.13f) else UrbanColors.Card,
         border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            // Lectores de pantalla: "botón de opción, seleccionado".
+            .semantics(mergeDescendants = true) {
+                role = Role.RadioButton
+                this.selected = selected
+            }
     ) {
         Row(
             Modifier.padding(14.dp).fillMaxWidth(),
@@ -273,6 +302,21 @@ private fun SelectableRow(selected: Boolean, onClick: () -> Unit, title: String,
                 tint = if (selected) UrbanColors.Gold else UrbanColors.Muted
             )
             Spacer(Modifier.width(12.dp))
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(if (avatarName != null) CircleShape else RoundedCornerShape(12.dp))
+                        .background(UrbanColors.CardAlt)
+                )
+                Spacer(Modifier.width(12.dp))
+            } else if (avatarName != null) {
+                UrbanAvatar(avatarName, Modifier.size(52.dp))
+                Spacer(Modifier.width(12.dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 subtitle?.takeIf { it.isNotBlank() }?.let {
@@ -300,7 +344,7 @@ private fun CalendarStep(
     val days = remember { (0..29).map { LocalDate.now().plusDays(it.toLong()) } }
     val selectedDate = remember(date) { runCatching { LocalDate.parse(date) }.getOrNull() }
 
-    Column {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         UrbanSectionTitle("Elige el día", "Horarios reales, consultados al servidor")
         Spacer(Modifier.height(10.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -336,26 +380,27 @@ private fun CalendarStep(
         Spacer(Modifier.height(10.dp))
         when {
             slots.isNotEmpty() -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 260.dp)
-                ) {
-                    items(slots, key = { it.time }) { slot ->
-                        val selected = slot.time == time
-                        Surface(
-                            onClick = { onTimeChange(slot.time) },
-                            shape = MaterialTheme.shapes.medium,
-                            color = if (selected) UrbanColors.Gold else UrbanColors.Card,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line)
-                        ) {
-                            Box(Modifier.padding(vertical = 12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text(
-                                    slot.label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (selected) UrbanColors.OnGold else UrbanColors.Ink
-                                )
+                // Agrupados por franja (como en la web): mañana < 12:00, tarde 12:00-17:59, noche desde 18:00.
+                val groups = listOf(
+                    Triple("Mañana", Icons.Default.WbSunny, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) < 12 }),
+                    Triple("Tarde", Icons.Default.WbTwilight, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) in 12..17 }),
+                    Triple("Noche", Icons.Default.NightsStay, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) >= 18 })
+                ).filter { it.third.isNotEmpty() }
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    groups.forEach { (label, icon, group) ->
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(label, style = MaterialTheme.typography.labelLarge, color = UrbanColors.Muted)
+                            }
+                            group.chunked(3).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                    row.forEach { slot ->
+                                        SlotChip(slot, selected = slot.time == time, onClick = { onTimeChange(slot.time) }, modifier = Modifier.weight(1f))
+                                    }
+                                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                                }
                             }
                         }
                     }
@@ -377,6 +422,25 @@ private fun CalendarStep(
                 }
             }
             else -> LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold)
+        }
+    }
+}
+
+@Composable
+private fun SlotChip(slot: SlotItem, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) UrbanColors.Gold else UrbanColors.Card,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
+        modifier = modifier.semantics { role = Role.RadioButton; this.selected = selected }
+    ) {
+        Box(Modifier.padding(vertical = 12.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                slot.label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) UrbanColors.OnGold else UrbanColors.Ink
+            )
         }
     }
 }
