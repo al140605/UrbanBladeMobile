@@ -103,6 +103,8 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun joinWaitlist(barberId: String, serviceId: String, fecha: String) =
         api.joinWaitlist(WaitlistRequest(barberId, serviceId, fecha))
     suspend fun waitlist() = api.waitlist().data
+    suspend fun waitlistForStaff(estado: String?) = api.waitlistForStaff(estado).data
+    suspend fun inventoryMovementsPage(page: Int, tipo: String?, q: String?) = api.inventoryMovementsPage(page, tipo, q)
     suspend fun leaveWaitlist(id: String) = api.leaveWaitlist(id)
 
     suspend fun membershipPlans() = api.membershipPlans().data

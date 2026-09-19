@@ -40,6 +40,7 @@ interface UrbanBladeApi {
 
     @POST("waitlist") suspend fun joinWaitlist(@Body body: WaitlistRequest): WaitlistJoinResponse
     @GET("waitlist") suspend fun waitlist(): WaitlistResponse
+    @GET("waitlist") suspend fun waitlistForStaff(@Query("estado") estado: String? = null): WaitlistResponse
     @DELETE("waitlist/{id}") suspend fun leaveWaitlist(@Path("id") id: String): MessageResponse
 
     // ── Wallet: autoservicio del cliente, sin cambios de contrato en barber ──
@@ -146,6 +147,11 @@ interface UrbanBladeApi {
     @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject
     @GET("inventory/low-stock") suspend fun lowStock(): JsonObject
     @GET("inventory/movements") suspend fun inventoryMovements(): JsonObject
+    @GET("inventory/movements") suspend fun inventoryMovementsPage(
+        @Query("page") page: Int = 1,
+        @Query("tipo") tipo: String? = null,
+        @Query("q") q: String? = null
+    ): InventoryMovementsResponse
     @GET("cash-closes") suspend fun cashCloses(): JsonObject
     @GET("cash-closes/preview") suspend fun cashClosePreview(): CashClosePreviewResponse
     @POST("cash-closes") suspend fun registerCashClose(@Body body: RegisterCashCloseRequest): JsonObject

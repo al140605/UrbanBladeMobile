@@ -913,6 +913,32 @@ data class WaitlistEntry(
     val service: WaitlistServiceRef? = null
 )
 data class WaitlistResponse(val data: List<WaitlistEntry> = emptyList())
+
+// ── Historial de movimientos de inventario (GET /inventory/movements, personal) ──
+data class MovementProduct(val id: String? = null, val nombre: String? = null)
+data class MovementUser(val id: String? = null, val name: String? = null)
+data class MovementAppointment(val id: String? = null, val fecha: String? = null, val client: String? = null)
+data class InventoryMovementRow(
+    val id: String,
+    val tipo: String = "",
+    val cantidad: Int = 0,
+    val motivo: String? = null,
+    val fecha: String? = null,
+    val product: MovementProduct? = null,
+    val user: MovementUser? = null,
+    val appointment: MovementAppointment? = null
+)
+data class InventoryMovementStats(val total: Int = 0, val entradas: Int = 0, val salidas: Int = 0, val hoy: Int = 0)
+data class InventoryMovementsMeta(
+    @SerializedName("current_page") val currentPage: Int = 1,
+    @SerializedName("last_page") val lastPage: Int = 1,
+    val total: Int = 0,
+    val stats: InventoryMovementStats = InventoryMovementStats()
+)
+data class InventoryMovementsResponse(
+    val data: List<InventoryMovementRow> = emptyList(),
+    val meta: InventoryMovementsMeta = InventoryMovementsMeta()
+)
 data class WaitlistJoinResponse(val message: String? = null, val data: WaitlistEntry? = null)
 data class WaitlistRequest(
     @SerializedName("barber_id") val barberId: String,

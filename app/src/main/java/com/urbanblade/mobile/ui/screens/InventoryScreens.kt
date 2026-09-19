@@ -26,7 +26,7 @@ import com.urbanblade.mobile.ui.viewmodel.InventoryViewModel
 private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_trabajo" to "Insumo de trabajo")
 
 @Composable
-fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewModel = viewModel()) {
+fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Unit = {}, vm: InventoryViewModel = viewModel()) {
     val response by vm.products.collectAsState()
     val busy by vm.busy.collectAsState()
     val saving by vm.saving.collectAsState()
@@ -54,6 +54,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, vm: InventoryViewMod
                 if (isAdmin) {
                     IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
                 }
+                IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
                 IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             }
         }

@@ -1,0 +1,255 @@
+package com.urbanblade.mobile.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.data.model.InventoryMovementRow
+import com.urbanblade.mobile.data.model.WaitlistEntry
+import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanEmptyState
+import com.urbanblade.mobile.ui.components.UrbanErrorBanner
+import com.urbanblade.mobile.ui.components.UrbanFormat
+import com.urbanblade.mobile.ui.components.UrbanMetricCard
+import com.urbanblade.mobile.ui.components.UrbanOutlineButton
+import com.urbanblade.mobile.ui.components.UrbanSectionTitle
+import com.urbanblade.mobile.ui.components.UrbanSkeletonList
+import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.viewmodel.InventoryMovementsViewModel
+import com.urbanblade.mobile.ui.viewmodel.MovementFilter
+import com.urbanblade.mobile.ui.viewmodel.WaitlistFilter
+import com.urbanblade.mobile.ui.viewmodel.WaitlistStaffViewModel
+
+/** "2026-09-21T10:30:00+00:00" -> "21 sep · 10:30". Si no se puede leer, devuelve el texto original. */
+internal fun formatWhen(iso: String?): String {
+    if (iso.isNullOrBlank()) return "—"
+    val day = UrbanFormat.dateShort(iso)
+    val time = if (iso.length >= 16 && iso[10] == 'T') iso.substring(11, 16) else null
+    return if (time != null) "$day · $time" else day
+}
+
+/** Etiqueta en español del estado de una entrada de lista de espera. */
+internal fun waitlistStatusLabel(estado: String): String = when (estado) {
+    "activo" -> "En espera"
+    "notificado" -> "Avisada"
+    "reservado" -> "Reservó"
+    "cancelado" -> "Canceló"
+    "expirado" -> "Expiró"
+    else -> estado.replaceFirstChar { it.uppercase() }
+}
+
+/** Historial de entradas y salidas de stock del inventario. */
+@Composable
+fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel = viewModel()) {
+    val state by vm.state.collectAsState()
+    LaunchedEffect(Unit) { vm.load() }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = { UrbanTopBar("Movimientos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    UrbanMetricCard("Entradas", state.stats.entradas.toString(), Icons.Default.ArrowDownward, Modifier.weight(1f))
+                    UrbanMetricCard("Salidas", state.stats.salidas.toString(), Icons.Default.ArrowUpward, Modifier.weight(1f))
+                    UrbanMetricCard("Hoy", state.stats.hoy.toString(), Icons.Default.Today, Modifier.weight(1f))
+                }
+            }
+            item {
+                UrbanTextField(
+                    value = state.query,
+                    onValueChange = vm::setQuery,
+                    label = "Buscar por producto o motivo",
+                    leadingIcon = Icons.Default.Search,
+                    imeAction = ImeAction.Search,
+                    onImeAction = { vm.load() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MovementFilter.entries.forEach { f ->
+                        FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
+                    }
+                }
+            }
+            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            state.error?.let { item { UrbanErrorBanner(it) } }
+            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
+
+            if (!state.loading && state.items.isEmpty() && state.error == null) {
+                item { UrbanEmptyState("Sin movimientos", "Aquí aparecerán las entradas y salidas de stock.", Icons.Default.SwapVert) }
+            }
+            if (state.items.isNotEmpty()) {
+                item { UrbanSectionTitle("Historial", UrbanFormat.count(state.total, "movimiento", "movimientos")) }
+            }
+            items(state.items, key = { it.id }) { MovementCard(it) }
+            if (state.hasMore) {
+                item {
+                    UrbanOutlineButton(
+                        text = if (state.loadingMore) "Cargando…" else "Cargar más movimientos",
+                        onClick = { vm.loadMore() },
+                        icon = Icons.Default.ExpandMore,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MovementCard(m: InventoryMovementRow) {
+    val entrada = m.tipo == "entrada"
+    val tone = if (entrada) UrbanColors.Success else UrbanColors.Danger
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(tone.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                Icon(if (entrada) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null, tint = tone, modifier = Modifier.size(20.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(m.product?.nombre ?: "Producto", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                Text(
+                    listOfNotNull(
+                        m.motivo?.takeIf { it.isNotBlank() },
+                        m.appointment?.client?.let { "Cita de $it" },
+                        m.user?.name
+                    ).joinToString(" · ").ifEmpty { "Sin motivo" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+                Text(formatWhen(m.fecha), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+            }
+            Text(
+                (if (entrada) "+" else "−") + m.cantidad,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = tone
+            )
+        }
+    }
+}
+
+/** Lista de espera de todo el negocio, para que el personal sepa a quién avisar. */
+@Composable
+fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewModel()) {
+    val state by vm.state.collectAsState()
+    LaunchedEffect(Unit) { vm.load() }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = { UrbanTopBar("Lista de espera", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WaitlistFilter.entries.forEach { f ->
+                        FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
+                    }
+                }
+            }
+            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            state.error?.let { item { UrbanErrorBanner(it) } }
+            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
+
+            if (!state.loading && state.items.isEmpty() && state.error == null) {
+                item {
+                    UrbanEmptyState(
+                        "Nadie en esta lista",
+                        if (state.filter == WaitlistFilter.Espera) "Cuando un cliente se anote por un horario lleno aparecerá aquí." else "No hay entradas con este estado.",
+                        Icons.Default.HourglassTop
+                    )
+                }
+            }
+            if (state.items.isNotEmpty()) {
+                item { UrbanSectionTitle("Entradas", UrbanFormat.count(state.items.size, "entrada", "entradas")) }
+            }
+            items(state.items, key = { it.id }) { WaitlistCard(it) }
+        }
+    }
+}
+
+@Composable
+private fun WaitlistCard(entry: WaitlistEntry) {
+    val tone = when (entry.estado) {
+        "activo" -> UrbanColors.Warning
+        "notificado" -> UrbanColors.Info
+        "reservado" -> UrbanColors.Success
+        else -> UrbanColors.Muted
+    }
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(entry.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                Text(entry.client?.name ?: "Cliente", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
+                Text(
+                    "Con ${entry.barber?.name ?: "cualquier barbero"} · para el ${entry.fecha?.let { UrbanFormat.dateShort(it) } ?: "—"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+                entry.notificadoEn?.let {
+                    Spacer(Modifier.height(2.dp))
+                    Text("Avisada el ${formatWhen(it)}", style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+                }
+            }
+            Text(
+                waitlistStatusLabel(entry.estado),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tone
+            )
+        }
+    }
+}

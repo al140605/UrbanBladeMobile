@@ -513,6 +513,8 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
         if (staff) {
             add(ModuleItem("clients", "Clientes", "Atención y gestión", Icons.Default.People, "OPERACIÓN"))
             add(ModuleItem("inventory", "Inventario", "Stock y movimientos", Icons.Default.Inventory2, "OPERACIÓN"))
+            add(ModuleItem("inventory_movements", "Movimientos de inventario", "Entradas y salidas de stock", Icons.Default.SwapVert, "OPERACIÓN"))
+            add(ModuleItem("waitlist_staff", "Lista de espera", "Clientes esperando un horario", Icons.Default.HourglassTop, "OPERACIÓN"))
             add(ModuleItem("gift_cards", "Gift cards", "Vender y consultar saldo", Icons.Default.CardGiftcard, "OPERACIÓN"))
             add(ModuleItem("cash", "Corte de caja", "Resumen de turno", Icons.Default.PointOfSale, "OPERACIÓN"))
         }

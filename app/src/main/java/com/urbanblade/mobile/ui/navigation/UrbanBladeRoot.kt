@@ -246,8 +246,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         onBack = { nav.popBackStack() }
                     )
                 }
-                composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }) }
+                composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }, onHistory = { nav.navigate("inventory_movements") }) }
                 composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
+                composable("inventory_movements") { InventoryMovementsScreen(onBack = { nav.popBackStack() }) }
+                composable("waitlist_staff") { WaitlistStaffScreen(onBack = { nav.popBackStack() }) }
                 composable("gift_cards") { GiftCardsStaffScreen(onBack = { nav.popBackStack() }) }
                 composable("offers_admin") { OffersAdminScreen(onBack = { nav.popBackStack() }) }
                 composable("barbers_admin") { BarbersAdminScreen(onBack = { nav.popBackStack() }) }
