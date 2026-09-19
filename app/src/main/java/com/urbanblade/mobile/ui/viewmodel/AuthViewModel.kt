@@ -3,6 +3,7 @@ package com.urbanblade.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
+import com.urbanblade.mobile.core.session.SessionEvents
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +31,23 @@ class AuthViewModel @JvmOverloads constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init { bootstrap() }
+    private val _sessionExpired = MutableStateFlow(false)
+    /** Verdadero cuando la sesión se cerró porque el servidor la rechazó; la bienvenida lo avisa. */
+    val sessionExpired: StateFlow<Boolean> = _sessionExpired.asStateFlow()
+
+    init {
+        bootstrap()
+        viewModelScope.launch {
+            SessionEvents.expired.collect { onSessionExpired() }
+        }
+    }
+
+    private suspend fun onSessionExpired() {
+        if (_state.value !is AuthState.Authenticated) return
+        repository.clearLocalSession()
+        _sessionExpired.value = true
+        _state.value = AuthState.Guest
+    }
 
     fun bootstrap() {
         viewModelScope.launch {
@@ -43,6 +60,7 @@ class AuthViewModel @JvmOverloads constructor(
     /** Cada pantalla de acceso empieza sin el error de la anterior (el estado se comparte). */
     fun clearError() {
         _error.value = null
+        _sessionExpired.value = false
     }
 
     fun login(email: String, password: String) {

@@ -53,6 +53,11 @@ class AuthRepository(
         try { api.logout() } catch (_: Exception) { }
         session.clear()
     }
+
+    /** Borra solo el token local, sin llamar al servidor (que ya rechazó esa sesión). */
+    suspend fun clearLocalSession() {
+        session.clear()
+    }
 }
 
 class UrbanRepository(private val api: UrbanBladeApi) {
@@ -62,10 +67,18 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun slots(barberId: String, serviceId: String, date: String) =
         api.slots(barberId, serviceId, date).slots
 
-    suspend fun appointments() = api.appointments()
+    suspend fun appointments(page: Int? = null, perPage: Int? = null, desde: String? = null, hasta: String? = null) =
+        api.appointments(page, perPage, desde, hasta)
     suspend fun createAppointment(body: AppointmentRequest) = api.createAppointment(body)
     suspend fun updateAppointment(code: String, body: AppointmentRequest) = api.updateAppointment(code, body)
     suspend fun cancelAppointment(code: String) = api.cancelAppointment(code)
+    suspend fun createPayment(request: CreatePaymentRequest) = api.createPayment(request)
+
+    suspend fun servicesAdmin(page: Int, q: String?, activo: String?, categoria: String?) =
+        api.servicesAdmin(page, q, activo, categoria)
+    suspend fun createService(body: ServiceUpsertRequest) = api.createService(body)
+    suspend fun updateService(slug: String, body: ServiceUpsertRequest) = api.updateService(slug, body)
+    suspend fun deleteService(slug: String) = api.deleteService(slug)
 
     suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
 

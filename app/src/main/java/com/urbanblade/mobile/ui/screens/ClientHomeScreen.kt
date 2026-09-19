@@ -263,7 +263,7 @@ private fun EmptyAgendaCard(onBook: () -> Unit) {
 }
 
 @Composable
-private fun HomeTile(
+internal fun HomeTile(
     title: String,
     subtitle: String,
     icon: ImageVector,

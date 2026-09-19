@@ -2,6 +2,12 @@ package com.urbanblade.mobile.ui.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.anyOrNull
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.runBlocking
+import com.urbanblade.mobile.data.model.PageMeta
+import com.urbanblade.mobile.data.model.AppointmentsResponse
 import com.urbanblade.mobile.data.model.AppointmentRow
 import com.urbanblade.mobile.data.model.StripeIntentResponseData
 import com.urbanblade.mobile.data.model.UploadPaymentReceiptData
@@ -46,6 +52,44 @@ class AppointmentsViewModelTest {
     fun setup() {
         Dispatchers.setMain(dispatcher)
         repo = mock()
+        // La recarga tras cada acción llama a appointments(); sin este stub el mock devolvería null.
+        runBlocking {
+            whenever(repo.appointments(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(AppointmentsResponse())
+        }
+    }
+
+    @Test
+    fun `cargar mas agrega la siguiente pagina y termina cuando no hay mas`() = runTest(dispatcher) {
+        val first = AppointmentsResponse(
+            data = listOf(AppointmentRow(id = "1", code = "a", fecha = "2026-10-02", horaInicio = "10:00:00", estado = "pendiente")),
+            meta = PageMeta(page = 1, perPage = 30, total = 2, hasMore = true)
+        )
+        val second = AppointmentsResponse(
+            data = listOf(AppointmentRow(id = "2", code = "b", fecha = "2026-10-01", horaInicio = "10:00:00", estado = "pendiente")),
+            meta = PageMeta(page = 2, perPage = 30, total = 2, hasMore = false)
+        )
+        whenever(repo.appointments(eq(1), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(first)
+        whenever(repo.appointments(eq(2), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(second)
+        val vm = AppointmentsViewModel(repo)
+
+        vm.load()
+        advanceUntilIdle()
+        assertTrue(vm.hasMore.value)
+
+        vm.loadMore()
+        advanceUntilIdle()
+        assertEquals(listOf("1", "2"), vm.data.value.data.map { it.id })
+        assertFalse(vm.hasMore.value)
+    }
+
+    @Test
+    fun `un servidor sin meta se trata como lista completa`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.load()
+        advanceUntilIdle()
+
+        assertFalse(vm.hasMore.value)
     }
 
     @After

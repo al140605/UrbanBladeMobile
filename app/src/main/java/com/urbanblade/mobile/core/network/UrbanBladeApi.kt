@@ -27,7 +27,12 @@ interface UrbanBladeApi {
     @GET("availability/slots")
     suspend fun slots(@Query("barber_id") barberId: String, @Query("service_id") serviceId: String, @Query("date") date: String): SlotsResponse
 
-    @GET("appointments") suspend fun appointments(): AppointmentsResponse
+    @GET("appointments") suspend fun appointments(
+        @Query("page") page: Int? = null,
+        @Query("per_page") perPage: Int? = null,
+        @Query("desde") desde: String? = null,
+        @Query("hasta") hasta: String? = null
+    ): AppointmentsResponse
     @POST("appointments") suspend fun createAppointment(@Body body: AppointmentRequest): MessageResponse
     @PUT("appointments/{code}") suspend fun updateAppointment(@Path("code") code: String, @Body body: AppointmentRequest): MessageResponse
     @PATCH("appointments/{code}/status") suspend fun updateAppointmentStatus(@Path("code") code: String, @Body body: JsonObject): MessageResponse
@@ -53,6 +58,17 @@ interface UrbanBladeApi {
 
     @GET("payments") suspend fun payments(): PaymentsResponse
     @GET("payments/pending") suspend fun pendingPayments(): PendingPaymentsResponse
+    @POST("payments") suspend fun createPayment(@Body body: CreatePaymentRequest): JsonObject
+
+    @GET("services/manage") suspend fun servicesAdmin(
+        @Query("page") page: Int = 1,
+        @Query("q") q: String? = null,
+        @Query("activo") activo: String? = null,
+        @Query("categoria") categoria: String? = null
+    ): ServicesAdminResponse
+    @POST("services/manage") suspend fun createService(@Body body: ServiceUpsertRequest): JsonObject
+    @PUT("services/manage/{slug}") suspend fun updateService(@Path("slug") slug: String, @Body body: ServiceUpsertRequest): JsonObject
+    @DELETE("services/manage/{slug}") suspend fun deleteService(@Path("slug") slug: String): JsonObject
     @POST("payments/{id}/approve") suspend fun approvePayment(@Path("id") id: String): MessageResponse
     @POST("payments/{id}/reject") suspend fun rejectPayment(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
     @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse

@@ -133,11 +133,74 @@ class AppointmentsViewModel @JvmOverloads constructor(
         catch (_: Exception) { _rescheduleSlots.value = emptyList() }
     }
 
+    private val _hasMore = MutableStateFlow(false)
+    /** Hay más citas (más antiguas) por traer del servidor. */
+    val hasMore = _hasMore.asStateFlow()
+    private val _loadingMore = MutableStateFlow(false)
+    val loadingMore = _loadingMore.asStateFlow()
+    private var page = 1
+
+    private val _month = MutableStateFlow<List<AppointmentRow>>(emptyList())
+    /** Citas del mes que muestra el calendario. */
+    val month = _month.asStateFlow()
+    private val _monthLoading = MutableStateFlow(false)
+    val monthLoading = _monthLoading.asStateFlow()
+    private var currentMonth: java.time.YearMonth? = null
+
     fun load() = viewModelScope.launch {
         _loading.value = true; _error.value = null
-        try { _data.value = repo.appointments() }
+        try {
+            val response = repo.appointments(page = 1, perPage = PAGE_SIZE)
+            page = 1
+            _data.value = response
+            // Un servidor sin paginación no manda `meta`: se trata como lista completa.
+            _hasMore.value = response.meta?.hasMore == true
+        }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar las citas.") }
         finally { _loading.value = false }
+        currentMonth?.let { loadMonth(it) }
+    }
+
+    /** Trae la página siguiente (citas más antiguas) y la agrega al final de la lista. */
+    fun loadMore() = viewModelScope.launch {
+        if (_loadingMore.value || !_hasMore.value) return@launch
+        _loadingMore.value = true
+        try {
+            val response = repo.appointments(page = page + 1, perPage = PAGE_SIZE)
+            page += 1
+            val known = _data.value.data.map { it.id }.toSet()
+            _data.value = _data.value.copy(data = _data.value.data + response.data.filter { it.id !in known })
+            _hasMore.value = response.meta?.hasMore == true
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudieron cargar más citas.")
+        } finally { _loadingMore.value = false }
+    }
+
+    /** Carga todas las citas de un mes para el calendario (varias páginas si hace falta). */
+    fun loadMonth(month: java.time.YearMonth) = viewModelScope.launch {
+        currentMonth = month
+        _monthLoading.value = true
+        try {
+            val desde = month.atDay(1).toString()
+            val hasta = month.atEndOfMonth().toString()
+            val rows = mutableListOf<AppointmentRow>()
+            var p = 1
+            while (p <= MAX_MONTH_PAGES) {
+                val response = repo.appointments(page = p, perPage = 50, desde = desde, hasta = hasta)
+                rows += response.data
+                if (response.meta?.hasMore != true) break
+                p += 1
+            }
+            // Si el servidor ignora el rango, este filtro deja solo el mes pedido.
+            if (currentMonth == month) _month.value = rows.filter { it.fecha.startsWith(month.toString()) }
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudo cargar el calendario.")
+        } finally { _monthLoading.value = false }
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 30
+        const val MAX_MONTH_PAGES = 6
     }
 
     fun loadWaitlist() = viewModelScope.launch {
@@ -148,6 +211,48 @@ class AppointmentsViewModel @JvmOverloads constructor(
     fun leaveWaitlist(id: String) = viewModelScope.launch {
         try { repo.leaveWaitlist(id); loadWaitlist() }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo salir de la lista de espera.") }
+    }
+
+    private val _actionBusy = MutableStateFlow(false)
+    /** Ocupado mientras el personal cambia el estado de una cita o registra un cobro. */
+    val actionBusy = _actionBusy.asStateFlow()
+    private val _notice = MutableStateFlow<String?>(null)
+    val notice = _notice.asStateFlow()
+
+    fun clearNotice() {
+        _notice.value = null
+    }
+
+    /** Confirmar, iniciar, completar o marcar inasistencia; la máquina de estados la valida el servidor. */
+    fun changeStatus(item: AppointmentRow, estado: String) = viewModelScope.launch {
+        val code = item.code ?: return@launch
+        _actionBusy.value = true; _error.value = null
+        try {
+            repo.updateAppointmentStatus(code, estado)
+            load()
+        } catch (e: HttpException) {
+            _error.value = if (e.code() == 422) e.serverMessage() ?: "No se puede cambiar el estado de esta cita."
+            else e.toFriendlyMessage("No se pudo cambiar el estado de la cita.")
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudo cambiar el estado de la cita.")
+        } finally { _actionBusy.value = false }
+    }
+
+    /** Registra el cobro de una cita (efectivo o transferencia); el monto real lo fija el servidor. */
+    fun charge(item: AppointmentRow, metodo: String, propina: Double, onDone: () -> Unit) = viewModelScope.launch {
+        _actionBusy.value = true; _error.value = null
+        try {
+            val informativo = item.precioCobrado ?: item.service?.precio ?: 0.0
+            repo.createPayment(CreatePaymentRequest(item.id, informativo, metodo, propina))
+            _notice.value = "Cobro registrado."
+            onDone()
+            load()
+        } catch (e: HttpException) {
+            _error.value = if (e.code() == 422) e.serverMessage() ?: "No se pudo registrar el cobro."
+            else e.toFriendlyMessage("No se pudo registrar el cobro.")
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudo registrar el cobro.")
+        } finally { _actionBusy.value = false }
     }
 
     fun cancel(item: AppointmentRow) = viewModelScope.launch {

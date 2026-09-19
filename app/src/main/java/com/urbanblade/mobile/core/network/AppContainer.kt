@@ -2,6 +2,7 @@ package com.urbanblade.mobile.core.network
 
 import android.content.Context
 import com.urbanblade.mobile.BuildConfig
+import com.urbanblade.mobile.core.session.SessionEvents
 import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.repository.AuthRepository
 import com.urbanblade.mobile.data.repository.UrbanRepository
@@ -34,7 +35,17 @@ object AppContainer {
                     }
                 }
                 .build()
-            chain.proceed(request)
+            val response = chain.proceed(request)
+            // Un 401 con token en una llamada que no es de acceso significa sesión vencida o cuenta
+            // inexistente: se avisa para que la app cierre la sesión y vuelva al acceso. Las llamadas de
+            // login/registro/recuperación devuelven 401 por credenciales malas y no cuentan.
+            val path = request.url.encodedPath
+            val isAccessCall = listOf("/auth/login", "/auth/register", "/auth/google", "/auth/forgot-password", "/auth/reset")
+                .any { path.contains(it) }
+            if (response.code == 401 && !token.isNullOrBlank() && !isAccessCall) {
+                SessionEvents.notifyExpired()
+            }
+            response
         }
 
         val logging = okhttp3.logging.HttpLoggingInterceptor().apply {

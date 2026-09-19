@@ -25,8 +25,14 @@ fun DashboardScreen(
     onWallet: () -> Unit = {},
     onStore: () -> Unit = {},
     onExplore: () -> Unit = {},
+    onNavigate: (String) -> Unit = {},
     vm: DashboardViewModel = viewModel()
 ) {
+    // El administrador y el cliente tienen su propio inicio; el resto de roles conserva el tablero.
+    if (user.roles.contains("administrador")) {
+        AdminHomeScreen(user, onNavigate)
+        return
+    }
     // El cliente tiene su propio inicio (próxima cita y atajos); el personal conserva el tablero.
     val clientOnly = user.roles.contains("cliente") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }

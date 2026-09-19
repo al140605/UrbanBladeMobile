@@ -122,8 +122,52 @@ data class AppointmentStats(
     val canceladas: Int = 0
 )
 
+/** Servicio del catálogo tal como lo ve el administrador (GET /services/manage). */
+data class ServiceAdminItem(
+    val id: String = "",
+    val slug: String = "",
+    val nombre: String = "",
+    val categoria: String = "",
+    val precio: Double = 0.0,
+    @SerializedName("duracion_min") val duracionMin: Int = 0,
+    val descripcion: String? = null,
+    val activo: Boolean = true,
+    @SerializedName("imagen_url") val imagenUrl: String? = null
+)
+
+data class ServicesAdminMeta(
+    @SerializedName("current_page") val currentPage: Int = 1,
+    @SerializedName("last_page") val lastPage: Int = 1,
+    val total: Int = 0
+)
+
+data class ServicesAdminResponse(
+    val data: List<ServiceAdminItem> = emptyList(),
+    val meta: ServicesAdminMeta = ServicesAdminMeta(),
+    val categories: List<String> = emptyList()
+)
+
+/** Cuerpo de crear/editar servicio; el servidor valida precio >= 0 y duración de 5 a 600 min. */
+data class ServiceUpsertRequest(
+    val nombre: String,
+    val categoria: String,
+    val precio: Double,
+    @SerializedName("duracion_min") val duracionMin: Int,
+    val descripcion: String?,
+    val activo: Boolean
+)
+
+/** Bloque `meta` que el servidor agrega solo cuando se pide `page`. */
+data class PageMeta(
+    val page: Int = 1,
+    @SerializedName("per_page") val perPage: Int = 0,
+    val total: Int = 0,
+    @SerializedName("has_more") val hasMore: Boolean = false
+)
+
 data class AppointmentsResponse(
     val data: List<AppointmentRow> = emptyList(),
+    val meta: PageMeta? = null,
     val stats: AppointmentStats = AppointmentStats(),
     val next: AppointmentRow? = null,
     @SerializedName("cancellation_policy_hours") val cancellationPolicyHours: Int = 24
@@ -243,6 +287,16 @@ data class PendingPaymentRow(
     @SerializedName("ocr_texto") val ocrTexto: String? = null,
     @SerializedName("ocr_monto_detectado") val ocrMontoDetectado: Double? = null,
     val appointment: JsonObject? = null
+)
+/**
+ * Cobro manual del personal. `monto` es solo informativo: PaymentService relee el precio del servicio
+ * en el servidor y calcula descuentos y puntos (nunca se confía en el monto del cliente).
+ */
+data class CreatePaymentRequest(
+    @SerializedName("appointment_id") val appointmentId: String,
+    val monto: Double,
+    @SerializedName("metodo_pago") val metodoPago: String,
+    val propina: Double = 0.0
 )
 data class PendingPaymentsResponse(val data: List<PendingPaymentRow> = emptyList())
 data class RejectPaymentRequest(@SerializedName("motivo_rechazo") val motivo: String)

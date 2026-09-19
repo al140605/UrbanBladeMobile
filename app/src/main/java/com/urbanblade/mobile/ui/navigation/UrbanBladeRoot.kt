@@ -70,23 +70,11 @@ private fun GuestNav(authViewModel: AuthViewModel) {
         ) {
     NavHost(navController = nav, startDestination = "welcome") {
         composable("welcome") {
+            val sessionExpired by authViewModel.sessionExpired.collectAsState()
             com.urbanblade.mobile.ui.screens.WelcomeScreen(
                 onRegister = { nav.navigate("register") },
                 onLogin = { nav.navigate("login") },
-                onExplore = { nav.navigate("catalog") }
-            )
-        }
-        composable("catalog") {
-            CatalogScreen(
-                isGuest = true,
-                onBook = { serviceId, barberId ->
-                    // Conserva la selección y exige login/registro para
-                    // confirmar -- BookingScreen la recoge de PendingBooking
-                    // en cuanto AuthenticatedNav monta (ver más abajo).
-                    PendingBooking.set(serviceId, barberId)
-                    nav.navigate("login")
-                },
-                onLogin = { nav.navigate("login") }
+                sessionExpired = sessionExpired
             )
         }
         composable("login") {
@@ -199,7 +187,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         onBook = { nav.navigate("booking") },
                         onWallet = { nav.navigate("wallet") },
                         onStore = { nav.navigate("store") },
-                        onExplore = { nav.navigate("catalog") }
+                        onExplore = { nav.navigate("catalog") },
+                        onNavigate = { route -> nav.navigate(route) }
                     )
                 }
                 composable("appointments") {
@@ -259,6 +248,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 }
                 composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
+                composable("services_admin") { ServicesAdminScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_portfolio") { BarberPortfolioScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }

@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.viewmodel
 
+import com.urbanblade.mobile.core.session.SessionEvents
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.repository.AuthRepository
 import kotlinx.coroutines.Dispatchers
@@ -152,5 +153,36 @@ class AuthViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(vm.state.value is AuthState.Guest)
+    }
+
+    @Test
+    fun `una sesion rechazada por el servidor vuelve a invitado y lo avisa`() = runTest(dispatcher) {
+        val user = AuthUser(id = "1", name = "Ana", email = "ana@test.com")
+        whenever(repository.restoreSession()).thenReturn(user)
+
+        val vm = AuthViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(AuthState.Authenticated(user), vm.state.value)
+
+        SessionEvents.notifyExpired()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(AuthState.Guest, vm.state.value)
+        assertTrue(vm.sessionExpired.value)
+        verify(repository).clearLocalSession()
+    }
+
+    @Test
+    fun `sesion vencida sin usuario autenticado no hace nada`() = runTest(dispatcher) {
+        whenever(repository.restoreSession()).thenReturn(null)
+
+        val vm = AuthViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+        SessionEvents.notifyExpired()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(AuthState.Guest, vm.state.value)
+        assertFalse(vm.sessionExpired.value)
+        verify(repository, never()).clearLocalSession()
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.MaterialTheme
@@ -38,17 +39,18 @@ import com.urbanblade.mobile.ui.components.AuthBackdrop
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
 import com.urbanblade.mobile.ui.components.StaggerIn
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
+import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.theme.MascotMood
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
 
 /**
- * Primera pantalla para quien aún no tiene sesión: identidad de marca y tres caminos claros
- * (crear cuenta, entrar, o explorar el catálogo sin cuenta).
+ * Primera pantalla para quien aún no tiene sesión: identidad de marca y dos caminos claros
+ * (crear cuenta o entrar). Si la sesión anterior venció, lo avisa.
  */
 @Composable
-fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, onExplore: () -> Unit) {
+fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, sessionExpired: Boolean = false) {
     // La mascota "flota" muy despacio; con "Quitar animaciones" del sistema se queda quieta.
     val transition = rememberInfiniteTransition(label = "float")
     val bob by transition.animateFloat(
@@ -102,6 +104,11 @@ fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, onExplore: () -> 
 
             Spacer(Modifier.weight(1.1f))
 
+            if (sessionExpired) {
+                UrbanInfoBanner("Tu sesión venció. Inicia sesión de nuevo para continuar.", Icons.Default.Lock)
+                Spacer(Modifier.height(12.dp))
+            }
+
             StaggerIn(4) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AuthPrimaryButton(
@@ -116,14 +123,6 @@ fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, onExplore: () -> 
                         icon = Icons.Default.Login,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    TextButton(
-                        onClick = onExplore,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                    ) {
-                        Text("Explorar sin cuenta", color = UrbanColors.Muted, style = MaterialTheme.typography.titleSmall)
-                    }
                 }
             }
             Spacer(Modifier.height(12.dp))

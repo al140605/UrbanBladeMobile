@@ -1,6 +1,8 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.urbanblade.mobile.core.payment.rememberUrbanPaymentSheet
 import com.urbanblade.mobile.data.model.AppointmentRow
+import com.urbanblade.mobile.data.model.AppointmentStats
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.model.SlotItem
 import com.urbanblade.mobile.data.model.WaitlistEntry
@@ -29,6 +32,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -42,8 +46,52 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     var confirmCancel by remember { mutableStateOf<AppointmentRow?>(null) }
     var rescheduling by remember { mutableStateOf<AppointmentRow?>(null) }
     var checkingOut by remember { mutableStateOf<AppointmentRow?>(null) }
+    var charging by remember { mutableStateOf<AppointmentRow?>(null) }
+    val notice by vm.notice.collectAsState()
+    val hasMore by vm.hasMore.collectAsState()
+    val loadingMore by vm.loadingMore.collectAsState()
+    val monthRows by vm.month.collectAsState()
+    val monthLoading by vm.monthLoading.collectAsState()
+    var calendarMode by remember { mutableStateOf(false) }
+    var shownMonth by remember { mutableStateOf(YearMonth.now()) }
+    var selectedDay by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    val staff = user.roles.any { it in listOf("administrador", "recepcionista") }
     val canBook = user.roles.any { it in listOf("cliente", "administrador", "recepcionista") }
     val isClient = user.roles.contains("cliente")
+
+    // El personal ve las citas de todo el negocio: las estadísticas del servidor son las del propio
+    // usuario (0 para un administrador), así que se calculan aquí sobre la lista.
+    var staffFilter by remember { mutableStateOf("proximas") }
+    val today = remember { LocalDate.now().toString() }
+    val active = listOf("pendiente", "confirmada", "en_proceso")
+    val stats = if (staff) {
+        AppointmentStats(
+            total = response.data.size,
+            proximas = response.data.count { it.fecha >= today && it.estado in active },
+            completadas = response.data.count { it.estado == "completada" },
+            canceladas = response.data.count { it.estado == "cancelada" }
+        )
+    } else {
+        response.stats
+    }
+    val visible = if (calendarMode) {
+        monthRows.filter { it.fecha.startsWith(selectedDay?.toString() ?: "-") }.sortedBy { it.horaInicio }
+    } else if (!staff) {
+        response.data
+    } else {
+        when (staffFilter) {
+            "pendientes" -> response.data.filter { it.estado == "pendiente" }
+                .sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
+            "hoy" -> response.data.filter { it.fecha == today }.sortedBy { it.horaInicio }
+            "proximas" -> response.data.filter { it.fecha >= today && it.estado in active }
+                .sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
+            else -> response.data
+        }
+    }
+
+    LaunchedEffect(calendarMode, shownMonth) {
+        if (calendarMode) vm.loadMonth(shownMonth)
+    }
 
     LaunchedEffect(Unit) {
         vm.load()
@@ -85,13 +133,13 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     UrbanMetricCard(
                         label = "Próximas",
-                        value = response.stats.proximas.toString(),
+                        value = stats.proximas.toString(),
                         icon = Icons.Default.Upcoming,
                         modifier = Modifier.weight(1f)
                     )
                     UrbanMetricCard(
                         label = "Completadas",
-                        value = response.stats.completadas.toString(),
+                        value = stats.completadas.toString(),
                         icon = Icons.Default.TaskAlt,
                         modifier = Modifier.weight(1f)
                     )
@@ -99,6 +147,9 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             }
 
             if (loading) item { UrbanSkeletonList(3) }
+            notice?.let {
+                item { UrbanInfoBanner(it, Icons.Default.CheckCircle) }
+            }
             error?.let { item { UrbanErrorBanner(it) } }
             if (failed && !loading) {
                 item {
@@ -126,18 +177,85 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             }
 
             if (response.data.isNotEmpty()) {
-                item { UrbanSectionTitle("Tu agenda", UrbanFormat.count(response.stats.total, "cita registrada", "citas registradas")) }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = !calendarMode, onClick = { calendarMode = false }, label = { Text("Lista") })
+                        FilterChip(
+                            selected = calendarMode,
+                            onClick = { calendarMode = true },
+                            label = { Text("Calendario") },
+                            leadingIcon = { Icon(Icons.Default.CalendarMonth, null, Modifier.size(18.dp)) }
+                        )
+                    }
+                }
+                if (calendarMode) {
+                    item {
+                        AppointmentsCalendar(
+                            month = shownMonth,
+                            rows = monthRows,
+                            selected = selectedDay,
+                            loading = monthLoading,
+                            onMonthChange = { shownMonth = it; selectedDay = null },
+                            onSelect = { selectedDay = it }
+                        )
+                    }
+                    item {
+                        UrbanSectionTitle(
+                            selectedDay?.let { UrbanFormat.date(it.toString()) } ?: "Elige un día",
+                            if (selectedDay == null) "Toca un día del calendario" else UrbanFormat.count(visible.size, "cita", "citas")
+                        )
+                    }
+                    if (selectedDay != null && visible.isEmpty() && !monthLoading) {
+                        item { UrbanEmptyState("Sin citas este día", "Elige otro día del calendario.", Icons.Default.EventAvailable) }
+                    }
+                } else if (staff) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            UrbanSectionTitle("Agenda del negocio", UrbanFormat.count(visible.size, "cita", "citas"))
+                            Row(
+                                Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf("proximas" to "Próximas", "hoy" to "Hoy", "pendientes" to "Pendientes", "todas" to "Todas")
+                                    .forEach { (key, label) ->
+                                        FilterChip(selected = staffFilter == key, onClick = { staffFilter = key }, label = { Text(label) })
+                                    }
+                            }
+                        }
+                    }
+                    if (visible.isEmpty()) {
+                        item { UrbanEmptyState("Sin citas en este filtro", "Prueba con otro filtro.", Icons.Default.EventAvailable) }
+                    }
+                } else {
+                    item { UrbanSectionTitle("Tu agenda", UrbanFormat.count(stats.total, "cita registrada", "citas registradas")) }
+                }
             }
 
-            items(response.data, key = { it.id }) { appt ->
+            items(visible, key = { it.id }) { appt ->
                 val manageable = appt.estado in listOf("pendiente", "confirmada") && appt.code != null
                 val payable = isClient && appt.isChargeable && !appt.hasPayment && appt.code != null
                 AppointmentCard(
                     appt = appt,
+                    clientName = if (staff) appt.client?.user?.name else null,
                     onCancel = if (manageable) { { confirmCancel = appt } } else null,
                     onReschedule = if (manageable && isClient) { { rescheduling = appt } } else null,
-                    onPay = if (payable) { { checkingOut = appt } } else null
+                    onPay = if (payable) { { checkingOut = appt } } else null,
+                    onStatus = if (staff && appt.code != null && appt.estado in listOf("pendiente", "confirmada", "en_proceso")) {
+                        { estado -> vm.changeStatus(appt, estado) }
+                    } else null,
+                    onCharge = if (staff && appt.isChargeable && !appt.hasPayment) { { charging = appt } } else null
                 )
+            }
+
+            if (!calendarMode && hasMore) {
+                item {
+                    UrbanOutlineButton(
+                        text = if (loadingMore) "Cargando…" else "Cargar más citas",
+                        onClick = { vm.loadMore() },
+                        icon = Icons.Default.ExpandMore,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             if (isClient && waitlistEntries.isNotEmpty()) {
@@ -156,6 +274,10 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             vm = vm,
             onDismiss = { rescheduling = null }
         )
+    }
+
+    charging?.let { appt ->
+        ChargeSheet(appt = appt, vm = vm, onDismiss = { charging = null })
     }
 
     checkingOut?.let { appt ->
@@ -190,9 +312,12 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
 @Composable
 private fun AppointmentCard(
     appt: AppointmentRow,
+    clientName: String? = null,
     onCancel: (() -> Unit)?,
     onReschedule: (() -> Unit)? = null,
-    onPay: (() -> Unit)? = null
+    onPay: (() -> Unit)? = null,
+    onStatus: ((String) -> Unit)? = null,
+    onCharge: (() -> Unit)? = null
 ) {
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Top) {
@@ -218,10 +343,38 @@ private fun AppointmentCard(
                     Spacer(Modifier.width(8.dp))
                     UrbanStatusPill(appt.estado)
                 }
+                clientName?.let { Text("Cliente: $it", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink) }
                 Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
                 Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 appt.notas?.takeIf { it.isNotBlank() }?.let {
                     Text("“$it”", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
+                }
+                if (onStatus != null || onCharge != null) {
+                    Spacer(Modifier.height(6.dp))
+                    // Siguiente paso del flujo (pendiente, confirmada, en proceso, completada) y cobro.
+                    val next = when (appt.estado) {
+                        "pendiente" -> "confirmada" to "Confirmar"
+                        "confirmada" -> "en_proceso" to "Iniciar"
+                        "en_proceso" -> "completada" to "Completar"
+                        else -> null
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (next != null && onStatus != null) {
+                            UrbanPrimaryButton(
+                                text = next.second,
+                                onClick = { onStatus(next.first) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (onCharge != null) {
+                            UrbanOutlineButton(
+                                text = "Cobrar",
+                                onClick = onCharge,
+                                icon = Icons.Default.Payments,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
                 if (onPay != null) {
                     Spacer(Modifier.height(6.dp))
@@ -232,9 +385,16 @@ private fun AppointmentCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                if (onCancel != null || onReschedule != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Row {
+                val canNoShow = appt.estado == "confirmada" && onStatus != null
+                if (onCancel != null || onReschedule != null || canNoShow) {
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (canNoShow) {
+                            TextButton(onClick = { onStatus?.invoke("no_asistio") }, contentPadding = PaddingValues(0.dp)) {
+                                Text("No asistió", color = UrbanColors.Muted)
+                            }
+                            Spacer(Modifier.width(16.dp))
+                        }
                         if (onReschedule != null) {
                             TextButton(onClick = onReschedule, contentPadding = PaddingValues(0.dp)) {
                                 Icon(Icons.Default.EditCalendar, null, modifier = Modifier.size(17.dp), tint = UrbanColors.Gold)
