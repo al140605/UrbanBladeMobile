@@ -19,6 +19,15 @@ object UrbanFormat {
         "$day ${d.dayOfMonth} de ${d.month.getDisplayName(TextStyle.FULL, es)}"
     }.getOrDefault(iso)
 
+    /** "2026-09-21" -> "21 sep". */
+    fun dateShort(iso: String): String = runCatching {
+        val d = LocalDate.parse(iso.take(10))
+        "${d.dayOfMonth} ${MONTHS_SHORT[d.monthValue - 1]}"
+    }.getOrDefault(iso)
+
+    // Tabla fija: el nombre abreviado del sistema varía entre versiones de Android ("sep" o "sept").
+    private val MONTHS_SHORT = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
     /** "10:00" o "10:00:00" -> "10:00 AM" (mismo estilo que los horarios del asistente de reserva). */
     fun time(hhmm: String): String = runCatching {
         val t = LocalTime.parse(hhmm.take(5))

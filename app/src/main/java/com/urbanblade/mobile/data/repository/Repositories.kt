@@ -152,8 +152,9 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun systemStatus() = api.systemStatus()
     suspend fun raffles() = api.raffles()
 
-    suspend fun clients(search: String? = null, segment: String? = null): ClientsResponse {
+    suspend fun clients(search: String? = null, segment: String? = null, page: Int = 1): ClientsResponse {
         val query = buildMap {
+            put("page", page.toString())
             if (!search.isNullOrBlank()) put("search", search)
             if (!segment.isNullOrBlank()) put("segment", segment)
         }

@@ -155,11 +155,38 @@ class ClientsViewModel : ViewModel() {
     private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
 
+    private val _hasMore = MutableStateFlow(false); val hasMore = _hasMore.asStateFlow()
+    private val _loadingMore = MutableStateFlow(false); val loadingMore = _loadingMore.asStateFlow()
+    private var page = 1
+    private var lastSearch: String? = null
+    private var lastSegment: String? = null
+
     fun load(search: String? = null, segment: String? = null) = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _clients.value = repo.clients(search, segment) }
+        lastSearch = search; lastSegment = segment
+        try {
+            val response = repo.clients(search, segment, 1)
+            page = 1
+            _clients.value = response
+            _hasMore.value = (response.currentPage ?: 1) < (response.lastPage ?: 1)
+        }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los clientes.") }
         finally { _busy.value = false }
+    }
+
+    /** El servidor entrega 15 clientes por página: esto trae la siguiente y la agrega al final. */
+    fun loadMore() = viewModelScope.launch {
+        if (_loadingMore.value || !_hasMore.value) return@launch
+        _loadingMore.value = true
+        try {
+            val response = repo.clients(lastSearch, lastSegment, page + 1)
+            page += 1
+            val known = _clients.value.data.map { it.id }.toSet()
+            _clients.value = _clients.value.copy(data = _clients.value.data + response.data.filter { it.id !in known })
+            _hasMore.value = (response.currentPage ?: page) < (response.lastPage ?: page)
+        }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar más clientes.") }
+        finally { _loadingMore.value = false }
     }
 
     fun loadDetail(id: String) = viewModelScope.launch {
