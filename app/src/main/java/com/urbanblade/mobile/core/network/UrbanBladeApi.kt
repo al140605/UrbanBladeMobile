@@ -60,6 +60,14 @@ interface UrbanBladeApi {
     @PATCH("orders/{id}/deliver") suspend fun deliverOrder(@Path("id") id: String, @Body body: DeliverOrderRequest): OrderMutationResponse
 
     @GET("payments") suspend fun payments(): PaymentsResponse
+    @GET("payments") suspend fun paymentsForStaff(
+        @Query("page") page: Int = 1,
+        @Query("q") q: String? = null,
+        @Query("metodo_pago") metodoPago: String? = null,
+        @Query("fecha_desde") fechaDesde: String? = null,
+        @Query("fecha_hasta") fechaHasta: String? = null
+    ): PaymentsResponse
+    @GET("payments/{id}/receipt") suspend fun paymentReceipt(@Path("id") id: String): ReceiptResponse
     @GET("payments/pending") suspend fun pendingPayments(): PendingPaymentsResponse
     @POST("payments") suspend fun createPayment(@Body body: CreatePaymentRequest): JsonObject
 

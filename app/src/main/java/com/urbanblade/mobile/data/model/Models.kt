@@ -365,14 +365,40 @@ data class PaymentRow(
     @SerializedName("created_at") val createdAt: String? = null,
     val appointment: PaymentAppointment? = null
 )
-data class PaymentsResponse(val data: List<PaymentRow> = emptyList(), val meta: JsonObject? = null)
+/** Estadísticas globales que el servidor calcula para el personal (no dependen de la página cargada). */
+data class PaymentsStats(
+    @SerializedName("total_hoy") val totalHoy: Double = 0.0,
+    @SerializedName("total_mes") val totalMes: Double = 0.0,
+    val count: Int = 0,
+    val metodos: Map<String, Int> = emptyMap()
+)
+/** `meta` del listado: el personal recibe paginación y estadísticas; el cliente, sus totales. */
+data class PaymentsMeta(
+    @SerializedName("current_page") val currentPage: Int = 1,
+    @SerializedName("last_page") val lastPage: Int = 1,
+    val total: Int = 0,
+    val stats: PaymentsStats? = null,
+    @SerializedName("pending_count") val pendingCount: Int = 0,
+    @SerializedName("total_pagado") val totalPagado: Double = 0.0,
+    @SerializedName("total_citas") val totalCitas: Int = 0
+)
+data class PaymentsResponse(val data: List<PaymentRow> = emptyList(), val meta: PaymentsMeta? = null)
+data class ReceiptData(@SerializedName("payment_id") val paymentId: String? = null, @SerializedName("receipt_url") val receiptUrl: String? = null)
+data class ReceiptResponse(val data: ReceiptData? = null)
+data class PendingAppointment(
+    val id: String? = null,
+    val client: String? = null,
+    val service: String? = null,
+    @SerializedName("service_price") val servicePrice: Double? = null
+)
 data class PendingPaymentRow(
     val id: String,
     val monto: Double = 0.0,
+    @SerializedName("created_at") val createdAt: String? = null,
     @SerializedName("comprobante_url") val comprobanteUrl: String? = null,
     @SerializedName("ocr_texto") val ocrTexto: String? = null,
     @SerializedName("ocr_monto_detectado") val ocrMontoDetectado: Double? = null,
-    val appointment: JsonObject? = null
+    val appointment: PendingAppointment? = null
 )
 /**
  * Cobro manual del personal. `monto` es solo informativo: PaymentService relee el precio del servicio

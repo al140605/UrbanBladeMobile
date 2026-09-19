@@ -279,6 +279,11 @@ private fun OrderCard(order: OrderRow, staff: Boolean, cancel: () -> Unit, deliv
 @Composable
 fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = viewModel()) {
     val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
+    // El personal tiene su propia pantalla (filtros, estadísticas del servidor, revisión de comprobantes).
+    if (staff) {
+        PaymentsStaffScreen(onBack)
+        return
+    }
     val payments by vm.payments.collectAsState()
     val pending by vm.pending.collectAsState()
     val busy by vm.busy.collectAsState()
