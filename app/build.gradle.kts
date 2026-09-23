@@ -28,6 +28,12 @@ val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
 val stagingApiBaseUrl = providers.gradleProperty("STAGING_API_BASE_URL").orNull
     ?: localProperties.getProperty("STAGING_API_BASE_URL")
     ?: "https://d1s2thm3f8g40t.cloudfront.net/api/v1/"
+// URL de la API para debug. Por defecto el emulador (10.0.2.2). En un celular fisico
+// conectado por USB: DEBUG_API_BASE_URL=http://127.0.0.1:8000/api/v1/ en local.properties
+// y ejecutar "adb reverse tcp:8000 tcp:8000" cada vez que conectes el celular.
+val debugApiBaseUrl = providers.gradleProperty("DEBUG_API_BASE_URL").orNull
+    ?: localProperties.getProperty("DEBUG_API_BASE_URL")
+    ?: "http://10.0.2.2:8000/api/v1/"
 
 // Publishable key de Stripe -- es pública por diseño (Stripe la espera embebida
 // en apps cliente), pero igual se inyecta sin hardcodear: debe coincidir con la
@@ -75,7 +81,7 @@ android {
         // con el emulador (10.0.2.2, HTTP -- loopback, no es un secreto); release
         // exige HTTPS real, inyectada igual que GOOGLE_CLIENT_ID (nunca hardcodeada).
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
