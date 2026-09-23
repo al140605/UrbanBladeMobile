@@ -51,6 +51,9 @@ data class ClientInfo(
 
 data class MessageResponse(val message: String? = null)
 
+/** POST /profile/push-token: token de Firebase Cloud Messaging del dispositivo (T142). */
+data class PushTokenRequest(val token: String)
+
 data class ApiList<T>(val data: List<T> = emptyList())
 
 data class ServiceItem(

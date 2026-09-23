@@ -17,6 +17,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.urbanblade.mobile.core.booking.PendingBooking
+import com.urbanblade.mobile.core.push.PushRegistrationEffect
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanBladeBackground
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
@@ -55,7 +56,10 @@ fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
             }
         }
         AuthState.Guest -> GuestNav(authViewModel)
-        is AuthState.Authenticated -> AuthenticatedNav(state.user, authViewModel)
+        is AuthState.Authenticated -> {
+            PushRegistrationEffect(state.user.id)
+            AuthenticatedNav(state.user, authViewModel)
+        }
     }
 }
 

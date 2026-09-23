@@ -92,6 +92,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun deleteService(slug: String) = api.deleteService(slug)
 
     suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
+    suspend fun savePushToken(token: String) = api.savePushToken(PushTokenRequest(token))
 
     suspend fun uploadPaymentReceipt(context: Context, code: String, propina: Double, receiptUri: Uri): UploadPaymentReceiptResponse {
         val comprobante = MediaUploadHelper.uriToPart(context, receiptUri, "comprobante")

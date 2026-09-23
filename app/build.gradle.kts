@@ -6,6 +6,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Notificaciones push (T142): el plugin de Google Services solo se aplica si existe
+// app/google-services.json (se descarga de la consola de Firebase y no se versiona,
+// igual que local.properties). Sin ese archivo la app compila y el push queda apagado.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.isFile) {
@@ -153,6 +160,11 @@ dependencies {
     // esta ronda. Revisar si conviene actualizar cuando el proyecto suba de
     // compileSdk por otro motivo.
     implementation("com.stripe:stripe-android:21.19.0")
+
+    // Notificaciones push con Firebase Cloud Messaging (T142) -- ver core/push/.
+    // BoM 33.7.0: última línea compatible con compileSdk 35 sin subir AGP.
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-messaging")
 
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")

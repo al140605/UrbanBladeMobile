@@ -103,6 +103,7 @@ interface UrbanBladeApi {
     @POST("payments/{id}/approve") suspend fun approvePayment(@Path("id") id: String): MessageResponse
     @POST("payments/{id}/reject") suspend fun rejectPayment(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
     @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse
+    @POST("profile/push-token") suspend fun savePushToken(@Body body: PushTokenRequest): MessageResponse
     @Multipart
     @POST("appointments/{code}/payment/receipt")
     suspend fun uploadPaymentReceipt(
