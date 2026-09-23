@@ -359,17 +359,9 @@ gradle assembleStaging
 
 ### 🖥️ Emulador
 
-```kotlin
-buildTypes {
-    debug {
-        buildConfigField(
-            "String",
-            "API_BASE_URL",
-            "\"http://10.0.2.2:8000/api/v1/\""
-        )
-    }
-}
-```
+La variante `debug` apunta por defecto a `http://10.0.2.2:8000/api/v1/`, que dentro
+del emulador de Android Studio es el `localhost` de tu computadora. Solo necesitas
+tener `barber` arriba (`docker compose up -d` en su carpeta).
 
 ### Google Sign-In nativo
 
@@ -383,40 +375,57 @@ GOOGLE_CLIENT_ID=tu-web-client-id.apps.googleusercontent.com
 
 También puede inyectarse en CI con `-PGOOGLE_CLIENT_ID=...`. No copies
 `GOOGLE_CLIENT_SECRET` a Android: el secreto pertenece exclusivamente al
-backend. Si el inicio de sesión muestra un error de desarrollador, confirma
-en Google Cloud la configuración OAuth para el paquete Android y la huella del
-certificado de firma de la variante que estás probando.
+backend.
+
+Además, en Google Cloud (mismo proyecto que el cliente web) debe existir un
+**ID de cliente de OAuth de tipo Android** con el paquete `com.urbanblade.mobile`
+y la **SHA-1** de tu llave de firma. Cada integrante agrega la suya:
+
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" '-J-Duser.language=en' -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android | Select-String "SHA1"
+```
+
+(`'-J-Duser.language=en'` entre comillas evita un fallo de `keytool` en español;
+también puedes usar Gradle → app → Tasks → android → `signingReport`.)
+Guía completa: `barber/docs/GOOGLE_CLOUD_OAUTH.md`.
+
+| Mensaje en la app | Causa | Solución |
+|---|---|---|
+| "No pudimos abrir Google…" | Falta el cliente OAuth Android o la SHA-1 no coincide | Registrar el cliente Android con tu SHA-1 |
+| "El token de Google no es válido." | `GOOGLE_CLIENT_ID` distinto al cliente web de `barber` | Usar el mismo ID web que `barber/.env` |
+| Se queda cargando; el log dice `failed to connect to /10.0.2.2` | Build `debug` en un celular físico | Ver "Dispositivo físico" |
 
 ### 📱 Dispositivo físico
 
-El celular y la computadora deben estar en la misma Wi-Fi.
+`10.0.2.2` solo existe en el emulador. En un celular físico la variante `debug`
+usa la URL de `DEBUG_API_BASE_URL` (en `local.properties` o `-P`).
 
-En Windows:
+**Por cable USB (recomendado):** no depende de la Wi-Fi ni de la IP de tu equipo.
 
 ```powershell
-ipconfig
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+Add-Content -Path local.properties -Value "DEBUG_API_BASE_URL=http://127.0.0.1:8000/api/v1/"
+& $adb devices                    # el celular debe aparecer como "device"
+& $adb reverse tcp:8000 tcp:8000  # repetir cada vez que conectes el celular
+& $adb reverse --list
 ```
 
-Ejemplo:
+Después: `docker compose up -d` en `barber`, **Sync Gradle**, variante `debug` y ▶ Run.
 
-```text
-IPv4: 192.168.100.11
-```
+**Por Wi-Fi:** celular y computadora en la misma red; toma la IPv4 de `ipconfig` y usa
+`DEBUG_API_BASE_URL=http://TU_IP:8000/api/v1/`. Verifica desde Chrome del celular
+`http://TU_IP:8000/api/v1/services`.
 
-Configura (dentro del mismo bloque `debug { }` de arriba):
+**Contra AWS:** variante `staging` (ver arriba). Es la opción para probar pagos con
+tarjeta, porque el webhook de Stripe solo llega a staging.
 
-```kotlin
-buildConfigField(
-    "String",
-    "API_BASE_URL",
-    "\"http://192.168.100.11:8000/api/v1/\""
-)
-```
+Para ver el error real de la app en el celular:
 
-Y desde Chrome en el celular verifica:
-
-```text
-http://192.168.100.11:8000/api/v1/services
+```powershell
+& $adb logcat -c
+# ...reproduce el error en el celular y luego:
+$appPid = (& $adb shell pidof com.urbanblade.mobile).Trim()
+& $adb logcat -d --pid=$appPid | Select-Object -Last 40
 ```
 
 ### 🚀 Release

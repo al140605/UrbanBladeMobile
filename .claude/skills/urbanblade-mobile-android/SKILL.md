@@ -61,14 +61,24 @@ rompa por accidente:
 
 ## `API_BASE_URL` — dónde vive y qué valor usar
 
-`app/build.gradle.kts` → `defaultConfig.buildConfigField("String", "API_BASE_URL", ...)`.
-- Emulador de Android Studio: `http://10.0.2.2:8000/api/v1/` (así resuelve el
-  `localhost` de la PC anfitriona).
-- Dispositivo físico: la IP LAN real de la máquina que corre `barber` en ese momento —
-  cambia entre redes/personas, no la des por buena sin confirmar con quien la puso.
+`app/build.gradle.kts` → `buildTypes`, un valor por variante (no se edita a mano):
+- `debug`: `DEBUG_API_BASE_URL` (local.properties o `-P`); por defecto
+  `http://10.0.2.2:8000/api/v1/`, que solo funciona en el emulador.
+- Celular físico por USB: `DEBUG_API_BASE_URL=http://127.0.0.1:8000/api/v1/` +
+  `adb reverse tcp:8000 tcp:8000` (se pierde al desconectar el cable). Por Wi-Fi: la IP
+  LAN real de la máquina que corre `barber`, que cambia entre redes y personas.
+- `staging`: CloudFront HTTPS (`STAGING_API_BASE_URL`); única opción para probar pagos
+  con tarjeta, porque el webhook de Stripe solo llega a staging.
+- `release`: `RELEASE_API_BASE_URL`, siempre HTTPS.
 - El backend (`barber`) debe estar arriba en el puerto 8000
   (`docker compose up -d` desde ese repo) antes de que la app pueda conectar,
   independientemente de que la URL esté bien.
+- Síntoma de URL equivocada: `SocketTimeoutException: failed to connect to /10.0.2.2`
+  en `adb logcat --pid=<pid de com.urbanblade.mobile>`. Si el login con Google falla
+  antes de llegar a la API, revisar el cliente OAuth Android y la SHA-1 de quien compila
+  (`barber/docs/GOOGLE_CLOUD_OAUTH.md`).
+- `adb` no está en el PATH en Windows: usar
+  `"$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"`.
 
 ## Antes de correr el build
 
