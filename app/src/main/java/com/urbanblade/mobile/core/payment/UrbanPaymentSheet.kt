@@ -10,6 +10,15 @@ import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.urbanblade.mobile.BuildConfig
 
 /**
+ * true solo si el build trae una publishable key real de Stripe. Sin ella
+ * (valor por defecto "pk_test_PENDIENTE_CONFIGURAR" en app/build.gradle.kts)
+ * el PaymentSheet fallaría al abrirse, así que la pantalla de pago oculta la
+ * opción de tarjeta en lugar de mostrar un error de Stripe al cliente.
+ */
+fun isStripeConfigured(key: String = BuildConfig.STRIPE_PUBLISHABLE_KEY): Boolean =
+    key.startsWith("pk_") && !key.contains("PENDIENTE")
+
+/**
  * Envoltura delgada sobre el PaymentSheet de Stripe: inicializa la
  * publishable key una sola vez y expone una función simple
  * (clientSecret) -> Unit para presentar la hoja de pago. Reusable por el
@@ -23,7 +32,7 @@ fun rememberUrbanPaymentSheet(
     onResult: (PaymentSheetResult) -> Unit
 ): (String) -> Unit {
     val context = LocalContext.current
-    remember { PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    remember { if (isStripeConfigured()) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
     val paymentSheet = rememberPaymentSheet(onResult)
 
     return remember(paymentSheet) {

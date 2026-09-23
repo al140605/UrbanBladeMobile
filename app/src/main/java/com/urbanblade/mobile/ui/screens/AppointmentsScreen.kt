@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.urbanblade.mobile.core.payment.isStripeConfigured
 import com.urbanblade.mobile.core.payment.rememberUrbanPaymentSheet
 import com.urbanblade.mobile.data.model.AppointmentRow
 import com.urbanblade.mobile.data.model.AppointmentStats
@@ -575,6 +576,8 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
     val uploadingReceipt by vm.uploadingReceipt.collectAsState()
     val clientSecret by vm.stripeClientSecret.collectAsState()
     val confirmingPayment by vm.confirmingPayment.collectAsState()
+    val paymentNotice by vm.paymentNotice.collectAsState()
+    val cardAvailable = remember { isStripeConfigured() }
     val response by vm.data.collectAsState()
     val error by vm.error.collectAsState()
     val context = LocalContext.current
@@ -607,8 +610,8 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
                 vm.clearStripeClientSecret()
                 vm.confirmAppointmentPayment(appt.id)
             }
-            is PaymentSheetResult.Canceled -> vm.clearStripeClientSecret()
-            is PaymentSheetResult.Failed -> vm.clearStripeClientSecret()
+            is PaymentSheetResult.Canceled -> vm.onStripeCanceled()
+            is PaymentSheetResult.Failed -> vm.onStripeFailed(result.error.localizedMessage)
         }
     }
 
@@ -698,11 +701,16 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
             when (method) {
                 PaymentMethodChoice.TARJETA -> {
                     Spacer(Modifier.height(16.dp))
+                    if (!cardAvailable) {
+                        UrbanInfoBanner("El pago con tarjeta no está disponible en esta versión de la app. Paga por transferencia o en la barbería.")
+                        Spacer(Modifier.height(10.dp))
+                    }
                     UrbanPrimaryButton(
                         text = "Continuar con tarjeta",
                         onClick = {
                             vm.startStripeCheckout(appt.id, puntos.toIntOrNull() ?: 0, giftCardCode, tipAmount)
                         },
+                        enabled = cardAvailable && !confirmingPayment,
                         loading = checkoutBusy,
                         icon = Icons.Default.CreditCard,
                         modifier = Modifier.fillMaxWidth()
@@ -741,6 +749,8 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
                 Spacer(Modifier.height(8.dp))
                 UrbanInfoBanner("Confirmando tu pago con UrbanBlade…", Icons.Default.HourglassTop)
             }
+
+            paymentNotice?.let { Spacer(Modifier.height(12.dp)); UrbanInfoBanner(it) }
 
             error?.let { Spacer(Modifier.height(12.dp)); UrbanErrorBanner(it) }
             Spacer(Modifier.height(24.dp))

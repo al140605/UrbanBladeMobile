@@ -233,4 +233,90 @@ class AppointmentsViewModelTest {
         assertEquals("La cita ya tiene un pago registrado o en revision.", vm.error.value)
         assertFalse(doneCalled)
     }
+
+    // ---- T144: resultado del PaymentSheet de Stripe (HU-17) ----
+
+    @Test
+    fun `onStripeCanceled limpia el client secret y avisa que no hubo cargo`() = runTest(dispatcher) {
+        whenever(repo.stripeIntent(any())).thenReturn(
+            StripeIntentResponseData(clientSecret = "pi_test_secret", paymentIntentId = "pi_test")
+        )
+        val vm = AppointmentsViewModel(repo)
+        vm.startStripeCheckout("1", 0, null, 0.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        vm.onStripeCanceled()
+
+        assertNull(vm.stripeClientSecret.value)
+        assertNull(vm.error.value)
+        assertTrue(vm.paymentNotice.value!!.contains("No se hizo ningún cargo"))
+    }
+
+    @Test
+    fun `onStripeFailed muestra el motivo de Stripe como error`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.onStripeFailed("Tu tarjeta fue rechazada.")
+
+        assertNull(vm.stripeClientSecret.value)
+        assertNull(vm.paymentNotice.value)
+        assertEquals(
+            "El pago con tarjeta no se completó: Tu tarjeta fue rechazada. Intenta con otra tarjeta o paga por transferencia.",
+            vm.error.value
+        )
+    }
+
+    @Test
+    fun `onStripeFailed sin motivo usa un mensaje generico`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.onStripeFailed("  ")
+
+        assertEquals(
+            "El pago con tarjeta no se completó. Intenta con otra tarjeta o paga por transferencia.",
+            vm.error.value
+        )
+    }
+
+    @Test
+    fun `confirmAppointmentPayment avisa si el webhook aun no confirma el pago`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.confirmAppointmentPayment("1")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.confirmingPayment.value)
+        assertTrue(vm.paymentNotice.value!!.contains("no es necesario pagar de nuevo"))
+    }
+
+    @Test
+    fun `confirmAppointmentPayment no deja aviso cuando el pago ya quedo confirmado`() = runTest(dispatcher) {
+        whenever(repo.appointments(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(
+            AppointmentsResponse(
+                data = listOf(AppointmentRow(id = "1", code = "a", fecha = "2026-10-01", horaInicio = "10:00:00", estado = "confirmada", hasPayment = true))
+            )
+        )
+        val vm = AppointmentsViewModel(repo)
+
+        vm.confirmAppointmentPayment("1")
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.confirmingPayment.value)
+        assertNull(vm.paymentNotice.value)
+    }
+
+    @Test
+    fun `startStripeCheckout limpia un aviso anterior`() = runTest(dispatcher) {
+        whenever(repo.stripeIntent(any())).thenReturn(
+            StripeIntentResponseData(clientSecret = "pi_test_secret", paymentIntentId = "pi_test")
+        )
+        val vm = AppointmentsViewModel(repo)
+        vm.onStripeCanceled()
+
+        vm.startStripeCheckout("1", 0, null, 0.0)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(vm.paymentNotice.value)
+        assertEquals("pi_test_secret", vm.stripeClientSecret.value)
+    }
 }

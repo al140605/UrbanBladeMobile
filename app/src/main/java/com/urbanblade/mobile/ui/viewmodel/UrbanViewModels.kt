@@ -77,9 +77,15 @@ class AppointmentsViewModel @JvmOverloads constructor(
     private val _confirmingPayment = MutableStateFlow(false)
     val confirmingPayment = _confirmingPayment.asStateFlow()
 
+    // Aviso informativo del checkout con tarjeta (cancelación o confirmación
+    // demorada). Separado de _error porque no es un fallo: la cita solo queda
+    // pagada cuando el webhook de barber recibe payment_intent.succeeded.
+    private val _paymentNotice = MutableStateFlow<String?>(null)
+    val paymentNotice = _paymentNotice.asStateFlow()
+
     fun startStripeCheckout(appointmentId: String, puntosCanjeados: Int, codigoGiftCard: String?, propina: Double) =
         viewModelScope.launch {
-            _checkoutBusy.value = true; _error.value = null
+            _checkoutBusy.value = true; _error.value = null; _paymentNotice.value = null
             try {
                 val data = repo.stripeIntent(
                     StripeIntentRequest(appointmentId, puntosCanjeados, codigoGiftCard?.takeIf { it.isNotBlank() }, propina)
@@ -95,9 +101,24 @@ class AppointmentsViewModel @JvmOverloads constructor(
 
     fun clearStripeClientSecret() { _stripeClientSecret.value = null }
 
+    /** El cliente cerró el PaymentSheet sin pagar: Stripe no hizo ningún cargo y la cita sigue pendiente de pago. */
+    fun onStripeCanceled() {
+        _stripeClientSecret.value = null
+        _paymentNotice.value = "Cancelaste el pago con tarjeta. No se hizo ningún cargo y tu cita sigue pendiente de pago."
+    }
+
+    /** Stripe rechazó o no pudo procesar la tarjeta. La cita no se marca como pagada (solo el webhook de barber puede hacerlo). */
+    fun onStripeFailed(reason: String?) {
+        _stripeClientSecret.value = null
+        _paymentNotice.value = null
+        val detail = reason?.trim()?.takeIf { it.isNotEmpty() }?.let { ": $it" } ?: "."
+        _error.value = "El pago con tarjeta no se completó$detail Intenta con otra tarjeta o paga por transferencia."
+    }
+
     /** Reintenta cargar las citas hasta ~10s esperando a que el webhook confirme el pago. */
     fun confirmAppointmentPayment(appointmentId: String) = viewModelScope.launch {
         _confirmingPayment.value = true
+        _paymentNotice.value = null
         repeat(5) {
             delay(2000)
             try {
@@ -106,6 +127,9 @@ class AppointmentsViewModel @JvmOverloads constructor(
                 if (fresh.data.any { it.id == appointmentId && it.hasPayment }) return@launch
             } catch (_: Exception) { /* se reintenta en el próximo ciclo */ }
         }
+        // Stripe ya aceptó el pago pero el webhook aún no llega: avisar para que
+        // el cliente no intente pagar otra vez mientras se confirma.
+        _paymentNotice.value = "Stripe recibió tu pago y UrbanBlade lo está confirmando. Aparecerá como pagado en unos minutos; no es necesario pagar de nuevo."
     }.also { it.invokeOnCompletion { _confirmingPayment.value = false } }
 
     fun uploadPaymentReceipt(context: Context, appointmentCode: String, propina: Double, receiptUri: Uri, onDone: () -> Unit) =
