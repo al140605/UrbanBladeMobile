@@ -127,7 +127,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun profile() = api.profile().user
     suspend fun updateProfile(body: UpdateProfileRequest) = api.updateProfile(body)
     suspend fun products(query: String? = null) = api.products(query).data
-    suspend fun orders() = api.orders()
+    suspend fun orders(page: Int = 1, estado: String? = null, q: String? = null) = api.orders(page, estado, q)
     suspend fun createOrder(body: OrderRequest) = api.createOrder(body)
     suspend fun cancelOrder(id: String) = api.cancelOrder(id)
     suspend fun deliverOrder(id: String, method: String) = api.deliverOrder(id, DeliverOrderRequest(method))
@@ -234,8 +234,9 @@ class UrbanRepository(private val api: UrbanBladeApi) {
         return api.logs(query)
     }
 
-    suspend fun systemUsers(search: String? = null, role: String? = null): SystemUsersResponse {
+    suspend fun systemUsers(search: String? = null, role: String? = null, page: Int = 1): SystemUsersResponse {
         val query = buildMap {
+            put("page", page.toString())
             if (!search.isNullOrBlank()) put("q", search)
             if (!role.isNullOrBlank()) put("role", role)
         }

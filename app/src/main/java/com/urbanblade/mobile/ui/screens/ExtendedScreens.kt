@@ -200,83 +200,6 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewModel()) {
-    val data by vm.data.collectAsState()
-    val busy by vm.busy.collectAsState()
-    val error by vm.error.collectAsState()
-    val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
-    LaunchedEffect(Unit) { vm.load() }
-
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("Pedidos", onBack) {
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
-            }
-        }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item { UrbanPageHeader("Pedidos", if (staff) "Bandeja de pedidos y entregas." else "Sigue el estado de tus compras.", "Tienda") }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            items(data.data, key = { it.id }) { order ->
-                OrderCard(order, staff, cancel = { vm.cancel(order.id) }, deliver = { vm.deliver(order.id, it) })
-            }
-            if (data.data.isEmpty() && !busy) item { UrbanEmptyState("Aún no hay pedidos", "Tus compras aparecerán aquí.", Icons.Default.ShoppingBag) }
-        }
-    }
-}
-
-@Composable
-private fun OrderCard(order: OrderRow, staff: Boolean, cancel: () -> Unit, deliver: (String) -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text(order.folio ?: "Pedido", style = MaterialTheme.typography.titleMedium)
-                order.createdAt?.let { Text(it.take(10), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-            }
-            UrbanStatusPill(order.estado)
-        }
-        Spacer(Modifier.height(14.dp))
-        order.client?.name?.let { UrbanKeyValue("Cliente", it) }
-        order.items.take(4).forEach { line ->
-            UrbanKeyValue("${line.cantidad} × ${line.nombre ?: "Producto"}", "\$${"%.2f".format(line.subtotal)}")
-        }
-        if (order.items.size > 4) Text("+${order.items.size - 4} productos", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = UrbanColors.Line)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Total", style = MaterialTheme.typography.labelLarge)
-            Text("\$${"%.2f".format(order.total)} MXN", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
-        }
-        if (order.estado == "pendiente") {
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = cancel, modifier = Modifier.weight(1f)) { Text("Cancelar") }
-                if (staff) {
-                    Box(Modifier.weight(1f)) {
-                        Button(onClick = { menu = true }, modifier = Modifier.fillMaxWidth()) { Text("Entregar") }
-                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                            listOf("efectivo", "tarjeta", "transferencia").forEach { method ->
-                                DropdownMenuItem(
-                                    text = { Text(method.replaceFirstChar { it.uppercase() }) },
-                                    onClick = { menu = false; deliver(method) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = viewModel()) {
     val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
     // El personal tiene su propia pantalla (filtros, estadísticas del servidor, revisión de comprobantes).
@@ -557,7 +480,7 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
                 title = "Más herramientas",
                 subtitle = "Tu panel cambia según responsabilidades y permisos.",
                 eyebrow = "Módulos",
-                trailing = { UrbanAvatar(user.name) }
+                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )
         }
         item {

@@ -87,7 +87,8 @@ data class SlotsResponse(val slots: List<SlotItem> = emptyList())
 data class AppointmentBarber(
     val id: String? = null,
     val slug: String? = null,
-    val user: BarberUser? = null
+    val user: BarberUser? = null,
+    @SerializedName("foto_url") val fotoUrl: String? = null
 )
 
 data class AppointmentService(
@@ -97,7 +98,7 @@ data class AppointmentService(
     @SerializedName("duracion_min") val duracionMin: Int? = null
 )
 
-data class AppointmentClientUser(val name: String? = null)
+data class AppointmentClientUser(val name: String? = null, @SerializedName("avatar_url") val avatarUrl: String? = null)
 data class AppointmentClientRef(val id: String? = null, val user: AppointmentClientUser? = null)
 data class AppointmentRow(
     val id: String,
@@ -166,6 +167,7 @@ data class BarberAdminItem(
     val especialidades: String? = null,
     val descripcion: String? = null,
     val foto: String? = null,
+    @SerializedName("foto_url") val fotoUrl: String? = null,
     val activo: Boolean = true,
     @SerializedName("comision_pct") val comisionPct: Double = 0.0,
     val user: BarberAdminUser = BarberAdminUser()
@@ -344,8 +346,19 @@ data class OrderRow(
     val items: List<OrderLine> = emptyList(),
     val client: OrderClient? = null
 )
-data class OrderMeta(val current_page: Int? = null, val last_page: Int? = null, val total: Int? = null)
-data class OrdersResponse(val data: List<OrderRow> = emptyList(), val meta: JsonObject? = null)
+/** Totales que el servidor calcula solo para el personal. */
+data class OrderStats(
+    val pendientes: Int = 0,
+    val entregados: Int = 0,
+    @SerializedName("por_cobrar") val porCobrar: Double = 0.0
+)
+data class OrderMeta(
+    @SerializedName("current_page") val currentPage: Int = 1,
+    @SerializedName("last_page") val lastPage: Int = 1,
+    val total: Int = 0,
+    val stats: OrderStats? = null
+)
+data class OrdersResponse(val data: List<OrderRow> = emptyList(), val meta: OrderMeta? = null)
 data class OrderMutationResponse(val message: String? = null, val data: OrderRow? = null)
 
 data class PaymentAppointment(
@@ -542,6 +555,7 @@ data class ClientDetail(
     val id: String,
     val slug: String? = null,
     val name: String? = null,
+    @SerializedName("avatar_url") val avatarUrl: String? = null,
     val email: String? = null,
     val telefono: String? = null,
     val segment: String? = null,
@@ -655,9 +669,14 @@ data class SystemUserRow(
     @SerializedName("created_at") val createdAt: String? = null,
     val roles: List<String> = emptyList()
 )
+data class UsersMeta(
+    @SerializedName("current_page") val currentPage: Int = 1,
+    @SerializedName("last_page") val lastPage: Int = 1,
+    val total: Int = 0
+)
 data class SystemUsersResponse(
     val data: List<SystemUserRow> = emptyList(),
-    val meta: JsonObject? = null,
+    val meta: UsersMeta? = null,
     val roles: List<String> = emptyList()
 )
 data class SystemUserMutationResponse(val message: String? = null)

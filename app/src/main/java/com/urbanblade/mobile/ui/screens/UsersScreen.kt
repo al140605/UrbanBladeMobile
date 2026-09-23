@@ -1,43 +1,97 @@
 package com.urbanblade.mobile.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.SystemUserRow
-import com.urbanblade.mobile.ui.components.*
+import com.urbanblade.mobile.ui.components.UrbanAvatar
+import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanEmptyState
+import com.urbanblade.mobile.ui.components.UrbanErrorBanner
+import com.urbanblade.mobile.ui.components.UrbanFieldLabel
+import com.urbanblade.mobile.ui.components.UrbanFormat
+import com.urbanblade.mobile.ui.components.UrbanInfoBanner
+import com.urbanblade.mobile.ui.components.UrbanOutlineButton
+import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
+import com.urbanblade.mobile.ui.components.UrbanRolePill
+import com.urbanblade.mobile.ui.components.UrbanSectionTitle
+import com.urbanblade.mobile.ui.components.UrbanSkeletonList
+import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.theme.UrbanColors
-import com.urbanblade.mobile.ui.viewmodel.SystemUsersViewModel
+import com.urbanblade.mobile.ui.viewmodel.UsersAdminViewModel
+import com.urbanblade.mobile.ui.viewmodel.passwordProblem
+import kotlinx.coroutines.delay
 
+/** Cuentas de acceso al sistema (solo administrador): buscar, filtrar por rol, crear, editar y eliminar. */
 @Composable
-fun UsersScreen(onBack: () -> Unit, vm: SystemUsersViewModel = viewModel()) {
-    val response by vm.users.collectAsState()
-    val busy by vm.busy.collectAsState()
-    val saving by vm.saving.collectAsState()
-    val message by vm.message.collectAsState()
-    val error by vm.error.collectAsState()
+fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdminViewModel = viewModel()) {
+    val state by vm.state.collectAsState()
+    var creating by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<SystemUserRow?>(null) }
+    var deleting by remember { mutableStateOf<SystemUserRow?>(null) }
 
-    var search by remember { mutableStateOf("") }
-    var roleFilter by remember { mutableStateOf<String?>(null) }
-    var showCreate by remember { mutableStateOf(false) }
-    var showEdit by remember { mutableStateOf<SystemUserRow?>(null) }
-    var showDeleteConfirm by remember { mutableStateOf<SystemUserRow?>(null) }
-
-    LaunchedEffect(roleFilter) { vm.load(search.takeIf { it.isNotBlank() }, roleFilter) }
+    // Busca al escribir, con una pausa corta para no consultar en cada letra.
+    LaunchedEffect(state.query) {
+        if (state.query.isNotBlank()) delay(350)
+        vm.load()
+    }
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = Color.Transparent,
         topBar = {
             UrbanTopBar("Usuarios", onBack) {
-                IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
+                IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
+                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             }
         }
     ) { padding ->
@@ -46,141 +100,193 @@ fun UsersScreen(onBack: () -> Unit, vm: SystemUsersViewModel = viewModel()) {
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-
             item {
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text("Buscar por nombre o correo…") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.load(search.takeIf { it.isNotBlank() }, roleFilter) }),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
+                UrbanTextField(
+                    value = state.query,
+                    onValueChange = vm::setQuery,
+                    label = "Buscar por nombre o correo",
+                    leadingIcon = Icons.Default.Search,
+                    imeAction = ImeAction.Search,
+                    onImeAction = { vm.load() },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
-
-            if (response.roles.isNotEmpty()) {
+            if (state.roles.isNotEmpty()) {
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = roleFilter == null, onClick = { roleFilter = null }, label = { Text("Todos") })
-                        response.roles.forEach { role ->
-                            FilterChip(selected = roleFilter == role, onClick = { roleFilter = if (roleFilter == role) null else role }, label = { Text(role.replaceFirstChar { it.uppercase() }) })
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = state.roleFilter == null, onClick = { vm.setRoleFilter(null) }, label = { Text("Todos") })
+                        state.roles.forEach { role ->
+                            FilterChip(
+                                selected = state.roleFilter == role,
+                                onClick = { vm.setRoleFilter(if (state.roleFilter == role) null else role) },
+                                label = { Text(role.replace('_', ' ').replaceFirstChar { it.uppercase() }) }
+                            )
                         }
                     }
                 }
             }
+            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+            if (!creating && editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
+            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
 
-            if (response.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin usuarios", "No hay usuarios que coincidan con la búsqueda.", Icons.Default.Person) }
+            if (!state.loading && state.items.isEmpty() && state.error == null) {
+                item { UrbanEmptyState("Sin usuarios", "No hay cuentas que coincidan con la búsqueda.", Icons.Default.ManageAccounts) }
             }
-
-            items(response.data) { user ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        UrbanAvatar(user.name, Modifier.size(44.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(user.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(user.email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                user.roles.forEach { UrbanRolePill(it) }
-                            }
-                        }
-                        IconButton(onClick = { showEdit = user }) { Icon(Icons.Default.Edit, "Editar") }
-                        IconButton(onClick = { showDeleteConfirm = user }) { Icon(Icons.Default.Delete, "Eliminar", tint = UrbanColors.Danger) }
-                    }
+            if (state.items.isNotEmpty()) {
+                item { UrbanSectionTitle("Cuentas", UrbanFormat.count(state.total, "usuario", "usuarios")) }
+            }
+            items(state.items, key = { it.id }) { user ->
+                UserCard(
+                    user = user,
+                    isSelf = user.id == currentUserId,
+                    onEdit = { vm.clearMessages(); editing = user },
+                    onDelete = { vm.clearMessages(); deleting = user }
+                )
+            }
+            if (state.hasMore) {
+                item {
+                    UrbanOutlineButton(
+                        text = if (state.loadingMore) "Cargando…" else "Cargar más usuarios",
+                        onClick = { vm.loadMore() },
+                        icon = Icons.Default.ExpandMore,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
     }
 
-    if (showCreate) {
-        UserFormDialog(
-            title = "Nuevo usuario",
-            initial = null,
-            roles = response.roles,
-            saving = saving,
-            onDismiss = { showCreate = false },
-            onSubmit = { name, email, password, role -> vm.create(name, email, password.orEmpty(), role) { showCreate = false } }
+    if (creating || editing != null) {
+        UserFormSheet(
+            user = editing,
+            roles = state.roles,
+            saving = state.saving,
+            error = state.error,
+            onDismiss = { creating = false; editing = null },
+            onSubmit = { name, email, password, role ->
+                val target = editing
+                if (target == null) {
+                    vm.create(name, email, password.orEmpty(), role) { creating = false }
+                } else {
+                    vm.update(target.id, name, email, password, role) { editing = null }
+                }
+            }
         )
     }
 
-    showEdit?.let { user ->
-        UserFormDialog(
-            title = "Editar usuario",
-            initial = user,
-            roles = response.roles,
-            saving = saving,
-            onDismiss = { showEdit = null },
-            onSubmit = { name, email, password, role -> vm.update(user.id, name, email, password, role) { showEdit = null } }
-        )
-    }
-
-    showDeleteConfirm?.let { user ->
+    deleting?.let { user ->
         AlertDialog(
-            onDismissRequest = { showDeleteConfirm = null },
-            title = { Text("¿Eliminar a ${user.name}?") },
-            text = { Text("Esta acción no se puede deshacer.") },
-            confirmButton = {
-                TextButton(onClick = { vm.delete(user.id); showDeleteConfirm = null }) { Text("Sí, eliminar") }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("Cancelar") } }
+            onDismissRequest = { deleting = null },
+            containerColor = UrbanColors.Card,
+            title = { Text("Eliminar usuario") },
+            text = { Text("¿Eliminar la cuenta de ${user.name} (${user.email})? Perderá el acceso al sistema.", color = UrbanColors.Muted) },
+            confirmButton = { TextButton(onClick = { vm.delete(user.id); deleting = null }) { Text("Sí, eliminar", color = UrbanColors.Danger) } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Volver") } }
         )
     }
 }
 
 @Composable
-private fun UserFormDialog(
-    title: String,
-    initial: SystemUserRow?,
-    roles: List<String>,
-    saving: Boolean,
-    onDismiss: () -> Unit,
-    onSubmit: (String, String, String?, String) -> Unit
-) {
-    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
-    var email by remember { mutableStateOf(initial?.email.orEmpty()) }
-    var password by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf(initial?.roles?.firstOrNull() ?: roles.firstOrNull().orEmpty()) }
-
-    val isEdit = initial != null
-    val valid = name.isNotBlank() && email.isNotBlank() && role.isNotBlank() && (isEdit || password.length >= 8)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            UrbanFormScroll(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(email, { email = it }, label = { Text("Correo") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(
-                    password, { password = it },
-                    label = { Text(if (isEdit) "Nueva contraseña (opcional)" else "Contraseña") },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
+private fun UserCard(user: SystemUserRow, isSelf: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            UrbanAvatar(user.name, Modifier.size(44.dp), imageUrl = user.avatarUrl)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    user.name + if (isSelf) " (tú)" else "",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = UrbanColors.Ink,
+                    maxLines = 1
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    roles.forEach { r ->
-                        FilterChip(selected = role == r, onClick = { role = r }, label = { Text(r.replaceFirstChar { it.uppercase() }) })
+                Text(user.email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1)
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    user.roles.forEach { UrbanRolePill(it) }
+                    if (user.emailVerifiedAt == null) {
+                        Text("Sin verificar", style = MaterialTheme.typography.labelSmall, color = UrbanColors.Warning)
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving && valid,
-                onClick = { onSubmit(name, email, password.takeIf { it.isNotBlank() }, role) }
-            ) { Text(if (saving) "Guardando…" else "Guardar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar") }
+            // Nadie debe poder borrar su propia cuenta desde aquí; el servidor también lo impide.
+            if (!isSelf) IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar", tint = UrbanColors.Danger) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UserFormSheet(
+    user: SystemUserRow?,
+    roles: List<String>,
+    saving: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSubmit: (name: String, email: String, password: String?, role: String) -> Unit
+) {
+    val isEdit = user != null
+    var name by remember { mutableStateOf(user?.name.orEmpty()) }
+    var email by remember { mutableStateOf(user?.email.orEmpty()) }
+    var password by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf(user?.roles?.firstOrNull() ?: roles.firstOrNull().orEmpty()) }
+    var submitted by remember { mutableStateOf(false) }
+
+    val nameError = if (submitted && name.isBlank()) "Escribe el nombre." else null
+    val emailError = if (submitted && !email.contains("@")) "Escribe un correo válido." else null
+    val passwordError = if (submitted) passwordProblem(password, confirmation, required = !isEdit) else null
+    val roleError = if (submitted && role.isBlank()) "Elige un rol." else null
+
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(if (isEdit) "Editar usuario" else "Nuevo usuario", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+            UrbanTextField(
+                value = name, onValueChange = { name = it }, label = "Nombre", error = nameError,
+                capitalization = KeyboardCapitalization.Words, modifier = Modifier.fillMaxWidth()
+            )
+            UrbanTextField(
+                value = email, onValueChange = { email = it }, label = "Correo", error = emailError,
+                keyboardType = KeyboardType.Email, modifier = Modifier.fillMaxWidth()
+            )
+            Column {
+                UrbanFieldLabel("Rol")
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    roles.forEach { r ->
+                        FilterChip(selected = role == r, onClick = { role = r }, label = { Text(r.replace('_', ' ').replaceFirstChar { it.uppercase() }) })
+                    }
+                }
+                roleError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
+            }
+            UrbanTextField(
+                value = password, onValueChange = { password = it },
+                label = if (isEdit) "Nueva contraseña (opcional)" else "Contraseña",
+                error = passwordError, isPassword = true, modifier = Modifier.fillMaxWidth()
+            )
+            if (password.isNotEmpty() || !isEdit) {
+                UrbanTextField(
+                    value = confirmation, onValueChange = { confirmation = it }, label = "Confirmar contraseña",
+                    isPassword = true, imeAction = ImeAction.Done, modifier = Modifier.fillMaxWidth()
+                )
+            }
+            error?.let { UrbanErrorBanner(it) }
+            UrbanPrimaryButton(
+                text = if (isEdit) "Guardar cambios" else "Crear usuario",
+                onClick = {
+                    submitted = true
+                    val valid = name.isNotBlank() && email.contains("@") && role.isNotBlank() &&
+                        passwordProblem(password, confirmation, required = !isEdit) == null
+                    if (valid) onSubmit(name.trim(), email.trim().lowercase(), password.takeIf { it.isNotEmpty() }, role)
+                },
+                loading = saving,
+                icon = Icons.Default.Save,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }

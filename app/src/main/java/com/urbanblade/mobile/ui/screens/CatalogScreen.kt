@@ -157,7 +157,7 @@ private fun BarberCard(barber: BarberItem, onBook: () -> Unit) {
                     modifier = Modifier.size(58.dp).clip(CircleShape)
                 )
             } else {
-                UrbanAvatar(barber.user?.name ?: "Barbero", Modifier.size(58.dp))
+                UrbanAvatar(barber.user?.name ?: "Barbero", Modifier.size(58.dp), imageUrl = barber.foto)
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {

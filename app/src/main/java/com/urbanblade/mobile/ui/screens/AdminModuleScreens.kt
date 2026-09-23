@@ -2,6 +2,8 @@ package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -219,6 +221,18 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
 
+    var filter by remember { mutableStateOf("todos") }
+    val shown = remember(raffles, filter) {
+        raffles.data.filter {
+            when (filter) {
+                "vigentes" -> !it.isClaimed && !it.isExpired
+                "reclamados" -> it.isClaimed
+                "caducados" -> it.isExpired && !it.isClaimed
+                else -> true
+            }
+        }
+    }
+
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = { UrbanTopBar("Sorteos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
@@ -239,22 +253,37 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
                 }
             }
 
-            if (raffles.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin sorteos", "Todavía no hay resultados de sorteos.", Icons.Default.CardGiftcard) }
+            if (raffles.data.isNotEmpty()) {
+                item {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("todos" to "Todos", "vigentes" to "Vigentes", "reclamados" to "Reclamados", "caducados" to "Caducados").forEach { (key, label) ->
+                            FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text(label) })
+                        }
+                    }
+                }
+            }
+            if (shown.isEmpty() && !busy) {
+                item {
+                    UrbanEmptyState(
+                        if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
+                        if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado.",
+                        Icons.Default.CardGiftcard
+                    )
+                }
             }
 
-            items(raffles.data) { raffle ->
+            items(shown) { raffle ->
                 UrbanCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                         Column(Modifier.weight(1f)) {
-                            Text(raffle.premio ?: "—", style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(raffle.client?.user?.name ?: "Cliente sin nombre", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                            Text(raffle.client?.user?.name ?: "Cliente sin nombre", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(raffle.premio ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                         Spacer(Modifier.width(8.dp))
                         SimpleStatusPill(
                             when {
                                 raffle.isClaimed -> "reclamado"
-                                raffle.isExpired -> "vencido"
+                                raffle.isExpired -> "caducado"
                                 else -> "vigente"
                             }
                         )
@@ -262,7 +291,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
                     Spacer(Modifier.height(8.dp))
                     UrbanKeyValue("Mes", raffle.mes ?: "—")
                     UrbanKeyValue("Nivel ganador", raffle.nivelGanador ?: "—", Modifier.padding(top = 6.dp))
-                    UrbanKeyValue("Vence", raffle.venceEn ?: "—", Modifier.padding(top = 6.dp))
+                    UrbanKeyValue("Vence", raffle.venceEn?.let { UrbanFormat.date(it) } ?: "—", Modifier.padding(top = 6.dp))
                 }
             }
         }

@@ -94,7 +94,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
                 items(clients.data) { client ->
                     UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            UrbanAvatar(client.name ?: "?", Modifier.size(48.dp))
+                            UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(client.name ?: "Sin nombre", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -222,7 +222,7 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
                 item {
                     UrbanPremiumCard(Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            UrbanAvatar(d.name ?: "?", Modifier.size(56.dp))
+                            UrbanAvatar(d.name ?: "?", Modifier.size(56.dp), imageUrl = d.avatarUrl)
                             Column(Modifier.weight(1f)) {
                                 Text(d.name ?: "Sin nombre", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
                                 Text(

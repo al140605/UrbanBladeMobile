@@ -78,7 +78,7 @@ private fun WorkPost(
                     modifier = Modifier.size(36.dp).clip(CircleShape)
                 )
             } else {
-                UrbanAvatar(work.barber?.name ?: "?", Modifier.size(36.dp))
+                UrbanAvatar(work.barber?.name ?: "?", Modifier.size(36.dp), imageUrl = work.barber?.foto)
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {

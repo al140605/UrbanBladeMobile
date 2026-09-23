@@ -101,7 +101,7 @@ fun ClientHomeScreen(
                 title = firstName,
                 subtitle = "¿Listo para tu próximo corte?",
                 eyebrow = greeting.uppercase(),
-                trailing = { UrbanAvatar(user.name) }
+                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )
         }
 
@@ -201,7 +201,7 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
         HorizontalDivider(color = UrbanColors.Line)
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp))
+            UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp), imageUrl = next.barber?.fotoUrl)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(

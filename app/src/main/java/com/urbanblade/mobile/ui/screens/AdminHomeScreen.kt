@@ -105,7 +105,7 @@ fun AdminHomeScreen(
                 title = "Hola, $firstName",
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "ADMINISTRADOR",
-                trailing = { UrbanAvatar(user.name) }
+                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )
         }
 

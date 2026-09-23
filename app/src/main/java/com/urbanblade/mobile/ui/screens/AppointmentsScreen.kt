@@ -343,8 +343,13 @@ private fun AppointmentCard(
                     Spacer(Modifier.width(8.dp))
                     UrbanStatusPill(appt.estado)
                 }
-                clientName?.let { Text("Cliente: $it", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink) }
-                Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                clientName?.let { PersonLine("Cliente: $it", it, appt.client?.user?.avatarUrl, UrbanColors.Ink) }
+                PersonLine(
+                    label = appt.barber?.user?.name ?: "Barbero por confirmar",
+                    name = appt.barber?.user?.name ?: "Barbero",
+                    imageUrl = appt.barber?.fotoUrl,
+                    color = UrbanColors.Muted
+                )
                 Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 appt.notas?.takeIf { it.isNotBlank() }?.let {
                     Text("“$it”", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
@@ -740,5 +745,14 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
             error?.let { Spacer(Modifier.height(12.dp)); UrbanErrorBanner(it) }
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+/** Una persona de la cita (cliente o barbero) con su foto, o iniciales si no tiene. */
+@Composable
+private fun PersonLine(label: String, name: String, imageUrl: String?, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        UrbanAvatar(name, Modifier.size(26.dp), imageUrl = imageUrl)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = color)
     }
 }

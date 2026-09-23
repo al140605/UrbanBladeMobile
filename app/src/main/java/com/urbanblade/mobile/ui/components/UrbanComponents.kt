@@ -305,7 +305,7 @@ fun UrbanRolePill(role: String) {
 }
 
 @Composable
-fun UrbanAvatar(name: String, modifier: Modifier = Modifier) {
+fun UrbanAvatar(name: String, modifier: Modifier = Modifier, imageUrl: String? = null) {
     val initials = name.trim().split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
     Box(
         modifier
@@ -316,6 +316,15 @@ fun UrbanAvatar(name: String, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(initials.ifBlank { "UB" }, style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+        // La foto va encima de las iniciales: mientras carga (o si falla) se siguen viendo las iniciales.
+        if (!imageUrl.isNullOrBlank()) {
+            coil.compose.AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 

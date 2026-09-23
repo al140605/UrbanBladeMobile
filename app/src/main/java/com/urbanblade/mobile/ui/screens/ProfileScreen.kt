@@ -79,7 +79,7 @@ fun ProfileScreen(user: AuthUser, onLogout: () -> Unit, vm: ProfileViewModel = v
         item {
             UrbanPremiumCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    UrbanAvatar(name, Modifier.size(64.dp))
+                    UrbanAvatar(name, Modifier.size(64.dp), imageUrl = user.avatarUrl)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(name, style = MaterialTheme.typography.titleLarge)

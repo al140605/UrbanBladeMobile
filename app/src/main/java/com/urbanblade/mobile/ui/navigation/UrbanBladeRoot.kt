@@ -264,7 +264,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("campaigns") { CampaignsScreen(onBack = { nav.popBackStack() }) }
                 composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
                 composable("reviews") { ReviewsScreen(onBack = { nav.popBackStack() }) }
-                composable("users") { UsersScreen(onBack = { nav.popBackStack() }) }
+                composable("users") { UsersScreen(currentUserId = user.id, onBack = { nav.popBackStack() }) }
                 composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
                 composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
             }

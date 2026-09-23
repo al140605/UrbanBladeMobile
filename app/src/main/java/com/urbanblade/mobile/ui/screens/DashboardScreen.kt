@@ -60,7 +60,7 @@ fun DashboardScreen(
                 title = "Hola, $firstName",
                 subtitle = "Tu jornada UrbanBlade está lista.",
                 eyebrow = primaryRole.ifBlank { "UrbanBlade" },
-                trailing = { UrbanAvatar(user.name) }
+                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )
         }
 

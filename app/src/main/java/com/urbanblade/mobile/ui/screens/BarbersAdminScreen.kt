@@ -164,7 +164,7 @@ fun BarbersAdminScreen(onBack: () -> Unit, vm: BarbersAdminViewModel = viewModel
 private fun BarberAdminCard(barber: BarberAdminItem, onOpen: () -> Unit, onToggle: () -> Unit) {
     UrbanCard(Modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            UrbanAvatar(barber.user.name)
+            UrbanAvatar(barber.user.name, imageUrl = barber.fotoUrl)
             Column(Modifier.weight(1f)) {
                 Text(
                     barber.user.name,

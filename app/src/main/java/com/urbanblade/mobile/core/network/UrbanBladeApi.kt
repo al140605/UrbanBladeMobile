@@ -54,7 +54,11 @@ interface UrbanBladeApi {
     @GET("gift-cards/{code}") suspend fun giftCardByCode(@Path("code") code: String): GiftCardLookupResponse
     @GET("referrals/mine") suspend fun myReferrals(): ReferralInfoResponse
 
-    @GET("orders") suspend fun orders(): OrdersResponse
+    @GET("orders") suspend fun orders(
+        @Query("page") page: Int = 1,
+        @Query("estado") estado: String? = null,
+        @Query("q") q: String? = null
+    ): OrdersResponse
     @POST("orders") suspend fun createOrder(@Body body: OrderRequest): OrderMutationResponse
     @PATCH("orders/{id}/cancel") suspend fun cancelOrder(@Path("id") id: String): OrderMutationResponse
     @PATCH("orders/{id}/deliver") suspend fun deliverOrder(@Path("id") id: String, @Body body: DeliverOrderRequest): OrderMutationResponse
