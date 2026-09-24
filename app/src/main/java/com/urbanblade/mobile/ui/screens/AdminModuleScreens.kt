@@ -211,9 +211,14 @@ private fun ServiceRow(title: String, icon: androidx.compose.ui.graphics.vector.
     UrbanAttentionRow(
         icon = icon,
         text = title,
-        subtitle = service.error ?: service.latencyMs?.let { "Responde en $it ms" } ?: "Sin medición de latencia",
+        subtitle = when {
+            service.status.equals(SERVICE_NOT_USED, ignoreCase = true) -> "Este entorno no lo necesita (caché y cola sin Redis)."
+            else -> service.error ?: service.latencyMs?.let { "Responde en $it ms" } ?: "Sin medición de latencia"
+        },
         tone = serviceTone(service.status),
-        trailing = { SimpleStatusPill(service.status ?: "desconocido") }
+        trailing = {
+            SimpleStatusPill(if (service.status.equals(SERVICE_NOT_USED, ignoreCase = true)) "no se usa" else service.status ?: "desconocido")
+        }
     )
 }
 

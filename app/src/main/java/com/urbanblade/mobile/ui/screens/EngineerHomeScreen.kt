@@ -142,11 +142,14 @@ fun EngineerHomeScreen(
 
         item { UrbanSectionTitle("Actividad de hoy", "Movimientos registrados en la bitácora.") }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                UrbanMetricCard("Hoy", logs.stats.hoy.toString(), Icons.Default.Today, Modifier.weight(1f))
-                UrbanMetricCard("Creados", logs.stats.creates.toString(), Icons.Default.AddCircle, Modifier.weight(1f))
-                UrbanMetricCard("Eliminados", logs.stats.deletes.toString(), Icons.Default.RemoveCircle, Modifier.weight(1f))
-            }
+            UrbanStatStrip(
+                listOf(
+                    Triple("Hoy", logs.stats.hoy.toString(), UrbanColors.Gold),
+                    Triple("Creados", logs.stats.creates.toString(), UrbanColors.Success),
+                    Triple("Eliminados", logs.stats.deletes.toString(), UrbanColors.Danger)
+                ),
+                onClick = { onNavigate("logs") }
+            )
         }
 
         item { UrbanSectionTitle("Tus módulos", "Análisis del negocio y del servidor.") }
@@ -169,6 +172,7 @@ fun EngineerHomeScreen(
 
 internal fun serviceTone(status: String?): Color = when {
     status.equals("up", ignoreCase = true) -> UrbanColors.Success
+    status.equals(SERVICE_NOT_USED, ignoreCase = true) -> UrbanColors.Muted
     status.equals("down", ignoreCase = true) -> UrbanColors.Danger
     else -> UrbanColors.Warning
 }

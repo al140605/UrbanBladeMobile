@@ -220,6 +220,27 @@ fun UrbanMascotState(
     }
 }
 
+/**
+ * Tres o cuatro números en una sola tarjeta, cada uno en su columna. Reemplaza a varias
+ * UrbanMetricCard angostas en fila, que partían las etiquetas a media palabra.
+ */
+@Composable
+fun UrbanStatStrip(stats: List<Triple<String, String, Color>>, onClick: (() -> Unit)? = null) {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(Modifier.fillMaxWidth()) {
+            stats.forEachIndexed { index, (label, value, tone) ->
+                if (index > 0) {
+                    Box(Modifier.width(1.dp).height(44.dp).background(UrbanColors.Line).align(Alignment.CenterVertically))
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(value, style = MaterialTheme.typography.titleLarge, color = tone, maxLines = 1)
+                    Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
 /** Mosaico de acceso a un módulo, como las acciones rápidas del inicio del administrador. */
 @Composable
 fun UrbanModuleTile(

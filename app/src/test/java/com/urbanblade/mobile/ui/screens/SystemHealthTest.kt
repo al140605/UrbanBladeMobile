@@ -44,6 +44,13 @@ class SystemHealthTest {
     }
 
     @Test
+    fun `un servicio que el entorno no usa no cuenta como problema`() {
+        val health = systemHealth(status(redis = SystemServiceStatus("no_usado", null)))
+        assertEquals(HealthLevel.OK, health.level)
+        assertTrue(health.issues.isEmpty())
+    }
+
+    @Test
     fun `latencia alta o estado desconocido tambien se revisan`() {
         val slow = systemHealth(status(redis = SystemServiceStatus("up", 1500)))
         assertEquals("Redis (caché, sesiones y colas) responde lento", slow.issues.single().title)

@@ -45,7 +45,11 @@ fun systemHealth(status: SystemStatusResponse): SystemHealth {
     return SystemHealth(level, headline, issues)
 }
 
+/** El backend lo manda cuando nada de la configuración usa ese servicio (p. ej. Redis en staging). */
+const val SERVICE_NOT_USED = "no_usado"
+
 private fun service(name: String, s: SystemServiceStatus): HealthIssue? = when {
+    s.status.equals(SERVICE_NOT_USED, ignoreCase = true) -> null
     s.status.equals("down", ignoreCase = true) -> HealthIssue(HealthLevel.DOWN, "$name no responde", s.error)
     !s.status.equals("up", ignoreCase = true) -> HealthIssue(HealthLevel.WARNING, "No se pudo verificar ${name.replaceFirstChar { it.lowercase() }}", s.error)
     (s.latencyMs ?: 0) > SLOW_LATENCY_MS -> HealthIssue(HealthLevel.WARNING, "$name responde lento", "${s.latencyMs} ms")
