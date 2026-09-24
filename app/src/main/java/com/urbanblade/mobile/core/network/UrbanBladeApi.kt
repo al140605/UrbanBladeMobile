@@ -102,6 +102,10 @@ interface UrbanBladeApi {
     @DELETE("services/manage/{slug}") suspend fun deleteService(@Path("slug") slug: String): JsonObject
     @POST("payments/{id}/approve") suspend fun approvePayment(@Path("id") id: String): MessageResponse
     @POST("payments/{id}/reject") suspend fun rejectPayment(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
+    // Anticipos: comprobantes de "pagar ahora" por transferencia y depósitos anti-no-show (misma forma que payments/pending).
+    @GET("deposits/pending") suspend fun pendingDeposits(): PendingPaymentsResponse
+    @POST("deposits/{id}/approve") suspend fun approveDeposit(@Path("id") id: String): MessageResponse
+    @POST("deposits/{id}/reject") suspend fun rejectDeposit(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
     @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse
     @GET("payments/transfer-info") suspend fun transferInfo(): TransferInfoResponse
     @POST("appointments/{code}/deposit/stripe-intent")

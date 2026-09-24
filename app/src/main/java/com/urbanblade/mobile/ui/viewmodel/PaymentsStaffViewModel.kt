@@ -33,6 +33,11 @@ data class PaymentsStaffState(
     val page: Int = 1,
     val lastPage: Int = 1,
     val pending: List<PendingPaymentRow> = emptyList(),
+    /**
+     * Anticipos por revisar: transferencias de "pagar ahora" al reservar y depósitos anti-no-show.
+     * Antes ninguna pantalla (ni la web) los mostraba y se quedaban en revisión para siempre.
+     */
+    val deposits: List<PendingPaymentRow> = emptyList(),
     val query: String = "",
     val method: PaymentMethodFilter = PaymentMethodFilter.Todos,
     val range: ReportRange = ReportRange.All,
@@ -62,6 +67,7 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                 val history = repo.paymentsForStaff(1, s.query.trim().ifEmpty { null }, s.method.param, desde, hasta)
                 // Si falla la lista de pendientes no se oculta el historial: se conserva la anterior.
                 val pending = runCatching { repo.pendingPayments().data }.getOrDefault(_state.value.pending)
+                val deposits = runCatching { repo.pendingDeposits().data }.getOrDefault(_state.value.deposits)
                 val meta = history.meta
                 _state.value = _state.value.copy(
                     items = history.data,
@@ -70,6 +76,7 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                     page = meta?.currentPage ?: 1,
                     lastPage = meta?.lastPage ?: 1,
                     pending = pending,
+                    deposits = deposits,
                     loading = false
                 )
             } catch (e: Exception) {
@@ -133,6 +140,25 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
         }
         review(id, "No se pudo rechazar el comprobante.", "Comprobante rechazado. El cliente puede subir uno nuevo.", onDone) {
             repo.rejectPayment(id, trimmed.take(REJECT_REASON_MAX))
+        }
+    }
+
+    /** Aprueba un anticipo: queda verificado y se descuenta al cobrar; la cita sigue esperando al barbero. */
+    fun approveDeposit(id: String) = review(
+        id,
+        "No se pudo aprobar el anticipo.",
+        "Anticipo aprobado. Se descontará al cobrar la cita."
+    ) { repo.approveDeposit(id) }
+
+    /** Rechaza un anticipo con motivo; el cliente puede subir otro comprobante. */
+    fun rejectDeposit(id: String, reason: String, onDone: () -> Unit) {
+        val trimmed = reason.trim()
+        if (trimmed.isEmpty()) {
+            _state.value = _state.value.copy(error = "Escribe el motivo del rechazo.")
+            return
+        }
+        review(id, "No se pudo rechazar el anticipo.", "Anticipo rechazado. El cliente puede subir otro comprobante.", onDone) {
+            repo.rejectDeposit(id, trimmed.take(REJECT_REASON_MAX))
         }
     }
 

@@ -3,6 +3,16 @@ package com.urbanblade.mobile.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material3.HorizontalDivider
+import com.urbanblade.mobile.ui.components.UrbanAttentionRow
+import com.urbanblade.mobile.ui.components.UrbanHeroCard
+import com.urbanblade.mobile.ui.components.UrbanHeroLabel
+import com.urbanblade.mobile.ui.components.UrbanHeroStat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,7 +64,6 @@ import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
-import com.urbanblade.mobile.ui.components.UrbanHBars
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
@@ -74,13 +83,24 @@ import com.urbanblade.mobile.ui.viewmodel.REJECT_REASON_MAX
 private fun money(value: Double) = "$" + String.format(java.util.Locale("es", "MX"), "%,.2f", value)
 private fun moneyShort(value: Double) = "$" + String.format(java.util.Locale("es", "MX"), "%,.0f", value)
 
+/** Motivos frecuentes de rechazo: en mostrador se elige uno en vez de escribirlo cada vez. */
+internal val REJECT_QUICK_REASONS = listOf(
+    "El monto no coincide con el servicio",
+    "La imagen no se lee bien",
+    "No es un comprobante de transferencia",
+    "No vemos el depósito en la cuenta"
+)
+
+/** Comprobante en revisión: pago completo de la cita o anticipo ("pagar ahora" / depósito). */
+private data class ReviewTarget(val row: PendingPaymentRow, val deposit: Boolean)
+
 /** Pagos del negocio: totales del servidor, comprobantes por revisar e historial filtrable. */
 @Composable
 fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
-    var approving by remember { mutableStateOf<PendingPaymentRow?>(null) }
-    var rejecting by remember { mutableStateOf<PendingPaymentRow?>(null) }
+    var approving by remember { mutableStateOf<ReviewTarget?>(null) }
+    var rejecting by remember { mutableStateOf<ReviewTarget?>(null) }
 
     LaunchedEffect(Unit) { vm.load() }
 
@@ -97,55 +117,67 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { UrbanPageHeader(title = "Cobros y pagos", subtitle = "Verifica comprobantes y revisa el historial.", eyebrow = "OPERACIÓN") }
+            item {
+                val toReview = state.pending.size + state.deposits.size
+                val pendingLabel = UrbanFormat.count(toReview, "comprobante requiere tu revisión", "comprobantes requieren tu revisión")
+                UrbanPageHeader(
+                    title = "Cobros y pagos",
+                    subtitle = if (toReview > 0) pendingLabel else "Todo al día. Consulta el historial cuando lo necesites.",
+                    eyebrow = "OPERACIÓN"
+                )
+            }
             if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (rejecting == null) state.error?.let { item { UrbanErrorBanner(it) } }
 
             item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Cobrado hoy", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
-                            Text(moneyShort(state.stats.totalHoy), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text("Este mes", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
-                            Text(moneyShort(state.stats.totalMes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                        }
-                    }
+                UrbanHeroCard {
+                    UrbanHeroLabel("Cobrado hoy")
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        UrbanFormat.count(state.stats.count, "pago registrado", "pagos registrados") + " en total",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = UrbanColors.Muted
+                    Text(moneyShort(state.stats.totalHoy), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                    Spacer(Modifier.height(14.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        UrbanHeroStat("Este mes", moneyShort(state.stats.totalMes), Icons.Default.Payments, Modifier.weight(1f))
+                        UrbanHeroStat("Pagos", state.stats.count.toString(), Icons.Default.ReceiptLong, Modifier.weight(1f))
+                    }
+                }
+            }
+            if (state.pending.isNotEmpty()) {
+                item {
+                    val pendingAmount = state.pending.sumOf { it.monto }
+                    UrbanSectionTitle(
+                        "Por revisar ahora",
+                        "${UrbanFormat.count(state.pending.size, "comprobante pendiente", "comprobantes pendientes")} · ${money(pendingAmount)}"
                     )
                 }
-            }
-            if (state.stats.metodos.values.any { it > 0 }) {
-                item {
-                    val methods = state.stats.metodos.entries.filter { it.value > 0 }.sortedByDescending { it.value }
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        UrbanSectionTitle("Pagos por método")
-                        Spacer(Modifier.height(12.dp))
-                        UrbanHBars(
-                            labels = methods.map { it.key.replaceFirstChar { c -> c.uppercase() } },
-                            values = methods.map { it.value.toDouble() },
-                            format = { it.toInt().toString() }
-                        )
-                    }
-                }
-            }
-
-            if (state.pending.isNotEmpty()) {
-                item { UrbanSectionTitle("Por revisar", UrbanFormat.count(state.pending.size, "transferencia pendiente", "transferencias pendientes")) }
                 items(state.pending, key = { it.id }) { payment ->
                     PendingCard(
                         payment = payment,
+                        deposit = false,
                         busy = state.busyPaymentId == payment.id,
                         onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
-                        onApprove = { approving = payment },
-                        onReject = { vm.clearMessages(); rejecting = payment }
+                        onApprove = { approving = ReviewTarget(payment, false) },
+                        onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, false) }
+                    )
+                }
+            }
+            if (state.deposits.isNotEmpty()) {
+                item {
+                    UrbanSectionTitle(
+                        "Anticipos por revisar",
+                        "${UrbanFormat.count(state.deposits.size, "cliente pagó", "clientes pagaron")} al reservar · ${money(state.deposits.sumOf { it.monto })}"
+                    )
+                }
+                items(state.deposits, key = { "d-" + it.id }) { payment ->
+                    PendingCard(
+                        payment = payment,
+                        deposit = true,
+                        busy = state.busyPaymentId == payment.id,
+                        onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
+                        onApprove = { approving = ReviewTarget(payment, true) },
+                        onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, true) }
                     )
                 }
             }
@@ -196,39 +228,54 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
         }
     }
 
-    approving?.let { payment ->
+    approving?.let { target ->
+        val payment = target.row
         AlertDialog(
             onDismissRequest = { approving = null },
             containerColor = UrbanColors.Card,
-            title = { Text("Aprobar comprobante") },
+            title = { Text(if (target.deposit) "Aprobar anticipo" else "Aprobar comprobante") },
             text = {
                 Text(
-                    "¿Confirmas que recibiste ${money(payment.monto)}${payment.appointment?.client?.let { " de $it" } ?: ""}? La cita quedará completada.",
+                    "¿Confirmas que recibiste ${money(payment.monto)}${payment.appointment?.client?.let { " de $it" } ?: ""}? " +
+                        if (target.deposit) "Se descontará al cobrar; la cita sigue esperando que el barbero la confirme." else "La cita quedará completada.",
                     color = UrbanColors.Muted
                 )
             },
-            confirmButton = { TextButton(onClick = { vm.approve(payment.id); approving = null }) { Text("Sí, aprobar") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (target.deposit) vm.approveDeposit(payment.id) else vm.approve(payment.id)
+                    approving = null
+                }) { Text("Sí, aprobar") }
+            },
             dismissButton = { TextButton(onClick = { approving = null }) { Text("Volver") } }
         )
     }
 
-    rejecting?.let { payment ->
+    rejecting?.let { target ->
+        val payment = target.row
         RejectDialog(
             payment = payment,
             busy = state.busyPaymentId == payment.id,
             error = state.error,
             onDismiss = { rejecting = null },
-            onConfirm = { reason -> vm.reject(payment.id, reason) { rejecting = null } }
+            onConfirm = { reason ->
+                if (target.deposit) vm.rejectDeposit(payment.id, reason) { rejecting = null }
+                else vm.reject(payment.id, reason) { rejecting = null }
+            }
         )
     }
 }
 
 @Composable
-private fun PendingCard(payment: PendingPaymentRow, busy: Boolean, onReceipt: () -> Unit, onApprove: () -> Unit, onReject: () -> Unit) {
+private fun PendingCard(payment: PendingPaymentRow, deposit: Boolean, busy: Boolean, onReceipt: () -> Unit, onApprove: () -> Unit, onReject: () -> Unit) {
     val price = payment.appointment?.servicePrice
     val check = compareTransfer(payment.monto, price)
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Text("Transferencia", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(if (deposit) "ANTICIPO AL RESERVAR" else "TRANSFERENCIA", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+            SimpleStatusPill("por revisar", UrbanColors.Warning)
+        }
+        Spacer(Modifier.height(4.dp))
         Text(money(payment.monto), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
         Text(
             listOfNotNull(payment.appointment?.client, payment.appointment?.service).joinToString(" · ").ifEmpty { "Cita sin datos" },
@@ -239,9 +286,9 @@ private fun PendingCard(payment: PendingPaymentRow, busy: Boolean, onReceipt: ()
 
         Spacer(Modifier.height(10.dp))
         when (check) {
-            TransferCheck.Match -> Text("Coincide con el precio de lista (${money(price ?: 0.0)}).", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Success)
+            TransferCheck.Match -> Text("Monto confirmado: coincide con el servicio (${money(price ?: 0.0)}).", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Success)
             TransferCheck.Differs -> Text(
-                "Difiere del precio de lista (${money(price ?: 0.0)}). Puede deberse a un descuento; confírmalo en el comprobante.",
+                "Revisa el comprobante: difiere del precio de lista (${money(price ?: 0.0)}). Puede incluir un descuento.",
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Warning
             )
@@ -269,29 +316,33 @@ private fun PendingCard(payment: PendingPaymentRow, busy: Boolean, onReceipt: ()
 
 @Composable
 private fun PaymentCard(payment: PaymentRow, onReceipt: () -> Unit) {
-    UrbanCard(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = UrbanColors.Ink
-                )
-                payment.appointment?.let { a ->
-                    Text(listOfNotNull(a.service, a.client, a.barber).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
-                }
-                Text(formatWhen(payment.createdAt), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
-            }
+    val metodo = payment.metodoPago?.lowercase()
+    UrbanAttentionRow(
+        icon = when (metodo) {
+            "tarjeta" -> Icons.Default.CreditCard
+            "transferencia" -> Icons.Default.AccountBalance
+            "efectivo" -> Icons.Default.Payments
+            else -> Icons.Default.Savings
+        },
+        text = payment.appointment?.let { a -> listOfNotNull(a.client, a.service).joinToString(" · ") }?.ifBlank { null }
+            ?: payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago",
+        subtitle = listOfNotNull(
+            payment.metodoPago?.replaceFirstChar { it.uppercase() },
+            payment.appointment?.barber,
+            formatWhen(payment.createdAt),
+            payment.propina.takeIf { it > 0 }?.let { "+${moneyShort(it)} propina" }
+        ).joinToString(" · "),
+        tone = UrbanColors.Gold,
+        trailing = {
             Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-                Text(money(payment.monto + payment.propina), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Gold)
-                if (payment.propina > 0) Text("+${moneyShort(payment.propina)} propina", style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+                Text(money(payment.monto + payment.propina), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Gold)
+                IconButton(onClick = onReceipt) { Icon(Icons.Default.Receipt, "Ver comprobante", tint = UrbanColors.Muted) }
             }
-            IconButton(onClick = onReceipt) { Icon(Icons.Default.Payments, "Ver comprobante", tint = UrbanColors.Muted) }
         }
-    }
+    )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RejectDialog(payment: PendingPaymentRow, busy: Boolean, error: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var reason by remember { mutableStateOf("") }
@@ -306,6 +357,11 @@ private fun RejectDialog(payment: PendingPaymentRow, busy: Boolean, error: Strin
                     color = UrbanColors.Muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    REJECT_QUICK_REASONS.forEach { quick ->
+                        FilterChip(selected = reason == quick, onClick = { reason = quick }, label = { Text(quick) })
+                    }
+                }
                 UrbanTextField(
                     value = reason,
                     onValueChange = { reason = it.take(REJECT_REASON_MAX) },

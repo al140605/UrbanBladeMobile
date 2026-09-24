@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.ExpandMore
@@ -51,6 +52,7 @@ import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
+import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
@@ -198,6 +200,14 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { UrbanPageHeader(title = "Lista de espera", subtitle = "Clientes que quieren un horario que ya estaba lleno.", eyebrow = "OPERACIÓN") }
+            // En barber el personal no gestiona la lista: el aviso sale solo al liberarse un horario y solo el
+            // cliente puede salirse. Se explica aquí para que recepción no busque botones que no existen.
+            item {
+                UrbanInfoBanner(
+                    "Cuando se cancela una cita, UrbanBlade avisa a todos los anotados para ese barbero, servicio y día; el primero que reserve se queda el horario. Si el cliente llama, puedes reservarle desde la agenda.",
+                    Icons.Default.NotificationsActive
+                )
+            }
             item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WaitlistFilter.entries.forEach { f ->

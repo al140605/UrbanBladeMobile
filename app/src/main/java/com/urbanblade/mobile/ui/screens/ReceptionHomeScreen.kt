@@ -91,12 +91,13 @@ fun ReceptionHomeScreen(
                 item { UrbanSectionTitle("Requiere tu atención", if (attention) "Lo que conviene resolver primero." else null) }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // pending_payments de barber = citas de hoy ya terminadas que no tienen cobro registrado.
                         if (board.pendingPayments > 0) UrbanAttentionRow(
                             Icons.Default.Payments,
-                            UrbanFormat.count(board.pendingPayments, "pago por verificar", "pagos por verificar"),
-                            "Comprobantes de transferencia en espera.",
+                            UrbanFormat.count(board.pendingPayments, "cita terminada sin cobrar", "citas terminadas sin cobrar"),
+                            "Cóbralas desde la agenda antes del corte de caja.",
                             UrbanColors.Danger,
-                            onClick = { onNavigate("payments") }
+                            onClick = { onNavigate("appointments") }
                         )
                         if (board.pendingOrders > 0) UrbanAttentionRow(
                             Icons.Default.ShoppingBag,
@@ -112,7 +113,7 @@ fun ReceptionHomeScreen(
                             UrbanColors.Warning,
                             onClick = { onNavigate("inventory") }
                         )
-                        if (!attention) UrbanInfoBanner("Todo al día: no hay pagos, pedidos ni inventario por atender.", Icons.Default.CheckCircle)
+                        if (!attention) UrbanInfoBanner("Todo al día: no hay cobros, pedidos ni inventario por atender.", Icons.Default.CheckCircle)
                     }
                 }
 

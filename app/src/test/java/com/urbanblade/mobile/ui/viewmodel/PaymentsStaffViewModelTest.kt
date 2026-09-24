@@ -45,6 +45,7 @@ class PaymentsStaffViewModelTest {
         runBlocking {
             whenever(repo.paymentsForStaff(any(), anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(firstPage())
             whenever(repo.pendingPayments()).thenReturn(PendingPaymentsResponse(listOf(PendingPaymentRow(id = "p1", monto = 180.0))))
+            whenever(repo.pendingDeposits()).thenReturn(PendingPaymentsResponse(listOf(PendingPaymentRow(id = "d1", monto = 450.0))))
         }
     }
 
@@ -108,6 +109,53 @@ class PaymentsStaffViewModelTest {
         assertTrue(done)
         assertEquals("Comprobante rechazado. El cliente puede subir uno nuevo.", vm.state.value.notice)
         assertNull(vm.state.value.busyPaymentId)
+    }
+
+    @Test
+    fun `carga tambien los anticipos por revisar`() = runTest(dispatcher) {
+        val vm = PaymentsStaffViewModel(repo)
+        vm.load()
+        advanceUntilIdle()
+
+        assertEquals(listOf("d1"), vm.state.value.deposits.map { it.id })
+        assertEquals(listOf("p1"), vm.state.value.pending.map { it.id })
+    }
+
+    @Test
+    fun `si fallan los anticipos el historial se muestra igual`() = runTest(dispatcher) {
+        whenever(repo.pendingDeposits()).thenThrow(RuntimeException("sin red"))
+        val vm = PaymentsStaffViewModel(repo)
+        vm.load()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.deposits.isEmpty())
+        assertEquals(1, vm.state.value.items.size)
+        assertNull(vm.state.value.error)
+    }
+
+    @Test
+    fun `aprobar un anticipo usa su endpoint y lo explica`() = runTest(dispatcher) {
+        whenever(repo.approveDeposit(any())).thenReturn(MessageResponse("ok"))
+        val vm = PaymentsStaffViewModel(repo)
+
+        vm.approveDeposit("d1")
+        advanceUntilIdle()
+
+        verify(repo).approveDeposit("d1")
+        verify(repo, never()).approvePayment(any())
+        assertEquals("Anticipo aprobado. Se descontará al cobrar la cita.", vm.state.value.notice)
+    }
+
+    @Test
+    fun `rechazar un anticipo exige motivo`() = runTest(dispatcher) {
+        val vm = PaymentsStaffViewModel(repo)
+        var closed = false
+        vm.rejectDeposit("d1", "   ") { closed = true }
+        advanceUntilIdle()
+
+        assertEquals("Escribe el motivo del rechazo.", vm.state.value.error)
+        assertFalse(closed)
+        verify(repo, never()).rejectDeposit(any(), any())
     }
 
     @Test
