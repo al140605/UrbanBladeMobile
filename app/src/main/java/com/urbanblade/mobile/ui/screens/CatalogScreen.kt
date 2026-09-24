@@ -30,6 +30,7 @@ fun CatalogScreen(
     isGuest: Boolean = false,
     onBook: (serviceId: String?, barberId: String?) -> Unit,
     onOpenStore: (() -> Unit)? = null,
+    onOpenInspiration: (() -> Unit)? = null,
     onLogin: (() -> Unit)? = null,
     vm: CatalogViewModel = viewModel()
 ) {
@@ -87,6 +88,17 @@ fun CatalogScreen(
                     onClick = { onBook(null, null) },
                     icon = Icons.Default.CalendarMonth,
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        if (!isGuest && onOpenInspiration != null) {
+            item {
+                UrbanAttentionRow(
+                    Icons.Default.Groups,
+                    "Muro de Inspiración",
+                    "¿No sabes qué corte hacerte? Mira los últimos trabajos del equipo.",
+                    UrbanColors.Gold,
+                    onClick = onOpenInspiration
                 )
             }
         }

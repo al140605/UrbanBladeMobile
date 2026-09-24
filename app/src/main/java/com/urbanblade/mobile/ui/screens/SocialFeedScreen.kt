@@ -1,7 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -14,46 +14,61 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.urbanblade.mobile.data.model.SocialMedia
 import com.urbanblade.mobile.data.model.SocialWork
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.SocialFeedViewModel
 
+/**
+ * Muro de Inspiración (así se llama en la web): los últimos trabajos de los barberos, con foto
+ * grande. [onBookBarber] solo llega para quien puede reservar: de la foto que le gustó a la
+ * reserva con ese barbero en un toque.
+ */
 @Composable
-fun SocialFeedScreen(onBack: () -> Unit, vm: SocialFeedViewModel = viewModel()) {
+fun SocialFeedScreen(
+    onBack: () -> Unit,
+    onBookBarber: ((String) -> Unit)? = null,
+    vm: SocialFeedViewModel = viewModel()
+) {
     val feed by vm.feed.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Muro social", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            urbanLoadingItem(busy, feed.data.isEmpty())
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            if (feed.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin publicaciones todavía", "Los trabajos que suban los barberos aparecerán aquí.", Icons.Default.PhotoLibrary) }
+    UrbanModuleScreen(
+        eyebrow = "URBANBLADE",
+        title = "Muro de Inspiración",
+        subtitle = "Los últimos trabajos publicados por nuestros barberos.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        when {
+            busy && feed.data.isEmpty() -> item { UrbanSkeletonList(2) }
+            error != null && feed.data.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No se pudo cargar el muro", error, "Reintentar") { vm.load() }
             }
-
-            items(feed.data, key = { it.id }) { work ->
-                WorkPost(
-                    work = work,
-                    onReact = { vm.toggleReaction(work.id) },
-                    onSave = { vm.toggleSave(work.id) },
-                    onComment = { text, onDone -> vm.comment(work.id, text, onDone) }
-                )
+            feed.data.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "Todavía no hay trabajos publicados", "Los nuevos estilos del equipo aparecerán aquí.")
+            }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                items(feed.data, key = { it.id }) { work ->
+                    WorkPost(
+                        work = work,
+                        onReact = { vm.toggleReaction(work.id) },
+                        onSave = { vm.toggleSave(work.id) },
+                        onComment = { text, onDone -> vm.comment(work.id, text, onDone) },
+                        onBook = work.barber?.id?.takeIf { onBookBarber != null }?.let { id -> { onBookBarber?.invoke(id) } }
+                    )
+                }
             }
         }
     }
@@ -64,128 +79,143 @@ private fun WorkPost(
     work: SocialWork,
     onReact: () -> Unit,
     onSave: () -> Unit,
-    onComment: (String, () -> Unit) -> Unit
+    onComment: (String, () -> Unit) -> Unit,
+    onBook: (() -> Unit)?
 ) {
     var commentText by remember { mutableStateOf("") }
+    val barberName = work.barber?.name ?: "Barbero"
 
-    UrbanCard(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (work.barber?.foto != null) {
-                AsyncImage(
-                    model = work.barber.foto,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
-                )
-            } else {
-                UrbanAvatar(work.barber?.name ?: "?", Modifier.size(36.dp), imageUrl = work.barber?.foto)
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = UrbanColors.Card,
+        border = androidx.compose.foundation.BorderStroke(1.dp, UrbanColors.Line),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (work.barber?.foto != null) {
+                    AsyncImage(
+                        model = work.barber.foto,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(40.dp).clip(CircleShape)
+                    )
+                } else {
+                    UrbanAvatar(barberName, Modifier.size(40.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(barberName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    work.title?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
             }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(work.barber?.name ?: "Barbero", style = MaterialTheme.typography.titleSmall)
-                work.workDate?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-            }
-        }
 
-        Spacer(Modifier.height(10.dp))
-        work.title?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
-        work.description?.takeIf { it.isNotBlank() }?.let {
-            Spacer(Modifier.height(4.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-        }
-
-        if (work.media.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(work.media) { media ->
-                    Box(Modifier.size(140.dp).clip(RoundedCornerShape(12.dp))) {
-                        AsyncImage(
-                            model = media.url,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        if (media.type == "video") {
-                            Icon(
-                                Icons.Default.PlayCircle,
-                                null,
-                                tint = androidx.compose.ui.graphics.Color.White,
-                                modifier = Modifier.align(Alignment.Center).size(32.dp)
-                            )
+            // Foto grande y cuadrada, como en la web: es lo que inspira. Las demás, en miniatura debajo.
+            MainMedia(work.media.firstOrNull(), work.title)
+            if (work.media.size > 1) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(work.media.drop(1)) { media ->
+                        Box(Modifier.size(64.dp).clip(RoundedCornerShape(10.dp))) {
+                            AsyncImage(model = media.url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                            if (media.type == "video") {
+                                Icon(Icons.Default.PlayCircle, null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.align(Alignment.Center))
+                            }
                         }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconRow(
-                icon = if (work.isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                count = work.reactionsCount,
-                tint = if (work.isReacted) UrbanColors.Danger else UrbanColors.Muted,
-                description = if (work.isReacted) "Quitar me gusta" else "Me gusta",
-                onClick = onReact
-            )
-            // Solo informativo (el campo de comentario está debajo): antes era un botón que no hacía nada.
-            IconRow(icon = Icons.Default.ChatBubbleOutline, count = work.commentsCount, tint = UrbanColors.Muted, description = "Comentarios", onClick = null)
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = onSave) {
-                Icon(
-                    if (work.isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    "Guardar",
-                    tint = if (work.isSaved) UrbanColors.Gold else UrbanColors.Muted
-                )
-            }
-        }
-
-        if (work.comments.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                work.comments.forEach { c ->
-                    Row {
-                        Text(c.user?.name ?: "Usuario", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Gold)
-                        Spacer(Modifier.width(6.dp))
-                        Text(c.comment ?: "", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onReact) {
+                        Icon(
+                            if (work.isReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            if (work.isReacted) "Quitar me gusta" else "Me gusta",
+                            tint = if (work.isReacted) UrbanColors.Gold else UrbanColors.Muted
+                        )
+                    }
+                    Text(work.reactionsCount.toString(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                    Spacer(Modifier.width(14.dp))
+                    Icon(Icons.Default.ChatBubbleOutline, "Comentarios", tint = UrbanColors.Muted)
+                    Spacer(Modifier.width(6.dp))
+                    Text(work.commentsCount.toString(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = onSave) {
+                        Icon(
+                            if (work.isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            if (work.isSaved) "Quitar de guardados" else "Guardar",
+                            tint = if (work.isSaved) UrbanColors.Gold else UrbanColors.Muted
+                        )
                     }
                 }
-            }
-        }
 
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = commentText,
-                onValueChange = { commentText = it },
-                placeholder = { Text("Escribe un comentario…") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium
-            )
-            Spacer(Modifier.width(8.dp))
-            IconButton(
-                onClick = { onComment(commentText) { commentText = "" } },
-                enabled = commentText.isNotBlank()
-            ) { Icon(Icons.Default.Send, "Enviar") }
+                work.description?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                if (onBook != null) {
+                    UrbanPrimaryButton(
+                        text = "Reservar con ${barberName.substringBefore(' ')}",
+                        onClick = onBook,
+                        icon = Icons.Default.CalendarMonth,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                if (work.comments.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        work.comments.forEach { c ->
+                            Row {
+                                Text(c.user?.name ?: "Usuario", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Gold)
+                                Spacer(Modifier.width(6.dp))
+                                Text(c.comment ?: "", style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = { commentText = it },
+                        placeholder = { Text("Escribe un comentario…") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { onComment(commentText) { commentText = "" } },
+                        enabled = commentText.isNotBlank()
+                    ) { Icon(Icons.Default.Send, "Enviar comentario", tint = UrbanColors.Gold) }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun IconRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    count: Int,
-    tint: androidx.compose.ui.graphics.Color,
-    description: String,
-    onClick: (() -> Unit)?
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(8.dp))) {
-        if (onClick != null) {
-            // Área táctil estándar de 48 dp (antes 28 dp) y descripción para lectores de pantalla.
-            IconButton(onClick = onClick) { Icon(icon, description, tint = tint) }
+private fun MainMedia(media: SocialMedia?, title: String?) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .background(UrbanColors.CardAlt),
+        contentAlignment = Alignment.Center
+    ) {
+        if (media?.url != null) {
+            AsyncImage(model = media.url, contentDescription = title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            if (media.type == "video") {
+                Icon(Icons.Default.PlayCircle, "Video", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(56.dp))
+            }
         } else {
-            Icon(icon, description, tint = tint, modifier = Modifier.padding(horizontal = 12.dp))
+            Icon(Icons.Default.Image, "Sin imagen", tint = UrbanColors.Muted, modifier = Modifier.size(40.dp))
         }
-        Text(count.toString(), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
     }
 }

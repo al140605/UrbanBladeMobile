@@ -219,7 +219,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("catalog") {
                     CatalogScreen(
                         onBook = { serviceId, barberId -> nav.navigate(bookingRoute(serviceId, barberId)) },
-                        onOpenStore = { nav.navigate("store") }
+                        onOpenStore = { nav.navigate("store") },
+                        onOpenInspiration = { nav.navigate("social") }
                     )
                 }
                 composable("wallet") { WalletScreen(onBack = { nav.popBackStack() }) }
@@ -232,7 +233,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("profile") { ProfileScreen(user = user, onLogout = { authViewModel.logout() }) }
 
                 composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
-                composable("social") { SocialFeedScreen(onBack = { nav.popBackStack() }) }
+                composable("social") {
+                    SocialFeedScreen(
+                        onBack = { nav.popBackStack() },
+                        // Solo el cliente reserva desde el muro; el personal lo ve como galería.
+                        onBookBarber = if (isClient) { barberId -> nav.navigate(bookingRoute(null, barberId)) } else null
+                    )
+                }
                 composable("clients") {
                     ClientsListScreen(
                         user = user,

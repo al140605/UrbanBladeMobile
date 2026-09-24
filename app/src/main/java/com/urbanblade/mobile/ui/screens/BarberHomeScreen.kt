@@ -123,7 +123,7 @@ fun BarberHomeScreen(
                     Triple("Mi agenda", "Confirma e inicia tus citas", Icons.Default.CalendarMonth),
                     Triple("Portafolio", "Muestra tus mejores cortes", Icons.Default.PhotoLibrary),
                     Triple("Mi horario", "Días y horas que atiendes", Icons.Default.Schedule),
-                    Triple("Muro social", "Trabajos de la comunidad", Icons.Default.Groups),
+                    Triple("Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups),
                 ),
                 routes = listOf("barber_agenda", "barber_portfolio", "barber_schedule", "social"),
                 onNavigate = onNavigate

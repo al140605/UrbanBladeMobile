@@ -224,6 +224,15 @@ fun ClientHomeScreen(
                 }
             }
         }
+        item {
+            UrbanAttentionRow(
+                Icons.Default.Groups,
+                "Muro de Inspiración",
+                "Mira los últimos cortes del equipo y reserva con quien te guste.",
+                UrbanColors.Gold,
+                onClick = { onNavigate("social") }
+            )
+        }
         item { UrbanSectionTitle("Tu cuenta", "Pagos, pedidos y ayuda.") }
         item {
             UrbanModuleGrid(
@@ -231,9 +240,8 @@ fun ClientHomeScreen(
                     Triple("Mis pagos", "Historial y comprobantes", Icons.Default.ReceiptLong),
                     Triple("Mis pedidos", "Compras de la tienda", Icons.Default.ShoppingBag),
                     Triple("Bladebot", "Resuelve dudas al momento", Icons.Default.SmartToy),
-                    Triple("Muro social", "Trabajos de los barberos", Icons.Default.Groups),
                 ),
-                routes = listOf("payments", "orders", "chatbot", "social"),
+                routes = listOf("payments", "orders", "chatbot"),
                 onNavigate = onNavigate
             )
         }
