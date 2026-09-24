@@ -1,6 +1,8 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -83,6 +85,8 @@ private fun WorkPost(
     onBook: (() -> Unit)?
 ) {
     var commentText by remember { mutableStateOf("") }
+    // El campo de comentario se abre al tocar el ícono: abierto en cada publicación alargaba mucho el muro.
+    var commenting by remember { mutableStateOf(false) }
     val barberName = work.barber?.name ?: "Barbero"
 
     Surface(
@@ -111,7 +115,7 @@ private fun WorkPost(
             }
 
             // Foto grande y cuadrada, como en la web: es lo que inspira. Las demás, en miniatura debajo.
-            MainMedia(work.media.firstOrNull(), work.title)
+            MainMedia(work.media.firstOrNull(), work.title, onDoubleTap = { if (!work.isReacted) onReact() })
             if (work.media.size > 1) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
@@ -139,8 +143,13 @@ private fun WorkPost(
                     }
                     Text(work.reactionsCount.toString(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
                     Spacer(Modifier.width(14.dp))
-                    Icon(Icons.Default.ChatBubbleOutline, "Comentarios", tint = UrbanColors.Muted)
-                    Spacer(Modifier.width(6.dp))
+                    IconButton(onClick = { commenting = !commenting }) {
+                        Icon(
+                            Icons.Default.ChatBubbleOutline,
+                            if (commenting) "Cerrar comentario" else "Comentar",
+                            tint = if (commenting) UrbanColors.Gold else UrbanColors.Muted
+                        )
+                    }
                     Text(work.commentsCount.toString(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = onSave) {
@@ -159,7 +168,9 @@ private fun WorkPost(
 
                 if (onBook != null) {
                     UrbanPrimaryButton(
-                        text = "Reservar con ${barberName.substringBefore(' ')}",
+                        // Los nombres pueden venir con el apellido primero ("Gonzalez Ramirez Luis"): el nombre
+                        // ya está arriba de la foto, el botón no necesita repetirlo.
+                        text = "Reservar con este barbero",
                         onClick = onBook,
                         icon = Icons.Default.CalendarMonth,
                         modifier = Modifier.fillMaxWidth()
@@ -180,7 +191,7 @@ private fun WorkPost(
                     Spacer(Modifier.height(6.dp))
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                if (commenting) Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = commentText,
                         onValueChange = { commentText = it },
@@ -201,12 +212,17 @@ private fun WorkPost(
 }
 
 @Composable
-private fun MainMedia(media: SocialMedia?, title: String?) {
+private fun MainMedia(media: SocialMedia?, title: String?, onDoubleTap: () -> Unit) {
+    // El detector de gestos vive mientras la foto esté en pantalla: debe llamar a la versión vigente
+    // del callback (que sabe si ya tiene like), no a la del primer render.
+    val latestDoubleTap by rememberUpdatedState(onDoubleTap)
     Box(
         Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .background(UrbanColors.CardAlt),
+            .background(UrbanColors.CardAlt)
+            // Doble toque a la foto = me gusta, como en cualquier app de fotos (solo da like, no lo quita).
+            .pointerInput(Unit) { detectTapGestures(onDoubleTap = { latestDoubleTap() }) },
         contentAlignment = Alignment.Center
     ) {
         if (media?.url != null) {

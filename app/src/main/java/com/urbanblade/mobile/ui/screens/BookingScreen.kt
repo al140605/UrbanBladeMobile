@@ -127,6 +127,10 @@ fun BookingScreen(
     }
 
     val selectedService = services.firstOrNull { it.id == serviceId }
+    // Si llega desde el Muro de Inspiración trae el id del usuario del barbero: se traduce al de su perfil.
+    LaunchedEffect(barbers) {
+        resolveBarberId(barbers, barberId)?.let { resolved -> if (resolved != barberId) barberId = resolved }
+    }
     val selectedBarber = barbers.firstOrNull { it.id == barberId }
 
     val canAdvance = when (step) {
@@ -168,7 +172,16 @@ fun BookingScreen(
                     .padding(horizontal = 18.dp)
             ) {
                 when (step) {
-                    BookingStep.SERVICE -> ServiceStep(services, serviceId) { serviceId = it }
+                    BookingStep.SERVICE -> Column {
+                        if (initialBarberId != null && selectedBarber != null) {
+                            UrbanInfoBanner(
+                                "Reservando con ${selectedBarber.user?.name ?: "tu barbero"}. Puedes cambiarlo en el paso 2.",
+                                Icons.Default.Person
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                        ServiceStep(services, serviceId) { serviceId = it }
+                    }
                     BookingStep.BARBER -> BarberStep(barbers, barberId) { barberId = it }
                     BookingStep.CALENDAR -> CalendarStep(
                         date = date,

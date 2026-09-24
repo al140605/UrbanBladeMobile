@@ -1,6 +1,9 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.data.model.BarberItem
+import com.urbanblade.mobile.data.model.BarberUser
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ClientVisualsTest {
@@ -15,6 +18,19 @@ class ClientVisualsTest {
         assertEquals(ServiceKind.INFANTIL, serviceKind("Corte Infantil"))
         assertEquals(ServiceKind.CORTE, serviceKind("Corte a Navaja"))
         assertEquals(ServiceKind.CORTE, serviceKind("Corte Mohicano"))
+    }
+
+    @Test
+    fun `el barbero del muro se traduce del id de usuario al de su perfil`() {
+        val barbers = listOf(
+            BarberItem(id = "perfil-1", slug = "luis-gonzalez", user = BarberUser("usuario-1", "Luis")),
+            BarberItem(id = "perfil-2", user = BarberUser("usuario-2", "Ana"))
+        )
+        assertEquals("perfil-1", resolveBarberId(barbers, "usuario-1"))
+        assertEquals("perfil-2", resolveBarberId(barbers, "perfil-2"))
+        assertEquals("perfil-1", resolveBarberId(barbers, "luis-gonzalez"))
+        assertNull(resolveBarberId(barbers, "desconocido"))
+        assertNull(resolveBarberId(barbers, ""))
     }
 
     @Test
