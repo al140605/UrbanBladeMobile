@@ -348,8 +348,8 @@ gradle assembleStaging
 - Usa el mismo `applicationId` que debug (el login con Google sigue funcionando) y **no**
   permite HTTP en claro: solo HTTPS.
 - La URL viene de `STAGING_API_BASE_URL` (en `local.properties` o `-P`); por defecto
-  `https://d1s2thm3f8g40t.cloudfront.net/api/v1/`. Si cambia (por ejemplo al tener dominio
-  propio), solo hay que actualizar esa propiedad.
+  `https://api.urbanblade.com.mx/api/v1/` (dominio propio desde el 23-sep-2026). Si vuelve a
+  cambiar, solo hay que actualizar esa propiedad.
 - Para pagar con tarjeta hace falta `STRIPE_PUBLISHABLE_KEY` de la cuenta Stripe que usa el
   staging, en `local.properties` (es una clave pública; nunca la secreta).
 - Los servicios de staging se apagan para ahorrar costo: si la app responde 503, hay que

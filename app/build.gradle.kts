@@ -30,11 +30,11 @@ val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
     ?: localProperties.getProperty("RELEASE_API_BASE_URL")
     ?: "https://PENDIENTE_CONFIGURAR.example/api/v1/"
 
-// Staging en AWS (CloudFront, HTTPS). La URL no es un secreto; se puede sobreescribir
-// con STAGING_API_BASE_URL (local.properties o -P) cuando cambie o exista dominio propio.
+// Staging en AWS (CloudFront, HTTPS) detrás del dominio propio. La URL no es un secreto; se puede
+// sobreescribir con STAGING_API_BASE_URL (local.properties o -P) si cambia.
 val stagingApiBaseUrl = providers.gradleProperty("STAGING_API_BASE_URL").orNull
     ?: localProperties.getProperty("STAGING_API_BASE_URL")
-    ?: "https://d1s2thm3f8g40t.cloudfront.net/api/v1/"
+    ?: "https://api.urbanblade.com.mx/api/v1/"
 // URL de la API para debug. Por defecto el emulador (10.0.2.2). En un celular fisico
 // conectado por USB: DEBUG_API_BASE_URL=http://127.0.0.1:8000/api/v1/ en local.properties
 // y ejecutar "adb reverse tcp:8000 tcp:8000" cada vez que conectes el celular.
