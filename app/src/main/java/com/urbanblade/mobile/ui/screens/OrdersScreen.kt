@@ -48,6 +48,9 @@ import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
@@ -81,16 +84,27 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Pedidos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item {
+                UrbanPageHeader(
+                    title = if (staff) "Pedidos" else "Mis pedidos",
+                    subtitle = if (staff) "Entrega, cobra o cancela los pedidos de la tienda." else "Sigue tus compras de la tienda.",
+                    eyebrow = if (staff) "OPERACIÓN" else "CUENTA"
+                )
+            }
             if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            state.error?.let { item { UrbanErrorBanner(it) } }
+            if (state.error != null && state.items.isEmpty() && !state.loading) {
+                item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los pedidos", state.error, "Reintentar") { vm.load() } }
+            } else {
+                state.error?.let { item { UrbanErrorBanner(it) } }
+            }
 
             if (staff) {
                 state.stats?.let { stats ->
@@ -131,10 +145,10 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
             if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
             if (!state.loading && state.items.isEmpty() && state.error == null) {
                 item {
-                    UrbanEmptyState(
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY,
                         if (state.filter == OrderFilter.Todos && state.query.isBlank()) "Aún no hay pedidos" else "Sin resultados",
-                        if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras aparecerán aquí.",
-                        Icons.Default.ShoppingBag
+                        if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras de la tienda aparecerán aquí."
                     )
                 }
             }

@@ -72,20 +72,22 @@ fun CatalogScreen(
             }
         }
         item {
-            UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = { onBook(null, null) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("¿Ya sabes qué quieres?", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-                        Spacer(Modifier.height(5.dp))
-                        Text("Ve directo a reservar y consulta disponibilidad real.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Surface(shape = CircleShape, color = UrbanColors.Gold, modifier = Modifier.size(48.dp)) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.ArrowForward, null, tint = UrbanColors.OnGold)
-                        }
-                    }
-                }
+            UrbanHeroCard {
+                UrbanHeroLabel("¿Ya sabes qué quieres?")
+                Spacer(Modifier.height(6.dp))
+                Text("Reserva en menos de un minuto", style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
+                Text(
+                    "${UrbanFormat.count(services.size, "servicio", "servicios")} · ${UrbanFormat.count(barbers.size, "barbero", "barberos")} · horarios reales",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+                Spacer(Modifier.height(16.dp))
+                UrbanPrimaryButton(
+                    text = "Reservar ahora",
+                    onClick = { onBook(null, null) },
+                    icon = Icons.Default.CalendarMonth,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
         if (!isGuest && onOpenStore != null) {
@@ -98,12 +100,16 @@ fun CatalogScreen(
                 )
             }
         }
-        if (loading) item { UrbanSkeletonList(3) }
-        error?.let { item { UrbanErrorBanner(it) } }
+        if (loading && services.isEmpty()) item { UrbanSkeletonList(3) }
+        if (error != null && services.isEmpty() && !loading) {
+            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el catálogo", error, "Reintentar") { vm.load() } }
+        } else {
+            error?.let { item { UrbanErrorBanner(it) } }
+        }
 
         item { UrbanSectionTitle("Servicios", "Elige el acabado que va contigo") }
         items(services, key = { it.id }) { service -> ServiceCard(service) { onBook(service.id, null) } }
-        if (!loading && services.isEmpty()) item { UrbanEmptyState("Sin servicios disponibles", "Vuelve a intentarlo más tarde.", Icons.Default.ContentCut) }
+        if (!loading && error == null && services.isEmpty()) item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin servicios disponibles", "Vuelve a intentarlo más tarde.") }
 
         item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
         items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
@@ -123,7 +129,7 @@ private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
                 border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.21f))
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.ContentCut, null, tint = UrbanColors.Gold)
+                    Icon(serviceIcon(service.nombre), null, tint = UrbanColors.Gold)
                 }
             }
             Spacer(Modifier.width(13.dp))
@@ -139,7 +145,11 @@ private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
             Spacer(Modifier.width(10.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text("\$${"%.0f".format(service.precio)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
-                Text("MXN", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Reservar", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                    Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Gold, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
@@ -170,7 +180,10 @@ private fun BarberCard(barber: BarberItem, onBook: () -> Unit) {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.CalendarMonth, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+                Text("Reservar", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+            }
         }
     }
 }

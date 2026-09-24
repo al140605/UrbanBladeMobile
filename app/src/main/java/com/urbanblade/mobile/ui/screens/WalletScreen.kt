@@ -41,54 +41,69 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar(title = "Wallet", onBack = onBack) }) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                UrbanPageHeader(
-                    title = "Tus beneficios",
-                    subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
-                    eyebrow = "Wallet"
-                )
+    // Wallet es una pestaña de la barra inferior: sin barra superior con título (antes decía "Wallet"
+    // arriba y "Tus beneficios" abajo, el mismo encabezado dos veces).
+    val nothingYet = data.membership == null && data.packages.isEmpty() && data.giftCards.isEmpty()
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            UrbanPageHeader(
+                title = "Tus beneficios",
+                subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
+                eyebrow = "Wallet"
+            )
+        }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+
+        when {
+            error != null && data.loyalty == null && !loading -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu wallet", error, "Reintentar") { vm.load() }
             }
-            if (loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+            loading && data.loyalty == null -> item { UrbanSkeletonList(2) }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                data.loyalty?.let { loyalty -> item { LoyaltyCard(loyalty) } }
 
-            data.loyalty?.let { loyalty -> item { LoyaltyCard(loyalty) } }
-
-            item { UrbanSectionTitle("Mi membresía", null) }
-            item {
-                val membership = data.membership
-                if (membership != null) {
-                    MembershipCard(membership, busy) { confirmCancelMembership = true }
+                if (nothingYet) {
+                    item {
+                        UrbanAttentionRow(
+                            Icons.Default.Redeem,
+                            "Aún no tienes membresía, paquetes ni gift cards",
+                            "Cuando contrates uno aparecerá aquí. Pregunta en recepción por los planes.",
+                            UrbanColors.Gold
+                        )
+                    }
                 } else {
-                    UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
+                    item { UrbanSectionTitle("Mi membresía", null) }
+                    item {
+                        val membership = data.membership
+                        if (membership != null) {
+                            MembershipCard(membership, busy) { confirmCancelMembership = true }
+                        } else {
+                            UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
+                        }
+                    }
+                    if (data.packages.isNotEmpty()) {
+                        item { UrbanSectionTitle("Mis paquetes", null) }
+                        items(data.packages, key = { it.id }) { PackageCard(it) }
+                    }
+                    if (data.giftCards.isNotEmpty()) {
+                        item { UrbanSectionTitle("Mis gift cards", null) }
+                        items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
+                    }
+                }
+
+                data.referrals?.let { referrals ->
+                    item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
+                    item { ReferralCard(referrals) { clipboard.setText(AnnotatedString(it)) } }
                 }
             }
-
-            item { UrbanSectionTitle("Mis paquetes", null) }
-            if (data.packages.isEmpty()) {
-                item { UrbanInlineEmpty("Sin paquetes activos", Icons.Default.Redeem, subtitle = "Tus paquetes prepagados aparecerán aquí.") }
-            } else {
-                items(data.packages, key = { it.id }) { PackageCard(it) }
-            }
-
-            item { UrbanSectionTitle("Mis gift cards", null) }
-            if (data.giftCards.isEmpty()) {
-                item { UrbanInlineEmpty("Sin gift cards", Icons.Default.CardGiftcard, subtitle = "Tus tarjetas de regalo aparecerán aquí.") }
-            } else {
-                items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
-            }
-
-            item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
-            data.referrals?.let { referrals -> item { ReferralCard(referrals) { clipboard.setText(AnnotatedString(it)) } } }
-
-            item { Spacer(Modifier.height(8.dp)) }
         }
+        item { Spacer(Modifier.height(8.dp)) }
     }
 
     if (confirmCancelMembership) {
@@ -109,16 +124,13 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
 
 @Composable
 private fun LoyaltyCard(loyalty: ClientLoyalty) {
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+    UrbanHeroCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(loyalty.nivelLabel ?: loyalty.nivel ?: "Nivel", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
-                Text("${loyalty.puntos} puntos", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-            }
+            Box(Modifier.weight(1f)) { UrbanHeroLabel("Tu nivel") }
             if (loyalty.discountPct > 0) {
-                Surface(shape = RoundedCornerShape(12.dp), color = UrbanColors.Gold.copy(alpha = 0.13f)) {
+                Surface(shape = RoundedCornerShape(12.dp), color = UrbanColors.Gold.copy(alpha = 0.18f)) {
                     Text(
-                        "${loyalty.discountPct.toInt()}% dto.",
+                        "${loyalty.discountPct.toInt()}% de descuento",
                         Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelLarge,
                         color = UrbanColors.Gold
@@ -126,17 +138,20 @@ private fun LoyaltyCard(loyalty: ClientLoyalty) {
                 }
             }
         }
+        Spacer(Modifier.height(6.dp))
+        Text(loyalty.nivelLabel ?: loyalty.nivel ?: "Nivel", style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+        Text(UrbanFormat.count(loyalty.puntos, "punto", "puntos"), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
         if (loyalty.nextNivelLabel != null) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             LinearProgressIndicator(
                 progress = { (loyalty.progressPct / 100.0).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(6.dp),
                 color = UrbanColors.Gold,
-                trackColor = UrbanColors.Line
+                trackColor = UrbanColors.Ink.copy(alpha = 0.18f)
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Te faltan ${loyalty.citasFaltan} citas para ${loyalty.nextNivelLabel}",
+                "Te faltan ${UrbanFormat.count(loyalty.citasFaltan, "cita", "citas")} para ${loyalty.nextNivelLabel}",
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Muted
             )

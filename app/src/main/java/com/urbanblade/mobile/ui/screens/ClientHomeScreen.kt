@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.AppointmentRow
 import com.urbanblade.mobile.data.model.AuthUser
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Payments
+import com.urbanblade.mobile.ui.components.UrbanAttentionRow
 import com.urbanblade.mobile.ui.components.UrbanAvatar
+import com.urbanblade.mobile.ui.components.UrbanHeroCard
+import com.urbanblade.mobile.ui.components.UrbanHeroLabel
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
@@ -90,6 +98,8 @@ fun ClientHomeScreen(
     }
     val next = response.next
     val failed = error != null && next == null
+    // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
+    val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -108,18 +118,32 @@ fun ClientHomeScreen(
         when {
             loading && next == null -> item { UrbanSkeletonList(1) }
             failed -> item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanErrorBanner(error.orEmpty())
-                    UrbanOutlineButton(
-                        text = "Reintentar",
-                        onClick = { vm.load() },
-                        icon = Icons.Default.Refresh,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus citas", error, "Reintentar") { vm.load() }
             }
             next != null -> item { NextAppointmentCard(next, onClick = onAppointments) }
             else -> item { EmptyAgendaCard(onBook = onBook) }
+        }
+
+        if (toPay > 0 || next?.estado == "pendiente") {
+            item { UrbanSectionTitle("Para ti", "Lo que conviene resolver.") }
+            if (toPay > 0) item {
+                UrbanAttentionRow(
+                    Icons.Default.Payments,
+                    UrbanFormat.count(toPay, "cita por pagar", "citas por pagar"),
+                    "Págala con tarjeta o transferencia desde Mis citas.",
+                    UrbanColors.Warning,
+                    onClick = onAppointments
+                )
+            }
+            if (next?.estado == "pendiente") item {
+                UrbanAttentionRow(
+                    Icons.Default.HourglassTop,
+                    "Tu barbero aún no confirma tu cita",
+                    "Te avisaremos en cuanto la confirme.",
+                    UrbanColors.Info,
+                    onClick = onAppointments
+                )
+            }
         }
 
         item { UrbanSectionTitle("Atajos", "Lo que más usas, a un toque.") }
@@ -178,37 +202,26 @@ fun ClientHomeScreen(
 
 @Composable
 private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
-    UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onClick) {
+    UrbanHeroCard(Modifier.clickable(onClick = onClick)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "TU PRÓXIMA CITA",
-                style = MaterialTheme.typography.labelMedium,
-                color = UrbanColors.Gold,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { heading() }
-            )
+            Box(Modifier.weight(1f)) { UrbanHeroLabel("Tu próxima cita") }
             UrbanStatusPill(next.estado)
         }
-        Spacer(Modifier.height(10.dp))
-        Text(UrbanFormat.date(next.fecha), style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Ink)
-        Text(
-            UrbanFormat.time(next.horaInicio),
-            style = MaterialTheme.typography.titleLarge,
-            color = UrbanColors.Gold
-        )
+        Spacer(Modifier.height(8.dp))
+        Text(UrbanFormat.time(next.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+        Text(UrbanFormat.date(next.fecha), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
         Spacer(Modifier.height(16.dp))
-        HorizontalDivider(color = UrbanColors.Line)
+        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp), imageUrl = next.barber?.fotoUrl)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    next.service?.nombre ?: "Servicio",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = UrbanColors.Ink
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(serviceIcon(next.service?.nombre.orEmpty()), null, tint = UrbanColors.Gold, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(next.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                }
                 Text(
                     next.barber?.user?.name ?: "Barbero por confirmar",
                     style = MaterialTheme.typography.bodySmall,
@@ -216,11 +229,7 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
                 )
             }
             (next.precioCobrado ?: next.service?.precio)?.let {
-                Text(
-                    "\$${"%.0f".format(it)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = UrbanColors.Gold
-                )
+                Text("\$${"%.0f".format(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
             }
         }
     }
@@ -228,18 +237,15 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
 
 @Composable
 private fun EmptyAgendaCard(onBook: () -> Unit) {
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+    UrbanHeroCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    "Tu agenda está libre",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = UrbanColors.Ink,
-                    modifier = Modifier.semantics { heading() }
-                )
+                UrbanHeroLabel("Tu agenda está libre")
                 Spacer(Modifier.height(6.dp))
+                Text("¿Te toca corte?", style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Reserva tu próximo horario en menos de un minuto.",
+                    "Elige servicio, barbero y horario real en menos de un minuto.",
                     style = MaterialTheme.typography.bodySmall,
                     color = UrbanColors.Muted
                 )
@@ -249,7 +255,7 @@ private fun EmptyAgendaCard(onBook: () -> Unit) {
                 painter = painterResource(UrbanColors.current.mascot(MascotMood.WELCOME)),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(84.dp)
+                modifier = Modifier.size(92.dp)
             )
         }
         Spacer(Modifier.height(16.dp))

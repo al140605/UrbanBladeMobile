@@ -277,7 +277,7 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
         UrbanSectionTitle("Elige tu servicio", "Precio y duración confirmados por UrbanBlade")
         Spacer(Modifier.height(10.dp))
         if (services.isEmpty()) {
-            UrbanEmptyState("Cargando servicios…", null, Icons.Default.ContentCut)
+            UrbanSkeletonList(4)
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(1),
@@ -291,7 +291,8 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
                         title = service.nombre,
                         subtitle = "${service.duracionMin} min",
                         trailing = "\$${"%.0f".format(service.precio)}",
-                        imageUrl = service.imagen
+                        imageUrl = service.imagen,
+                        fallbackIcon = serviceIcon(service.nombre)
                     )
                 }
             }
@@ -338,7 +339,9 @@ private fun SelectableRow(
     subtitle: String?,
     trailing: String? = null,
     imageUrl: String? = null,
-    avatarName: String? = null
+    avatarName: String? = null,
+    /** Sin foto del servicio, un ícono según su tipo (el mismo que en Explorar). */
+    fallbackIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
     Surface(
         onClick = onClick,
@@ -376,6 +379,17 @@ private fun SelectableRow(
                 Spacer(Modifier.width(12.dp))
             } else if (avatarName != null) {
                 UrbanAvatar(avatarName, Modifier.size(52.dp))
+                Spacer(Modifier.width(12.dp))
+            } else if (fallbackIcon != null) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(UrbanColors.Gold.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(fallbackIcon, null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
+                }
                 Spacer(Modifier.width(12.dp))
             }
             Column(Modifier.weight(1f)) {

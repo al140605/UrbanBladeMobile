@@ -150,6 +150,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun rejectPayment(id: String, reason: String) = api.rejectPayment(id, RejectPaymentRequest(reason))
     suspend fun notifications() = api.notifications()
     suspend fun markAllNotificationsRead() = api.markNotificationsRead()
+    suspend fun markNotificationRead(id: String) = api.markNotificationRead(id)
     suspend fun analytics() = api.analytics()
     suspend fun socialFeed() = api.socialFeed()
     suspend fun reactWork(id: String) = api.reactWork(id)

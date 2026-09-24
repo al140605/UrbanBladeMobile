@@ -108,7 +108,11 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
                 )
             }
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
+            if (error != null && products.isEmpty() && !busy) {
+                item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar la tienda", error, "Reintentar") { vm.load(query.ifBlank { null }) } }
+            } else {
+                error?.let { item { UrbanErrorBanner(it) } }
+            }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (!isClient) item { UrbanInfoBanner("Puedes explorar la tienda; el checkout está disponible para cuentas cliente.", Icons.Default.Visibility) }
             item { UrbanSectionTitle("Productos", "${products.size} disponibles") }
@@ -121,7 +125,9 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
                     canShop = isClient
                 )
             }
-            if (products.isEmpty() && !busy) item { UrbanEmptyState("No encontramos productos", "Prueba con otra búsqueda.", Icons.Default.Inventory2) }
+            if (products.isEmpty() && !busy && error == null) item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "No encontramos productos", "Prueba con otra búsqueda.")
+            }
             item { Spacer(Modifier.height(if (cart.isNotEmpty()) 80.dp else 8.dp)) }
         }
     }
@@ -213,129 +219,138 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = v
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load(staff) }
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar(if (staff) "Pagos" else "Mis pagos", onBack) }) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item { UrbanPageHeader(if (staff) "Centro de cobro" else "Tus pagos", if (staff) "Comprobantes, historial y operación." else "Historial conectado a tus citas.", "Facturación") }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            if (payments.data.isNotEmpty()) item { PaymentsSummary(payments.data, staff) }
-
-            if (staff && pending.data.isNotEmpty()) {
-                item { UrbanSectionTitle("Por revisar", "${pending.data.size} transferencias pendientes") }
-                items(pending.data, key = { it.id }) { payment ->
-                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column {
-                                Text("Transferencia", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
-                                Text("\$${"%.2f".format(payment.monto)} MXN", style = MaterialTheme.typography.titleLarge)
-                            }
-                            UrbanStatusPill("pendiente")
+    UrbanModuleScreen(
+        eyebrow = "CUENTA",
+        title = "Mis pagos",
+        subtitle = "Lo que has pagado, conectado a tus citas.",
+        onBack = onBack,
+        onRefresh = { vm.load(staff) },
+        refreshing = busy
+    ) {
+        when {
+            error != null && payments.data.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus pagos", error, "Reintentar") { vm.load(staff) }
+            }
+            payments.data.isEmpty() && !busy -> item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "Aún no hay pagos", "Cuando pagues una cita o un pedido lo verás aquí con su comprobante.")
+            }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                item { PaymentsSummary(payments.data, staff) }
+                item { UrbanSectionTitle("Historial", UrbanFormat.count(payments.data.size, "pago", "pagos")) }
+                items(payments.data, key = { it.id }) { payment ->
+                    val metodo = payment.metodoPago?.lowercase()
+                    UrbanAttentionRow(
+                        icon = when (metodo) {
+                            "tarjeta" -> Icons.Default.CreditCard
+                            "transferencia" -> Icons.Default.AccountBalance
+                            else -> Icons.Default.Payments
+                        },
+                        text = payment.appointment?.service ?: payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago",
+                        subtitle = listOfNotNull(
+                            payment.metodoPago?.replaceFirstChar { it.uppercase() },
+                            payment.appointment?.barber,
+                            payment.appointment?.fecha?.let { UrbanFormat.date(it) }
+                        ).joinToString(" · ").ifBlank { null },
+                        tone = UrbanColors.Gold,
+                        trailing = {
+                            Text("\$${"%,.2f".format(payment.monto + payment.propina)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
                         }
-                        payment.ocrTexto?.takeIf { it.isNotBlank() }?.let {
-                            Spacer(Modifier.height(8.dp))
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { vm.approve(payment.id, staff) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Check, null); Spacer(Modifier.width(5.dp)); Text("Aprobar") }
-                            OutlinedButton(onClick = { vm.reject(payment.id, "Comprobante no válido", staff) }, modifier = Modifier.weight(1f)) { Text("Rechazar") }
-                        }
-                    }
+                    )
                 }
             }
-
-            item { UrbanSectionTitle("Historial", "Pagos registrados en UrbanBlade") }
-            items(payments.data, key = { it.id }) { payment ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(Modifier.weight(1f)) {
-                            Text(payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago", style = MaterialTheme.typography.titleMedium)
-                            payment.appointment?.let { a ->
-                                Text(listOfNotNull(a.service, a.barber, a.fecha).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
-                            }
-                        }
-                        Text("\$${"%.2f".format(payment.monto + payment.propina)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
-                    }
-                }
-            }
-            if (payments.data.isEmpty() && !busy) item { UrbanEmptyState("No hay pagos registrados", null, Icons.Default.ReceiptLong) }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewModel()) {
     val data by vm.data.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("Notificaciones", onBack) {
-                TextButton(onClick = { vm.readAll() }) { Text("Leer todas") }
+    val view = parseNotifications(data)
+
+    UrbanModuleScreen(
+        eyebrow = "CUENTA",
+        title = "Notificaciones",
+        subtitle = if (view.unread > 0) UrbanFormat.count(view.unread, "aviso sin leer", "avisos sin leer") else "Estás al día.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        if (view.unread > 0) item {
+            UrbanOutlineButton(
+                text = "Marcar todas como leídas",
+                onClick = { vm.readAll() },
+                icon = Icons.Default.DoneAll,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        when {
+            error != null && view.items.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus avisos", error, "Reintentar") { vm.load() }
+            }
+            view.items.isEmpty() && !busy -> item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "Sin notificaciones", "Aquí verás confirmaciones de citas, pagos y novedades.")
+            }
+            else -> items(view.items, key = { it.id }) { n ->
+                NotificationRow(n) { if (!n.read) vm.read(n.id) }
             }
         }
-    ) { padding ->
-        JsonContentScreen(data, busy, error, Modifier.padding(padding), emptyIcon = Icons.Default.NotificationsNone)
     }
 }
 
 @Composable
-private fun JsonContentScreen(
-    data: JsonObject?,
-    busy: Boolean,
-    error: String?,
-    modifier: Modifier = Modifier,
-    emptyIcon: ImageVector
-) {
-    LazyColumn(
-        modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-        error?.let { item { UrbanErrorBanner(it) } }
-        data?.entrySet()?.forEach { (key, value) -> item { JsonCard(key, value) } }
-        if (data == null && !busy && error == null) item { UrbanEmptyState("Sin información", "Este módulo todavía no tiene datos para mostrar.", emptyIcon) }
-    }
-}
-
-@Composable
-private fun JsonCard(label: String, value: JsonElement) {
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Text(label.replace('_', ' ').replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-        Spacer(Modifier.height(10.dp))
-        when {
-            value.isJsonArray -> value.asJsonArray.take(20).forEachIndexed { index, element ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.Top) {
-                    Surface(shape = CircleShape, color = UrbanColors.Gold.copy(alpha = 0.09f), modifier = Modifier.size(24.dp)) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
+private fun NotificationRow(n: NotificationItem, onOpen: () -> Unit) {
+    val tone = if (n.read) UrbanColors.Muted else UrbanColors.Gold
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onOpen) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(
+                Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tone.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    when (n.type?.lowercase()) {
+                        "appointment", "cita", "reminder" -> Icons.Default.CalendarMonth
+                        "payment", "pago", "deposit" -> Icons.Default.Payments
+                        "order", "pedido" -> Icons.Default.ShoppingBag
+                        "loyalty", "points", "raffle", "referral" -> Icons.Default.Star
+                        else -> Icons.Default.Notifications
+                    },
+                    null,
+                    tint = tone,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    n.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (n.read) FontWeight.Normal else FontWeight.Bold,
+                    color = UrbanColors.Ink
+                )
+                n.message?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                }
+                n.createdAt?.let { iso ->
+                    val whenText = runCatching {
+                        val date = java.time.OffsetDateTime.parse(iso)
+                        UrbanFormat.date(date.toLocalDate().toString()) + " · " + UrbanFormat.time(date.toLocalTime().toString())
+                    }.getOrNull()
+                    whenText?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
                     }
-                    Spacer(Modifier.width(9.dp))
-                    Text(compactJson(element), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
                 }
             }
-            value.isJsonObject -> value.asJsonObject.entrySet().take(20).forEach { (key, item) ->
-                UrbanKeyValue(key.replace('_', ' ').replaceFirstChar { it.uppercase() }, compactJson(item), Modifier.padding(vertical = 4.dp))
+            if (!n.read) {
+                Spacer(Modifier.width(8.dp))
+                Box(Modifier.padding(top = 6.dp).size(9.dp).clip(CircleShape).background(UrbanColors.Gold))
             }
-            else -> Text(compactJson(value), style = MaterialTheme.typography.bodyLarge)
         }
     }
-}
-
-private fun compactJson(element: JsonElement): String = when {
-    element.isJsonNull -> "—"
-    element.isJsonPrimitive -> element.asJsonPrimitive.toString().trim('"')
-    element.isJsonObject -> element.asJsonObject.entrySet().take(5).joinToString(" · ") { "${it.key}: ${compactJson(it.value)}" }
-    element.isJsonArray -> "${element.asJsonArray.size()} elementos"
-    else -> element.toString()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
