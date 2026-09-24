@@ -51,7 +51,7 @@ fun DashboardScreen(
     val clientOnly = user.roles.contains("cliente") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }
     if (clientOnly) {
-        ClientHomeScreen(user, onAppointments, onBook, onWallet, onStore, onExplore)
+        ClientHomeScreen(user, onAppointments, onBook, onWallet, onStore, onExplore, onNavigate)
         return
     }
 

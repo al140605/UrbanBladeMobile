@@ -67,6 +67,16 @@ import com.urbanblade.mobile.ui.theme.MascotMood
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
 import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
+import com.urbanblade.mobile.ui.viewmodel.NotificationsViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleGrid
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.IconButton
 import java.time.LocalTime
 
 /**
@@ -81,12 +91,19 @@ fun ClientHomeScreen(
     onWallet: () -> Unit,
     onStore: () -> Unit,
     onExplore: () -> Unit = {},
-    vm: AppointmentsViewModel = viewModel()
+    onNavigate: (String) -> Unit = {},
+    vm: AppointmentsViewModel = viewModel(),
+    notificationsVm: NotificationsViewModel = viewModel()
 ) {
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
-    LaunchedEffect(Unit) { vm.load() }
+    LaunchedEffect(Unit) {
+        vm.load()
+        notificationsVm.load()
+    }
+    val notifications by notificationsVm.data.collectAsState()
+    val unread = parseNotifications(notifications).unread
 
     val firstName = user.name.substringBefore(' ')
     val greeting = remember {
@@ -111,7 +128,18 @@ fun ClientHomeScreen(
                 title = firstName,
                 subtitle = "¿Listo para tu próximo corte?",
                 eyebrow = greeting.uppercase(),
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
+                trailing = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // El cliente no tiene la pestaña "Más": sus avisos se abren desde aquí.
+                        IconButton(onClick = { onNavigate("notifications") }) {
+                            BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 9) "9+" else unread.toString()) } }) {
+                                Icon(Icons.Default.Notifications, "Notificaciones", tint = UrbanColors.Gold)
+                            }
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                    }
+                }
             )
         }
 
@@ -195,6 +223,19 @@ fun ClientHomeScreen(
                     )
                 }
             }
+        }
+        item { UrbanSectionTitle("Tu cuenta", "Pagos, pedidos y ayuda.") }
+        item {
+            UrbanModuleGrid(
+                tiles = listOf(
+                    Triple("Mis pagos", "Historial y comprobantes", Icons.Default.ReceiptLong),
+                    Triple("Mis pedidos", "Compras de la tienda", Icons.Default.ShoppingBag),
+                    Triple("Bladebot", "Resuelve dudas al momento", Icons.Default.SmartToy),
+                    Triple("Muro social", "Trabajos de los barberos", Icons.Default.Groups),
+                ),
+                routes = listOf("payments", "orders", "chatbot", "social"),
+                onNavigate = onNavigate
+            )
         }
         item { Spacer(Modifier.height(4.dp)) }
     }
