@@ -1,14 +1,19 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,7 +26,7 @@ private val ESTADOS = listOf("pendiente", "confirmada", "en_proceso", "completad
 
 // Próximos estados razonables desde el estado actual -- no se ofrecen todos
 // los 6 siempre (ej. no tiene sentido regresar una cita completada a
-// pendiente desde la agenda).
+// pendiente desde la agenda). El primero es la acción principal.
 private fun nextStatesFor(estado: String): List<String> = when (estado) {
     "pendiente" -> listOf("confirmada", "cancelada")
     "confirmada" -> listOf("en_proceso", "cancelada", "no_asistio")
@@ -39,108 +44,171 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     var period by remember { mutableStateOf("day") }
     var estadoFilter by remember { mutableStateOf<String?>(null) }
     var offset by remember { mutableIntStateOf(0) }
+    var confirmChange by remember { mutableStateOf<Pair<AppointmentRow, String>?>(null) }
+    val reload = { vm.load(period, estadoFilter, offset) }
 
-    LaunchedEffect(period, estadoFilter, offset) { vm.load(period, estadoFilter, offset) }
+    LaunchedEffect(period, estadoFilter, offset) { reload() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Mi agenda", onBack) { IconButton(onClick = { vm.load(period, estadoFilter, offset) }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
+    val change = { appt: AppointmentRow, estado: String ->
+        if (isDestructiveStatus(estado)) confirmChange = appt to estado
+        else appt.code?.let { vm.updateStatus(it, estado, period, estadoFilter, offset) }
+    }
 
-            item {
+    UrbanModuleScreen(
+        eyebrow = "BARBERO",
+        title = "Mi agenda",
+        subtitle = "Confirma, inicia y termina tus citas.",
+        onBack = onBack,
+        onRefresh = { reload() },
+        refreshing = busy
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = period == "day", onClick = { period = "day"; offset = 0 }, label = { Text("Día") })
                     FilterChip(selected = period == "week", onClick = { period = "week"; offset = 0 }, label = { Text("Semana") })
                 }
-            }
-
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { offset -= 1 }) { Icon(Icons.Default.ChevronLeft, "Anterior") }
                     Text(
                         agenda.range.label ?: "—",
                         style = MaterialTheme.typography.titleMedium,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { offset += 1 }) { Icon(Icons.Default.ChevronRight, "Siguiente") }
                 }
             }
+        }
 
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Citas del periodo", agenda.stats.totalPeriod.toString(), Icons.Default.CalendarMonth, Modifier.weight(1f))
-                    UrbanMetricCard("Productividad", "${agenda.stats.productivity}%", Icons.Default.TrendingUp, Modifier.weight(1f))
+        item {
+            UrbanHeroCard {
+                UrbanHeroLabel(if (period == "day") "Tu día" else "Tu semana")
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    UrbanFormat.count(agenda.stats.totalPeriod, "cita", "citas"),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = UrbanColors.Ink
+                )
+                Text("Productividad ${agenda.stats.productivity}%", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Terminadas", agenda.stats.completedPeriod.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
+                    UrbanHeroStat("Tus ingresos", "\$" + "%,.0f".format(agenda.stats.incomeTotal), Icons.Default.Payments, Modifier.weight(1f))
                 }
             }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Completadas", agenda.stats.completedPeriod.toString(), Icons.Default.CheckCircle, Modifier.weight(1f))
-                    UrbanMetricCard("Ingreso acumulado", "\$${"%.0f".format(agenda.stats.incomeTotal)}", Icons.Default.Payments, Modifier.weight(1f))
+        }
+
+        item {
+            // Siete filtros no caben en una fila: se desplazan de lado.
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = estadoFilter == null, onClick = { estadoFilter = null }, label = { Text("Todas") })
+                ESTADOS.forEach { e ->
+                    FilterChip(
+                        selected = estadoFilter == e,
+                        onClick = { estadoFilter = if (estadoFilter == e) null else e },
+                        label = { Text(statusLabel(e)) }
+                    )
                 }
             }
+        }
 
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = estadoFilter == null, onClick = { estadoFilter = null }, label = { Text("Todas") })
-                    ESTADOS.forEach { e ->
-                        FilterChip(selected = estadoFilter == e, onClick = { estadoFilter = if (estadoFilter == e) null else e }, label = { Text(e.replace('_', ' ').replaceFirstChar { it.uppercase() }) })
-                    }
+        when {
+            error != null && agenda.data.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu agenda", error, "Reintentar") { reload() }
+            }
+            agenda.data.isEmpty() && !busy -> item {
+                UrbanMascotState(
+                    UrbanStateKind.EMPTY,
+                    if (estadoFilter == null) "Sin citas en este periodo" else "Sin citas con este estado",
+                    "Cambia de día o de semana con las flechas."
+                )
+            }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                items(agenda.data, key = { it.id }) { appt ->
+                    AgendaCard(appt, updating == appt.code, showDate = period == "week") { estado -> change(appt, estado) }
                 }
             }
+        }
+    }
 
-            if (agenda.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin citas", "No tienes citas en este rango.", Icons.Default.EventAvailable) }
-            }
-
-            items(agenda.data) { appt ->
-                AgendaCard(appt, updating == appt.code) { estado ->
+    confirmChange?.let { (appt, estado) ->
+        AlertDialog(
+            onDismissRequest = { confirmChange = null },
+            title = { Text(if (estado == "cancelada") "¿Cancelar esta cita?" else "¿Marcar que no asistió?") },
+            text = {
+                Text(
+                    "${appt.client?.user?.name ?: "El cliente"} · ${UrbanFormat.time(appt.horaInicio)}. No se puede deshacer desde la agenda."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmChange = null
                     appt.code?.let { vm.updateStatus(it, estado, period, estadoFilter, offset) }
+                }) { Text(statusActionLabel(estado), color = UrbanColors.Danger) }
+            },
+            dismissButton = { TextButton(onClick = { confirmChange = null }) { Text("Volver") } }
+        )
+    }
+}
+
+@Composable
+private fun AgendaCard(appt: AppointmentRow, updating: Boolean, showDate: Boolean, onChangeStatus: (String) -> Unit) {
+    val next = nextStatesFor(appt.estado)
+
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(UrbanColors.Gold.copy(alpha = 0.14f))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(UrbanFormat.time(appt.horaInicio), style = MaterialTheme.typography.titleSmall, color = UrbanColors.Gold)
+                if (showDate) Text(UrbanFormat.date(appt.fecha).substringBefore(' '), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(appt.service?.nombre ?: "—", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(appt.client?.user?.name ?: "Cliente", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(8.dp))
+            SimpleStatusPill(statusLabel(appt.estado), statusTone(appt.estado))
+        }
+        appt.notas?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(8.dp))
+            Text("“$it”", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        if (next.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            UrbanPrimaryButton(
+                text = statusActionLabel(next.first()),
+                onClick = { onChangeStatus(next.first()) },
+                loading = updating,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (next.size > 1) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    next.drop(1).forEach { estado ->
+                        TextButton(onClick = { onChangeStatus(estado) }, enabled = !updating) {
+                            Text(statusActionLabel(estado), color = if (isDestructiveStatus(estado)) UrbanColors.Danger else UrbanColors.Gold)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun AgendaCard(appt: AppointmentRow, updating: Boolean, onChangeStatus: (String) -> Unit) {
-    var showMenu by remember { mutableStateOf(false) }
-    val next = nextStatesFor(appt.estado)
-
-    UrbanCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(appt.service?.nombre ?: "—", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(appt.client?.user?.name ?: "Cliente", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Text("${appt.fecha} · ${appt.horaInicio}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            }
-            SimpleStatusPill(appt.estado)
-        }
-        if (next.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            Box {
-                UrbanOutlineButton(
-                    text = if (updating) "Actualizando…" else "Cambiar estado",
-                    onClick = { showMenu = true },
-                    icon = Icons.Default.SwapVert,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    next.forEach { estado ->
-                        DropdownMenuItem(
-                            text = { Text(estado.replace('_', ' ').replaceFirstChar { it.uppercase() }) },
-                            onClick = { showMenu = false; onChangeStatus(estado) }
-                        )
-                    }
-                }
-            }
-        }
-    }
+private fun statusTone(estado: String) = when (estado) {
+    "pendiente" -> UrbanColors.Warning
+    "confirmada" -> UrbanColors.Info
+    "en_proceso" -> UrbanColors.Gold
+    "completada" -> UrbanColors.Success
+    "cancelada", "no_asistio" -> UrbanColors.Danger
+    else -> UrbanColors.Muted
 }

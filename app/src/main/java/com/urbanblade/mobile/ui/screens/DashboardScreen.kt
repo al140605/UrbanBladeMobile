@@ -40,6 +40,13 @@ fun DashboardScreen(
         EngineerHomeScreen(user, onNavigate)
         return
     }
+    // El barbero ve "Mi día": su siguiente cita y lo que falta confirmar, no el tablero del negocio.
+    val barberOnly = user.roles.contains("barbero") &&
+        user.roles.none { it in listOf("recepcionista", "cliente", "ingeniero") }
+    if (barberOnly) {
+        BarberHomeScreen(user, onNavigate)
+        return
+    }
     // El cliente tiene su propio inicio (próxima cita y atajos); el personal conserva el tablero.
     val clientOnly = user.roles.contains("cliente") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }

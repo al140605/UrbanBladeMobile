@@ -40,43 +40,63 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
-            UrbanTopBar("Portafolio", onBack) {
-                IconButton(onClick = { showUpload = true }) { Icon(Icons.Default.AddAPhoto, "Subir trabajo") }
+    UrbanModuleScreen(
+        eyebrow = "BARBERO",
+        title = "Portafolio",
+        subtitle = "Tus mejores trabajos, a la vista de tus clientes.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        item {
+            UrbanHeroCard {
+                UrbanHeroLabel("Tu vitrina")
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    UrbanFormat.count(portfolio.stats.totalWorks, "trabajo publicado", "trabajos publicados"),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = UrbanColors.Ink
+                )
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Reacciones", portfolio.stats.totalReactions.toString(), Icons.Default.Favorite, Modifier.weight(1f))
+                    UrbanHeroStat("Guardados", portfolio.stats.totalSaves.toString(), Icons.Default.Bookmark, Modifier.weight(1f))
+                }
             }
         }
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold)
-            error?.let { UrbanErrorBanner(it) }
-            message?.let { UrbanInfoBanner(it, Icons.Default.CheckCircle) }
+        item {
+            UrbanPrimaryButton(
+                text = "Subir trabajo",
+                onClick = { showUpload = true },
+                icon = Icons.Default.AddAPhoto,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
-            Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                UrbanMetricCard("Trabajos", portfolio.stats.totalWorks.toString(), Icons.Default.PhotoLibrary, Modifier.weight(1f))
-                UrbanMetricCard("Reacciones", portfolio.stats.totalReactions.toString(), Icons.Default.Favorite, Modifier.weight(1f))
-                UrbanMetricCard("Guardados", portfolio.stats.totalSaves.toString(), Icons.Default.Bookmark, Modifier.weight(1f))
+        when {
+            error != null && portfolio.works.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu portafolio", error, "Reintentar") { vm.load() }
             }
-
-            if (portfolio.works.isEmpty() && !busy) {
-                UrbanEmptyState(
+            portfolio.works.isEmpty() && !busy -> item {
+                UrbanMascotState(
+                    UrbanStateKind.EMPTY,
                     "Sin trabajos todavía",
                     "Sube fotos o videos de tus cortes para que los clientes los vean.",
-                    Icons.Default.PhotoLibrary,
                     actionLabel = "Subir el primero",
                     onAction = { showUpload = true }
                 )
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    gridItems(portfolio.works, key = { it.id }) { work ->
-                        WorkTile(work, onDelete = { showDeleteConfirm = work })
+            }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                items(portfolio.works.chunked(2)) { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { work ->
+                            Box(Modifier.weight(1f)) { WorkTile(work, onDelete = { showDeleteConfirm = work }) }
+                        }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -145,9 +165,11 @@ private fun WorkTile(work: WorkRow, onDelete: () -> Unit) {
         }
         Spacer(Modifier.height(6.dp))
         Text(work.title ?: "—", style = MaterialTheme.typography.titleSmall, maxLines = 1)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("♥ ${work.reactionsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            Text("💬 ${work.commentsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Favorite, "Reacciones", tint = UrbanColors.Gold, modifier = Modifier.size(14.dp))
+            Text("${work.reactionsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            Icon(Icons.Default.ChatBubble, "Comentarios", tint = UrbanColors.Gold, modifier = Modifier.size(14.dp))
+            Text("${work.commentsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
     }
 }

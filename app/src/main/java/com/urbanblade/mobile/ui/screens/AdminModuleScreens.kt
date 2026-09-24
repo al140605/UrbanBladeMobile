@@ -368,73 +368,112 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
         }
     }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Mi horario", onBack) }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+    val activeDays = days.filter { it.isActive }
+    val weeklyMinutes = activeDays.sumOf { minutesBetween(it.startTime, it.endTime) ?: 0 }
 
-            itemsIndexed(days) { index, day ->
-                val label = WEEK_DAYS.first { it.first == day.dayOfWeek }.second
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+    UrbanModuleScreen(
+        eyebrow = "BARBERO",
+        title = "Mi horario",
+        subtitle = "Los días y horas en que aceptas citas.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        if (error != null && loaded.isEmpty()) {
+            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu horario", error, "Reintentar") { vm.load() } }
+            return@UrbanModuleScreen
+        }
+        error?.let { item { UrbanErrorBanner(it) } }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+
+        item {
+            UrbanHeroCard {
+                UrbanHeroLabel("Tu semana")
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (activeDays.isEmpty()) "Sin días activos" else UrbanFormat.count(activeDays.size, "día de trabajo", "días de trabajo"),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = UrbanColors.Ink
+                )
+                Text(
+                    if (activeDays.isEmpty()) "Activa al menos un día para recibir reservas." else "Los clientes solo ven horarios dentro de estos días.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Horas a la semana", "%.0f".format(weeklyMinutes / 60.0), Icons.Default.Schedule, Modifier.weight(1f))
+                    UrbanHeroStat("Días libres", (7 - activeDays.size).toString(), Icons.Default.EventBusy, Modifier.weight(1f))
+                }
+            }
+        }
+
+        itemsIndexed(days) { index, day ->
+            val label = WEEK_DAYS.first { it.first == day.dayOfWeek }.second
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
                         Text(label, style = MaterialTheme.typography.titleMedium)
-                        Switch(
-                            checked = day.isActive,
-                            onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } },
-                            colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold)
+                        Text(
+                            if (day.isActive) "${day.startTime} a ${day.endTime}" else "Descanso",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (day.isActive) UrbanColors.Gold else UrbanColors.Muted
                         )
                     }
-                    if (day.isActive) {
-                        Spacer(Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedTextField(
-                                value = day.startTime,
-                                onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(startTime = v) } },
-                                label = { Text("Inicio") },
-                                placeholder = { Text("HH:mm") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = day.endTime,
-                                onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(endTime = v) } },
-                                label = { Text("Fin") },
-                                placeholder = { Text("HH:mm") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                    Switch(
+                        checked = day.isActive,
+                        onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } },
+                        colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold)
+                    )
+                }
+                if (day.isActive) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = day.startTime,
+                            onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(startTime = v) } },
+                            label = { Text("Entrada") },
+                            placeholder = { Text("HH:mm") },
+                            singleLine = true,
+                            isError = !isValidTime(day.startTime),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = day.endTime,
+                            onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(endTime = v) } },
+                            label = { Text("Salida") },
+                            placeholder = { Text("HH:mm") },
+                            singleLine = true,
+                            isError = !isValidTime(day.endTime) || minutesBetween(day.startTime, day.endTime) == null,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
+        }
 
-            item {
-                val validFormat = remember(days) { days.all { !it.isActive || (isValidTime(it.startTime) && isValidTime(it.endTime)) } }
-                if (!validFormat) {
-                    Text(
-                        "Usa el formato HH:mm (ej. 09:00) en los días activos.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = UrbanColors.Danger,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-                UrbanPrimaryButton(
-                    text = "Guardar horario",
-                    onClick = { vm.save(days) },
-                    enabled = validFormat,
-                    loading = saving,
-                    icon = Icons.Default.Save,
-                    modifier = Modifier.fillMaxWidth()
+        item {
+            val valid = remember(days) {
+                days.all { !it.isActive || (isValidTime(it.startTime) && isValidTime(it.endTime) && minutesBetween(it.startTime, it.endTime) != null) }
+            }
+            if (!valid) {
+                Text(
+                    "Usa el formato HH:mm (ej. 09:00) y una salida posterior a la entrada en los días activos.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Danger,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
+            UrbanPrimaryButton(
+                text = "Guardar horario",
+                onClick = { vm.save(days) },
+                enabled = valid,
+                loading = saving,
+                icon = Icons.Default.Save,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
