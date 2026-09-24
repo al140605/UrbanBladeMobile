@@ -51,13 +51,15 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
-            UrbanTopBar("Clientes", onBack) {
+            UrbanTopBar("", onBack) {
                 IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
             }
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+                UrbanPageHeader(title = "Clientes", subtitle = "Busca, registra y revisa el historial de cada cliente.", eyebrow = "OPERACIÓN")
+                Spacer(Modifier.height(14.dp))
                 OutlinedTextField(
                     value = search,
                     onValueChange = { search = it },
@@ -89,7 +91,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
                     item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
                 }
                 if (clients.data.isEmpty() && !busy) {
-                    item { UrbanEmptyState("Sin clientes", "No hay clientes que coincidan con la búsqueda.", Icons.Default.Groups) }
+                    item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin clientes", "No hay clientes que coincidan con la búsqueda.", "Registrar cliente", Icons.Default.PersonAdd) { showCreate = true } }
                 }
                 items(clients.data) { client ->
                     UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {

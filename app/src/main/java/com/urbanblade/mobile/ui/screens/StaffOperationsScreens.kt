@@ -57,6 +57,9 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryMovementsViewModel
 import com.urbanblade.mobile.ui.viewmodel.MovementFilter
@@ -89,13 +92,14 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Movimientos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Movimientos de inventario", subtitle = "Entradas, salidas y ajustes de stock.", eyebrow = "OPERACIÓN") }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     UrbanMetricCard("Entradas", state.stats.entradas.toString(), Icons.Default.ArrowDownward, Modifier.weight(1f))
@@ -126,7 +130,7 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
             if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
 
             if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item { UrbanEmptyState("Sin movimientos", "Aquí aparecerán las entradas y salidas de stock.", Icons.Default.SwapVert) }
+                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin movimientos", "Aquí aparecerán las entradas y salidas de stock.") }
             }
             if (state.items.isNotEmpty()) {
                 item { UrbanSectionTitle("Historial", UrbanFormat.count(state.total, "movimiento", "movimientos")) }
@@ -186,13 +190,14 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Lista de espera", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Lista de espera", subtitle = "Clientes que quieren un horario que ya estaba lleno.", eyebrow = "OPERACIÓN") }
             item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WaitlistFilter.entries.forEach { f ->
@@ -206,10 +211,10 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
 
             if (!state.loading && state.items.isEmpty() && state.error == null) {
                 item {
-                    UrbanEmptyState(
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY,
                         "Nadie en esta lista",
-                        if (state.filter == WaitlistFilter.Espera) "Cuando un cliente se anote por un horario lleno aparecerá aquí." else "No hay entradas con este estado.",
-                        Icons.Default.HourglassTop
+                        if (state.filter == WaitlistFilter.Espera) "Cuando un cliente se anote por un horario lleno aparecerá aquí." else "No hay entradas con este estado."
                     )
                 }
             }

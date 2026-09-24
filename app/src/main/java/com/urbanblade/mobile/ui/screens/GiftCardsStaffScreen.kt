@@ -51,6 +51,8 @@ import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MAX
 import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MIN
@@ -79,14 +81,14 @@ fun GiftCardsStaffScreen(onBack: () -> Unit, vm: GiftCardsStaffViewModel = viewM
     }
     val emailError = if (submitted && email.isNotBlank() && !email.contains("@")) "Escribe un correo válido." else null
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("Gift cards", onBack) }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                UrbanPageHeader("Gift cards", "Vende una tarjeta en mostrador o consulta su saldo.", "Mostrador")
+                UrbanPageHeader("Gift cards", "Vende una tarjeta en mostrador o consulta su saldo.", "OPERACIÓN")
             }
 
             state.sold?.let { sold ->

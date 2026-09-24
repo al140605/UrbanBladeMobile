@@ -50,7 +50,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
-            UrbanTopBar("Inventario", onBack) {
+            UrbanTopBar("", onBack) {
                 if (isAdmin) {
                     IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
                 }
@@ -64,6 +64,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Inventario", subtitle = "Existencias de la tienda y alertas de stock.", eyebrow = "OPERACIÓN") }
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -88,7 +89,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             }
 
             if (visibleProducts.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin productos", "No hay productos en esta categoría.", Icons.Default.Inventory2) }
+                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
             }
 
             items(visibleProducts) { product ->

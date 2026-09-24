@@ -33,6 +33,11 @@ fun DashboardScreen(
         AdminHomeScreen(user, onNavigate)
         return
     }
+    // Recepción: el pulso del día y lo que hay que atender en el mostrador.
+    if (user.roles.contains("recepcionista")) {
+        ReceptionHomeScreen(user, onNavigate)
+        return
+    }
     // El ingeniero es de solo lectura: su inicio es la salud del servidor y sus módulos de análisis.
     val engineerOnly = user.roles.contains("ingeniero") &&
         user.roles.none { it in listOf("recepcionista", "barbero", "cliente") }

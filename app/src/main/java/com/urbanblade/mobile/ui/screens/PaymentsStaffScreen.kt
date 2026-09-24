@@ -63,6 +63,9 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.PaymentMethodFilter
 import com.urbanblade.mobile.ui.viewmodel.PaymentsStaffViewModel
@@ -87,13 +90,14 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Pagos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item { UrbanPageHeader(title = "Cobros y pagos", subtitle = "Verifica comprobantes y revisa el historial.", eyebrow = "OPERACIÓN") }
             if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (rejecting == null) state.error?.let { item { UrbanErrorBanner(it) } }
@@ -174,7 +178,7 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
             }
             if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
             if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item { UrbanEmptyState("No hay pagos con estos filtros", "Prueba con otro método o rango de fechas.", Icons.Default.ReceiptLong) }
+                item { UrbanMascotState(UrbanStateKind.EMPTY, "No hay pagos con estos filtros", "Prueba con otro método o rango de fechas.") }
             }
             items(state.items, key = { it.id }) { payment ->
                 PaymentCard(payment, onReceipt = { vm.receiptUrl(payment.id, ::openUrl) })
