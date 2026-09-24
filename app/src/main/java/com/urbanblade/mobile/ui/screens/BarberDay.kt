@@ -54,6 +54,13 @@ fun statusLabel(estado: String): String = when (estado) {
 /** Cancelar o marcar inasistencia no se puede deshacer desde la agenda: se confirma antes. */
 fun isDestructiveStatus(estado: String) = estado == "cancelada" || estado == "no_asistio"
 
+/**
+ * El backend devuelve el horario como HH:mm:ss pero al guardarlo exige HH:mm (date_format:H:i).
+ * Sin recortarlo, la pantalla marcaba todo en rojo y no dejaba guardar.
+ */
+fun normalizeTime(value: String): String =
+    if (Regex("^[0-9]{2}:[0-9]{2}:[0-9]{2}$").matches(value)) value.take(5) else value
+
 /** Minutos entre dos horas HH:mm; null si alguna no es válida o el cierre no es posterior. */
 fun minutesBetween(start: String, end: String): Int? {
     fun parse(v: String): Int? {

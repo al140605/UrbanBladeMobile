@@ -61,6 +61,13 @@ class BarberDayTest {
     }
 
     @Test
+    fun `el horario del backend se recorta a HH mm para poder guardarlo`() {
+        assertEquals("09:00", normalizeTime("09:00:00"))
+        assertEquals("21:30", normalizeTime("21:30"))
+        assertEquals(720, minutesBetween(normalizeTime("09:00:00"), normalizeTime("21:00:00")))
+    }
+
+    @Test
     fun `minutos de una jornada`() {
         assertEquals(540, minutesBetween("09:00", "18:00"))
         assertNull(minutesBetween("18:00", "09:00"))

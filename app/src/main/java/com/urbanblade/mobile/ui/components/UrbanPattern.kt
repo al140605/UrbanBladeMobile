@@ -194,6 +194,7 @@ fun UrbanMascotState(
     title: String,
     subtitle: String?,
     actionLabel: String? = null,
+    actionIcon: ImageVector = Icons.Default.Refresh,
     onAction: (() -> Unit)? = null
 ) {
     val image = if (kind == UrbanStateKind.ERROR) R.drawable.mascot_bruno_error else R.drawable.mascot_nava_empty
@@ -215,7 +216,7 @@ fun UrbanMascotState(
         }
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(14.dp))
-            UrbanOutlineButton(text = actionLabel, onClick = onAction, icon = Icons.Default.Refresh)
+            UrbanOutlineButton(text = actionLabel, onClick = onAction, icon = actionIcon)
         }
     }
 }

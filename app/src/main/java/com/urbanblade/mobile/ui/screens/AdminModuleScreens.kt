@@ -364,7 +364,8 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
     var days by remember { mutableStateOf<List<BarberScheduleDay>>(emptyList()) }
     LaunchedEffect(loaded) {
         days = WEEK_DAYS.map { (key, _) ->
-            loaded.find { it.dayOfWeek == key } ?: BarberScheduleDay(key, "09:00", "18:00", isActive = false)
+            loaded.find { it.dayOfWeek == key }?.let { it.copy(startTime = normalizeTime(it.startTime), endTime = normalizeTime(it.endTime)) }
+                ?: BarberScheduleDay(key, "09:00", "18:00", isActive = false)
         }
     }
 

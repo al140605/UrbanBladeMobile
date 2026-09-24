@@ -86,6 +86,7 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
                     "Sin trabajos todavía",
                     "Sube fotos o videos de tus cortes para que los clientes los vean.",
                     actionLabel = "Subir el primero",
+                    actionIcon = Icons.Default.AddAPhoto,
                     onAction = { showUpload = true }
                 )
             }
