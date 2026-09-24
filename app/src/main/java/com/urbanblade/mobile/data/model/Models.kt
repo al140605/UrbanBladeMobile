@@ -273,7 +273,16 @@ data class AppointmentRequest(
     @SerializedName("service_id") val serviceId: String,
     val fecha: String,
     @SerializedName("hora_inicio") val horaInicio: String,
-    val notas: String? = null
+    val notas: String? = null,
+    /** Pagar todo al reservar: barber fija el monto (con descuento) como cobro de la cita pendiente. */
+    @SerializedName("pagar_ahora") val pagarAhora: Boolean? = null,
+    @SerializedName("propina_sugerida") val propinaSugerida: Double? = null
+)
+
+/** POST /appointments/{code}/deposit/stripe-intent: cobro de "pagar ahora" (o depósito anti-no-show). */
+data class DepositIntentRequest(
+    @SerializedName("guardar_tarjeta") val guardarTarjeta: Boolean? = null,
+    @SerializedName("tarjeta_guardada") val tarjetaGuardada: Boolean? = null
 )
 
 data class DashboardResponse(

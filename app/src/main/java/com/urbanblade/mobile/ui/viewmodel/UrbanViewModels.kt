@@ -431,9 +431,20 @@ class BookingViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             _busy.value = true; _error.value = null; _message.value = null; _paymentNote.value = null
             val res = try {
-                repo.createAppointment(AppointmentRequest(barberId, serviceId, date, time, notes.ifBlank { null }))
+                // Igual que la web: "pagar ahora" (tarjeta, o transferencia con comprobante) le pide a barber
+                // que fije el cobro completo con el descuento real del cliente; se cobra por el endpoint de depósito.
+                val payNow = method == BookingPayMethod.TARJETA || (method == BookingPayMethod.TRANSFERENCIA && receiptUri != null)
+                repo.createAppointment(
+                    AppointmentRequest(
+                        barberId, serviceId, date, time, notes.ifBlank { null },
+                        pagarAhora = payNow.takeIf { it },
+                        propinaSugerida = propina.takeIf { payNow && it > 0 }
+                    )
+                )
             } catch (e: Exception) {
-                _error.value = e.toFriendlyMessage("No se pudo reservar la cita.")
+                // Un 422 trae el motivo real (una cita por día, horario ocupado): se muestra tal cual.
+                _error.value = (e as? HttpException)?.takeIf { it.code() == 422 }?.serverMessage()
+                    ?: e.toFriendlyMessage("No se pudo reservar la cita.")
                 _busy.value = false
                 return@launch
             }
@@ -447,10 +458,10 @@ class BookingViewModel @JvmOverloads constructor(
                 BookingPayMethod.TRANSFERENCIA -> {
                     // El comprobante es opcional al reservar: si no lo trae, lo sube después desde Mis citas.
                     _paymentNote.value = if (receiptUri == null) {
-                        "Transfiere a la CLABE que te mostramos y sube tu comprobante desde Mis citas."
+                        "Transfiere a la CLABE que te mostramos y sube tu comprobante desde Mis citas cuando el barbero confirme tu cita."
                     } else try {
                         if (context == null || code == null) error("sin datos")
-                        repo.uploadPaymentReceipt(context, code, propina, receiptUri)
+                        repo.uploadDepositReceipt(context, code, receiptUri)
                         "Recibimos tu comprobante. Te avisaremos cuando se verifique."
                     } catch (e: Exception) {
                         "Tu cita quedó reservada, pero no se pudo subir el comprobante. Súbelo desde Mis citas."
@@ -459,12 +470,11 @@ class BookingViewModel @JvmOverloads constructor(
                 }
                 BookingPayMethod.TARJETA -> {
                     try {
-                        if (id == null) error("sin id")
+                        if (code == null) error("sin código")
                         pendingDone = onDone; pendingId = id
-                        val secret = repo.stripeIntent(
-                            StripeIntentRequest(
-                                id,
-                                propina = propina,
+                        val secret = repo.depositStripeIntent(
+                            code,
+                            DepositIntentRequest(
                                 guardarTarjeta = (saveCard && savedCardId == null).takeIf { it },
                                 tarjetaGuardada = (savedCardId != null).takeIf { it }
                             )

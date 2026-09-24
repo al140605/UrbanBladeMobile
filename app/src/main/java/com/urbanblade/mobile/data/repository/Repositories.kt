@@ -93,6 +93,13 @@ class UrbanRepository(private val api: UrbanBladeApi) {
 
     suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
     suspend fun transferInfo() = api.transferInfo().data
+    suspend fun depositStripeIntent(code: String, body: DepositIntentRequest) = api.depositStripeIntent(code, body).data
+
+    suspend fun uploadDepositReceipt(context: Context, code: String, receiptUri: Uri): UploadPaymentReceiptResponse {
+        val comprobante = MediaUploadHelper.uriToPart(context, receiptUri, "comprobante")
+            ?: error("No se pudo leer el comprobante seleccionado.")
+        return api.uploadDepositReceipt(code, comprobante)
+    }
     suspend fun savedCards() = api.savedCards().data
     suspend fun savePushToken(token: String) = api.savePushToken(PushTokenRequest(token))
 
@@ -159,6 +166,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
         api.registerCashClose(RegisterCashCloseRequest(efectivoContado, notas))
 
     suspend fun adminMetrics() = api.adminMetrics().metrics
+    suspend fun adminStats() = api.adminStats()
     suspend fun systemStatus() = api.systemStatus()
     suspend fun raffles() = api.raffles()
 

@@ -2,6 +2,8 @@ package com.urbanblade.mobile.ui.viewmodel
 
 import com.urbanblade.mobile.data.model.CreateAppointmentResponse
 import com.urbanblade.mobile.data.model.CreatedAppointmentData
+import com.urbanblade.mobile.data.model.AppointmentRequest
+import com.urbanblade.mobile.data.model.DepositIntentRequest
 import com.urbanblade.mobile.data.model.MessageResponse
 import com.urbanblade.mobile.data.model.StripeIntentRequest
 import com.urbanblade.mobile.data.model.StripeIntentResponseData
@@ -9,6 +11,10 @@ import com.urbanblade.mobile.data.model.TransferInfo
 import com.urbanblade.mobile.data.model.WaitlistJoinResponse
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import kotlinx.coroutines.Dispatchers
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -81,13 +87,13 @@ class BookingViewModelTest {
 
         assertEquals("abc123", doneId)
         assertEquals("Pagas en el salón el día de tu cita.", vm.paymentNote.value)
-        verify(repo, never()).stripeIntent(any())
+        verify(repo, never()).depositStripeIntent(any(), any())
     }
 
     @Test
     fun `reserve con tarjeta pide el intent con la propina y espera la confirmacion`() = runTest(dispatcher) {
         whenever(repo.createAppointment(any())).thenReturn(created())
-        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
 
         val vm = BookingViewModel(repo)
         var doneId: String? = null
@@ -96,7 +102,9 @@ class BookingViewModelTest {
 
         assertEquals(CardConfirm("secret_1", null), vm.cardConfirm.value)
         assertEquals(null, doneId) // todavia no: falta que Stripe confirme la tarjeta
-        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 50.0))
+        // La cita se crea con "pagar ahora" y la propina; barber fija el monto y se cobra por el depósito.
+        verify(repo).createAppointment(AppointmentRequest("b1", "s1", "2026-10-01", "10:00", null, pagarAhora = true, propinaSugerida = 50.0))
+        verify(repo).depositStripeIntent("UB-1", DepositIntentRequest())
 
         vm.onCardResult(completed = true, canceled = false, reason = null)
         assertEquals("abc123", doneId)
@@ -107,7 +115,7 @@ class BookingViewModelTest {
     @Test
     fun `reserve con tarjeta cancelada deja la cita reservada y lo avisa`() = runTest(dispatcher) {
         whenever(repo.createAppointment(any())).thenReturn(created())
-        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
 
         val vm = BookingViewModel(repo)
         var doneId: String? = null
@@ -129,32 +137,34 @@ class BookingViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals("abc123", doneId)
-        assertEquals("Transfiere a la CLABE que te mostramos y sube tu comprobante desde Mis citas.", vm.paymentNote.value)
+        assertEquals("Transfiere a la CLABE que te mostramos y sube tu comprobante desde Mis citas cuando el barbero confirme tu cita.", vm.paymentNote.value)
+        // Sin comprobante no es "pagar ahora": la cita queda normal y se paga después.
+        verify(repo).createAppointment(AppointmentRequest("b1", "s1", "2026-10-01", "10:00", null))
     }
 
     @Test
     fun `reserve con tarjeta guardada la manda al intent y la usa al confirmar`() = runTest(dispatcher) {
         whenever(repo.createAppointment(any())).thenReturn(created())
-        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_2", "pi_2"))
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_2", "pi_2"))
 
         val vm = BookingViewModel(repo)
         vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null, savedCardId = "pm_42", saveCard = true) { }
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 0.0, tarjetaGuardada = true))
+        verify(repo).depositStripeIntent("UB-1", DepositIntentRequest(tarjetaGuardada = true))
         assertEquals(CardConfirm("secret_2", "pm_42"), vm.cardConfirm.value)
     }
 
     @Test
     fun `reserve con tarjeta nueva pide guardarla solo si el cliente lo marco`() = runTest(dispatcher) {
         whenever(repo.createAppointment(any())).thenReturn(created())
-        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_3", "pi_3"))
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_3", "pi_3"))
 
         val vm = BookingViewModel(repo)
         vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null, saveCard = true) { }
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 0.0, guardarTarjeta = true))
+        verify(repo).depositStripeIntent("UB-1", DepositIntentRequest(guardarTarjeta = true))
     }
 
     @Test
@@ -168,6 +178,22 @@ class BookingViewModelTest {
 
         assertEquals(TransferInfo(), vm.transferInfo.value)
         assertTrue(vm.savedCards.value.isEmpty())
+    }
+
+    @Test
+    fun `reserve muestra el motivo real cuando el servidor rechaza la cita`() = runTest(dispatcher) {
+        val body = """{"message":"Ya tienes una cita agendada para el viernes 25 de septiembre. Solo se permite una cita por día."}"""
+            .toResponseBody("application/json".toMediaType())
+        whenever(repo.createAppointment(any())).thenAnswer { throw HttpException(Response.error<Any>(422, body)) }
+
+        val vm = BookingViewModel(repo)
+        var called = false
+        vm.reserve(null, "b1", "s1", "2026-09-25", "16:00", "", BookingPayMethod.TARJETA, 0.0, null) { called = true }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Ya tienes una cita agendada para el viernes 25 de septiembre. Solo se permite una cita por día.", vm.error.value)
+        assertFalse(called)
+        verify(repo, never()).depositStripeIntent(any(), any())
     }
 
     @Test
