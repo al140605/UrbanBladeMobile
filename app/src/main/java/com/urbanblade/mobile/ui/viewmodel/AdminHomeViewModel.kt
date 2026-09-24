@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 data class AdminHomeState(
     val kpis: JsonObject? = null,
     val pendingPayments: Int = 0,
+    val occupancyRate: Int? = null,
     val loading: Boolean = false,
     val error: String? = null
 )
@@ -32,7 +33,17 @@ class AdminHomeViewModel @JvmOverloads constructor(
                 val kpis = dashboard.data.getAsJsonObject("kpis") ?: dashboard.data
                 // Si falla la consulta de pagos por verificar, el resto del resumen se muestra igual.
                 val pending = runCatching { repo.pendingPayments().data.size }.getOrDefault(0)
-                _state.value = AdminHomeState(kpis = kpis, pendingPayments = pending)
+                val occupancy = runCatching {
+                    repo.adminStats()
+                        .getAsJsonObject("stats")
+                        ?.get("occupancyRate")
+                        ?.asInt
+                }.getOrNull()
+                _state.value = AdminHomeState(
+                    kpis = kpis,
+                    pendingPayments = pending,
+                    occupancyRate = occupancy
+                )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     loading = false,

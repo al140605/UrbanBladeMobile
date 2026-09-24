@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -56,10 +57,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -71,6 +74,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.R
 import kotlinx.coroutines.delay
 
 /**
@@ -78,32 +82,40 @@ import kotlinx.coroutines.delay
  * así que respeta los cuatro temas (incluido el claro).
  */
 
-/** Fondo con atmósfera: degradado del tema y un resplandor del color de acento arriba. */
+/**
+ * Fondo editorial compartido por bienvenida y autenticación. La fotografía es un asset local
+ * (nunca depende de red) y las capas oscuras mantienen el contraste de textos y formularios.
+ */
 @Composable
 fun AuthBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    val top = UrbanColors.GradientTop
-    val middle = UrbanColors.Background
-    val bottom = UrbanColors.GradientBottom
-    val glow = UrbanColors.Gold
-    Box(
-        modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(top, middle, bottom)))
-            .drawBehind {
-                val center = Offset(size.width * 0.5f, size.height * 0.16f)
-                val radius = size.width * 0.95f
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(glow.copy(alpha = 0.20f), Color.Transparent),
-                        center = center,
-                        radius = radius
-                    ),
-                    radius = radius,
-                    center = center
+    Box(modifier.fillMaxSize().background(Color(0xFF090A0C))) {
+        Image(
+            painter = painterResource(R.drawable.auth_barbershop_background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0xB808090B),
+                        0.42f to Color(0x8508090B),
+                        0.74f to Color(0xB808090B),
+                        1f to Color(0xF208090B)
+                    )
                 )
-            },
-        content = content
-    )
+                .drawBehind {
+                    drawRect(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xA8000000), Color.Transparent, Color(0x38000000))
+                        )
+                    )
+                }
+        )
+        content()
+    }
 }
 
 /** Entrada escalonada: cada bloque aparece con un pequeño retraso según su posición. */
@@ -335,12 +347,15 @@ fun AuthPrimaryButton(
                 scaleY = scale
             },
         shape = RoundedCornerShape(18.dp),
+        // Deshabilitado por formulario incompleto: gris con borde, claramente "aún no". Mientras carga
+        // sigue dorado (solo está ocupado). Antes el dorado apagado parecía un botón roto.
         colors = ButtonDefaults.buttonColors(
             containerColor = UrbanColors.Gold,
             contentColor = UrbanColors.OnGold,
-            disabledContainerColor = UrbanColors.GoldDim.copy(alpha = 0.35f),
-            disabledContentColor = UrbanColors.OnGold.copy(alpha = 0.5f)
-        )
+            disabledContainerColor = if (enabled) UrbanColors.Gold else UrbanColors.Card,
+            disabledContentColor = if (enabled) UrbanColors.OnGold else UrbanColors.Muted
+        ),
+        border = if (enabled) null else androidx.compose.foundation.BorderStroke(1.dp, UrbanColors.Line)
     ) {
         if (loading) {
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = UrbanColors.OnGold)

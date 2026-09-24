@@ -499,7 +499,7 @@ private fun AuthScaffold(
                 Spacer(Modifier.size(48.dp))
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
             StaggerIn(0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -508,32 +508,36 @@ private fun AuthScaffold(
                         Spacer(Modifier.height(6.dp))
                         Text(
                             title,
-                            style = MaterialTheme.typography.displaySmall,
+                            style = MaterialTheme.typography.headlineMedium,
                             color = UrbanColors.Ink,
                             modifier = Modifier.semantics { heading() }
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Muted)
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Image(
-                        painter = painterResource(UrbanColors.current.mascot(mood)),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(84.dp)
-                    )
+                    // La mascota solo aparece cuando comunica algo (un error o un envío correcto);
+                    // en reposo era tan pequeña que no se reconocía y apretaba el título.
+                    if (mood != MascotMood.DEFAULT) {
+                        Spacer(Modifier.width(12.dp))
+                        Image(
+                            painter = painterResource(UrbanColors.current.mascot(mood)),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(84.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             Column(
                 Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 content = content
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
         }
     }
 }

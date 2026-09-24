@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -76,6 +77,15 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
     }
 }
 
+/** Etiqueta y color de cada evento de la bitácora (activitylog usa created/updated/deleted). */
+internal fun logEventStyle(event: String?): Pair<String, androidx.compose.ui.graphics.Color> = when (event?.lowercase()) {
+    "created" -> "Creó" to UrbanColors.Success
+    "updated" -> "Editó" to UrbanColors.Info
+    "deleted" -> "Eliminó" to UrbanColors.Danger
+    null, "" -> "Actividad" to UrbanColors.Muted
+    else -> event.replaceFirstChar { it.uppercase() } to UrbanColors.Gold
+}
+
 @Composable
 fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
     val logs by vm.logs.collectAsState()
@@ -83,71 +93,92 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
     val error by vm.error.collectAsState()
     var search by remember { mutableStateOf("") }
     var eventFilter by remember { mutableStateOf<String?>(null) }
+    val reload = { vm.load(search.takeIf { it.isNotBlank() }, event = eventFilter) }
 
-    LaunchedEffect(eventFilter) { vm.load(search.takeIf { it.isNotBlank() }, event = eventFilter) }
+    LaunchedEffect(eventFilter) { reload() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Logs de actividad", onBack) { IconButton(onClick = { vm.load(search.takeIf { it.isNotBlank() }, event = eventFilter) }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Hoy", logs.stats.hoy.toString(), Icons.Default.Today, Modifier.weight(1f))
-                    UrbanMetricCard("Creados", logs.stats.creates.toString(), Icons.Default.AddCircle, Modifier.weight(1f))
-                    UrbanMetricCard("Eliminados", logs.stats.deletes.toString(), Icons.Default.RemoveCircle, Modifier.weight(1f))
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text("Buscar en descripción…") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.load(search.takeIf { it.isNotBlank() }, event = eventFilter) }),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
+    UrbanModuleScreen(
+        eyebrow = "ANÁLISIS",
+        title = "Logs de actividad",
+        subtitle = "Quién hizo qué y cuándo en el sistema.",
+        onBack = onBack,
+        onRefresh = { reload() },
+        refreshing = busy
+    ) {
+        item {
+            UrbanHeroCard {
+                UrbanHeroLabel("Actividad de hoy")
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    UrbanFormat.count(logs.stats.hoy, "movimiento", "movimientos"),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = UrbanColors.Ink
                 )
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Creados", logs.stats.creates.toString(), Icons.Default.AddCircle, Modifier.weight(1f), tone = UrbanColors.Success)
+                    UrbanHeroStat("Eliminados", logs.stats.deletes.toString(), Icons.Default.RemoveCircle, Modifier.weight(1f), tone = UrbanColors.Danger)
+                }
             }
+        }
 
-            if (logs.events.isNotEmpty()) {
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = eventFilter == null, onClick = { eventFilter = null }, label = { Text("Todos") })
-                        logs.events.forEach { ev ->
-                            FilterChip(selected = eventFilter == ev, onClick = { eventFilter = if (eventFilter == ev) null else ev }, label = { Text(ev) })
-                        }
+        item {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                placeholder = { Text("Buscar en la descripción…") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { reload() }),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
+            )
+        }
+
+        if (logs.events.isNotEmpty()) {
+            item {
+                Row(
+                    Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(selected = eventFilter == null, onClick = { eventFilter = null }, label = { Text("Todos") })
+                    logs.events.forEach { ev ->
+                        FilterChip(
+                            selected = eventFilter == ev,
+                            onClick = { eventFilter = if (eventFilter == ev) null else ev },
+                            label = { Text(logEventStyle(ev).first) }
+                        )
                     }
                 }
             }
+        }
 
-            if (logs.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin registros", "No hay actividad que coincida con el filtro.", Icons.Default.History) }
+        when {
+            error != null && logs.data.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar la bitácora", error, "Reintentar") { reload() }
             }
-
-            items(logs.data) { log ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(log.description ?: log.logName ?: "—", style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(log.causer?.name ?: "Sistema", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
-                        log.event?.let { SimpleStatusPill(it) }
-                    }
-                    log.createdAt?.let {
-                        Spacer(Modifier.height(4.dp))
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                    }
+            logs.data.isEmpty() && !busy -> item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "Sin registros", "No hay actividad que coincida con la búsqueda o el filtro.")
+            }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                items(logs.data) { log ->
+                    val (label, tone) = logEventStyle(log.event)
+                    UrbanAttentionRow(
+                        icon = when (log.event?.lowercase()) {
+                            "created" -> Icons.Default.AddCircle
+                            "updated" -> Icons.Default.Edit
+                            "deleted" -> Icons.Default.RemoveCircle
+                            else -> Icons.Default.History
+                        },
+                        text = log.description ?: log.logName ?: "—",
+                        subtitle = listOfNotNull(log.causer?.name ?: "Sistema", log.createdAt).joinToString(" · "),
+                        tone = tone,
+                        trailing = { SimpleStatusPill(label, tone) }
+                    )
                 }
             }
         }

@@ -33,6 +33,13 @@ fun DashboardScreen(
         AdminHomeScreen(user, onNavigate)
         return
     }
+    // El ingeniero es de solo lectura: su inicio es la salud del servidor y sus módulos de análisis.
+    val engineerOnly = user.roles.contains("ingeniero") &&
+        user.roles.none { it in listOf("recepcionista", "barbero", "cliente") }
+    if (engineerOnly) {
+        EngineerHomeScreen(user, onNavigate)
+        return
+    }
     // El cliente tiene su propio inicio (próxima cita y atajos); el personal conserva el tablero.
     val clientOnly = user.roles.contains("cliente") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }

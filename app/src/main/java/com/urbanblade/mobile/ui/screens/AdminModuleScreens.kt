@@ -24,7 +24,9 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.*
 
-// ── Métricas de admin ────────────────────────────────────────────────────
+// ── Métricas del negocio ─────────────────────────────────────────────────
+
+private fun metricsMoney(value: Double) = "$" + "%,.0f".format(value)
 
 @Composable
 fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel()) {
@@ -33,61 +35,78 @@ fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Métricas del negocio", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
+    UrbanModuleScreen(
+        eyebrow = "ANÁLISIS",
+        title = "Métricas del negocio",
+        subtitle = "Lo acumulado: ingresos, clientes y cancelaciones.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        if (error != null) {
+            item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar las métricas", error, "Reintentar") { vm.load() }
+            }
+            return@UrbanModuleScreen
+        }
+        if (busy && metrics.totalRevenue == 0.0 && metrics.totalClients == 0) {
+            item { UrbanSkeletonList(2) }
+            return@UrbanModuleScreen
+        }
 
-            item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Text("Ingreso total", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
-                    Text(
-                        "$" + "%,.2f".format(metrics.totalRevenue),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = UrbanColors.Ink
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    UrbanKeyValue("Ingreso promedio por cita", "$" + "%,.2f".format(metrics.averageRevenuePerAppointment))
+        item {
+            UrbanHeroCard {
+                UrbanHeroLabel("Ingreso total")
+                Spacer(Modifier.height(6.dp))
+                Text(metricsMoney(metrics.totalRevenue), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                Text(
+                    "Promedio por cita: ${metricsMoney(metrics.averageRevenuePerAppointment)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Clientes", metrics.totalClients.toString(), Icons.Default.Groups, Modifier.weight(1f))
+                    UrbanHeroStat("Barberos activos", metrics.activeBarbers.toString(), Icons.Default.ContentCut, Modifier.weight(1f))
                 }
             }
-            item {
-                val rate = metrics.cancellationRate
-                // Hasta 10 % de cancelaciones es normal; más de 20 % ya pide intervenir (recordatorios, depósitos).
-                val tone = when {
-                    rate < 10.0 -> UrbanColors.Success
-                    rate < 20.0 -> UrbanColors.Warning
-                    else -> UrbanColors.Danger
-                }
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        UrbanRingGauge(fraction = (rate / 100.0).toFloat(), centerText = "%.1f%%".format(rate), color = tone)
-                        Column(Modifier.weight(1f)) {
-                            Text("Tasa de cancelación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                            Text(
-                                when {
-                                    rate < 10.0 -> "Saludable: pocas citas se pierden."
-                                    rate < 20.0 -> "Vigílala: recordatorios y depósitos ayudan a bajarla."
-                                    else -> "Alta: cada cancelación es un hueco sin ingreso."
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = UrbanColors.Muted
-                            )
-                        }
+        }
+
+        item { UrbanSectionTitle("Cancelaciones", "Cada cita cancelada es un hueco sin ingreso.") }
+        item {
+            val rate = metrics.cancellationRate
+            // Hasta 10 % de cancelaciones es normal; más de 20 % ya pide intervenir (recordatorios, depósitos).
+            val tone = when {
+                rate < 10.0 -> UrbanColors.Success
+                rate < 20.0 -> UrbanColors.Warning
+                else -> UrbanColors.Danger
+            }
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    UrbanRingGauge(fraction = (rate / 100.0).toFloat(), centerText = "%.1f%%".format(rate), color = tone)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            when {
+                                rate < 10.0 -> "Saludable"
+                                rate < 20.0 -> "Vigílala"
+                                else -> "Alta"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = tone
+                        )
+                        Text(
+                            when {
+                                rate < 10.0 -> "Pocas citas se pierden."
+                                rate < 20.0 -> "Recordatorios y depósitos ayudan a bajarla."
+                                else -> "Revisa recordatorios y la política de depósitos."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = UrbanColors.Muted
+                        )
                     }
-                }
-            }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    UrbanMetricCard("Clientes", metrics.totalClients.toString(), Icons.Default.Groups, Modifier.weight(1f))
-                    UrbanMetricCard("Barberos activos", metrics.activeBarbers.toString(), Icons.Default.ContentCut, Modifier.weight(1f))
                 }
             }
         }
@@ -103,84 +122,99 @@ fun SystemStatusScreen(onBack: () -> Unit, vm: SystemStatusViewModel = viewModel
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Estado del sistema", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            status?.let { s ->
-                item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Text(s.app.name ?: "UrbanBlade", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                        Spacer(Modifier.height(8.dp))
-                        UrbanKeyValue("Entorno", s.app.env ?: "—")
-                        UrbanKeyValue("Laravel", s.app.laravelVersion ?: "—", Modifier.padding(top = 6.dp))
-                        UrbanKeyValue("PHP", s.app.phpVersion ?: "—", Modifier.padding(top = 6.dp))
-                    }
-                }
-                item { ServiceStatusCard("Base de datos (MongoDB)", s.database) }
-                item { ServiceStatusCard("Redis", s.redis) }
-                item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Text("Cola de trabajos", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                        Spacer(Modifier.height(8.dp))
-                        UrbanKeyValue("Conexión", s.queue.connection ?: "—")
-                        UrbanKeyValue("Pendientes", s.queue.pending?.toString() ?: "—", Modifier.padding(top = 6.dp))
-                        UrbanKeyValue("Fallidos", s.queue.failed?.toString() ?: "—", Modifier.padding(top = 6.dp))
-                    }
-                }
-                if (s.scheduledTasks.isNotEmpty()) {
-                    item { UrbanSectionTitle("Tareas programadas", "${s.scheduledTasks.size} tareas") }
-                    items(s.scheduledTasks) { task ->
-                        UrbanCard(Modifier.fillMaxWidth()) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(task.name ?: "—", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    task.expression?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                task.status?.let { SimpleStatusPill(it) }
-                            }
-                            task.ranAt?.let {
-                                Spacer(Modifier.height(6.dp))
-                                UrbanKeyValue("Última corrida", it)
-                            }
-                            task.error?.let {
-                                Spacer(Modifier.height(6.dp))
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger)
-                            }
-                        }
-                    }
-                }
+    UrbanModuleScreen(
+        eyebrow = "SISTEMA",
+        title = "Estado del sistema",
+        subtitle = "Servicios, cola de trabajos y tareas programadas.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        val s = status
+        when {
+            s == null && error != null -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos revisar el servidor", error, "Reintentar") { vm.load() }
             }
-            if (status == null && !busy && error == null) {
-                item { UrbanEmptyState("Sin información", "No se pudo obtener el estado del sistema.", Icons.Default.MonitorHeart) }
+            s == null -> item { UrbanSkeletonList(2) }
+            else -> {
+                val health = systemHealth(s)
+                item {
+                    UrbanHeroCard {
+                        UrbanHeroLabel(s.app.name ?: "UrbanBlade")
+                        Spacer(Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(healthIcon(health.level), null, tint = healthTone(health.level), modifier = Modifier.size(26.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text(health.headline, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                        Spacer(Modifier.height(14.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            UrbanHeroStat("Entorno", s.app.env ?: "—", Icons.Default.Cloud, Modifier.weight(1f))
+                            UrbanHeroStat("Laravel", s.app.laravelVersion ?: "—", Icons.Default.Code, Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text("PHP ${s.app.phpVersion ?: "—"}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    }
+                }
+
+                if (health.issues.isNotEmpty()) {
+                    item { UrbanSectionTitle("Requiere tu atención", "Ordenado de más a menos grave.") }
+                    health.issues.forEach { issue ->
+                        item { UrbanAttentionRow(healthIcon(issue.level), issue.title, issue.detail, healthTone(issue.level)) }
+                    }
+                }
+
+                item { UrbanSectionTitle("Servicios", "Conexión y tiempo de respuesta.") }
+                item { ServiceRow("Base de datos (MongoDB)", Icons.Default.Storage, s.database) }
+                item { ServiceRow("Redis", Icons.Default.Memory, s.redis) }
+                item {
+                    val failed = s.queue.failed ?: 0
+                    UrbanAttentionRow(
+                        Icons.Default.Dns,
+                        "Cola de trabajos",
+                        "${s.queue.connection ?: "—"} · ${s.queue.pending ?: 0} pendientes · $failed fallidos",
+                        if (failed > 0) UrbanColors.Warning else UrbanColors.Success
+                    )
+                }
+
+                if (s.scheduledTasks.isNotEmpty()) {
+                    item { UrbanSectionTitle("Tareas programadas", UrbanFormat.count(s.scheduledTasks.size, "tarea", "tareas")) }
+                    items(s.scheduledTasks) { task ->
+                        val failed = task.status.equals("failed", ignoreCase = true)
+                        val ok = task.status.equals("success", ignoreCase = true)
+                        UrbanAttentionRow(
+                            icon = if (failed) Icons.Default.Error else Icons.Default.Schedule,
+                            text = task.name ?: "—",
+                            subtitle = listOfNotNull(
+                                task.expression,
+                                task.ranAt?.let { "Última: $it" },
+                                task.error
+                            ).joinToString(" · ").ifBlank { null },
+                            tone = when {
+                                failed -> UrbanColors.Danger
+                                ok -> UrbanColors.Success
+                                else -> UrbanColors.Muted
+                            },
+                            trailing = { SimpleStatusPill(if (failed) "error" else if (ok) "ok" else "sin datos") }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ServiceStatusCard(title: String, service: SystemServiceStatus) {
-    UrbanCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-            SimpleStatusPill(service.status ?: "desconocido")
-        }
-        Spacer(Modifier.height(8.dp))
-        UrbanKeyValue("Latencia", service.latencyMs?.let { "${it} ms" } ?: "—")
-        service.error?.let {
-            Spacer(Modifier.height(6.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger)
-        }
-    }
+private fun ServiceRow(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, service: SystemServiceStatus) {
+    UrbanAttentionRow(
+        icon = icon,
+        text = title,
+        subtitle = service.error ?: service.latencyMs?.let { "Responde en $it ms" } ?: "Sin medición de latencia",
+        tone = serviceTone(service.status),
+        trailing = { SimpleStatusPill(service.status ?: "desconocido") }
+    )
 }
 
 /**

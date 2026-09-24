@@ -102,7 +102,7 @@ fun UrbanBrandMark(compact: Boolean = false) {
             )
             if (!compact) {
                 Text(
-                    "BARBERSHOP · MOBILE",
+                    "SASTRERÍA NOCTURNA",
                     style = MaterialTheme.typography.labelMedium,
                     color = UrbanColors.Gold,
                 )
@@ -342,12 +342,14 @@ fun UrbanPrimaryButton(
         enabled = enabled && !loading,
         modifier = modifier.heightIn(min = 52.dp),
         shape = RoundedCornerShape(15.dp),
+        // Igual que AuthPrimaryButton: gris con borde si falta algo, dorado mientras carga.
         colors = ButtonDefaults.buttonColors(
             containerColor = UrbanColors.Gold,
             contentColor = UrbanColors.OnGold,
-            disabledContainerColor = UrbanColors.GoldDim.copy(alpha = 0.35f),
-            disabledContentColor = UrbanColors.OnGold.copy(alpha = 0.5f)
-        )
+            disabledContainerColor = if (enabled) UrbanColors.Gold else UrbanColors.Card,
+            disabledContentColor = if (enabled) UrbanColors.OnGold else UrbanColors.Muted
+        ),
+        border = if (enabled) null else BorderStroke(1.dp, UrbanColors.Line)
     ) {
         if (loading) {
             CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = UrbanColors.OnGold)

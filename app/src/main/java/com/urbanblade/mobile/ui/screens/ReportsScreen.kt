@@ -41,6 +41,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.ReportChart
 import com.urbanblade.mobile.data.model.ReportData
 import com.urbanblade.mobile.ui.components.UrbanBarChart
+import com.urbanblade.mobile.ui.components.UrbanHeroCard
+import com.urbanblade.mobile.ui.components.UrbanHeroLabel
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
@@ -84,51 +89,55 @@ fun ReportsScreen(onBack: () -> Unit, vm: ReportsViewModel = viewModel()) {
         vm.generate(selected, start, end)
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("Reportes", onBack) {
-                IconButton(onClick = { type?.let { t -> range.dates().let { (s, e) -> vm.generate(t, s, e) } } }, enabled = !busy) {
-                    Icon(Icons.Default.Refresh, "Actualizar")
+    val regenerate = { type?.let { t -> range.dates().let { (s, e) -> vm.generate(t, s, e) } } }
+
+    UrbanModuleScreen(
+        eyebrow = "ANÁLISIS",
+        title = "Reportes",
+        subtitle = "Elige qué quieres ver y el periodo; se genera solo.",
+        onBack = onBack,
+        onRefresh = { regenerate() },
+        refreshing = busy
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    manifest.types.forEach { t ->
+                        FilterChip(selected = type == t, onClick = { type = t }, label = { Text(TYPE_LABEL[t] ?: t) })
+                    }
+                }
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ReportRange.entries.forEach { option ->
+                        FilterChip(selected = range == option, onClick = { range = option }, label = { Text(option.label) })
+                    }
                 }
             }
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        manifest.types.forEach { t ->
-                            FilterChip(selected = type == t, onClick = { type = t }, label = { Text(TYPE_LABEL[t] ?: t) })
-                        }
-                    }
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ReportRange.entries.forEach { option ->
-                            FilterChip(selected = range == option, onClick = { range = option }, label = { Text(option.label) })
-                        }
-                    }
+
+        val r = report
+        when {
+            error != null && r == null -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos generar el reporte", error, "Reintentar") {
+                    if (type == null) vm.loadManifest() else regenerate()
                 }
             }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            report?.let { r ->
-                item { ReportHeader(r) }
+            r == null -> if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
+                item { ReportHeader(r, range.label) }
                 r.chart?.takeIf { it.values.isNotEmpty() && it.values.any { v -> v > 0.0 } }?.let { chart ->
                     item { ReportChartCard(chart) }
                 }
                 if (r.rows.isEmpty()) {
-                    if (!busy) item { UrbanEmptyState("Sin resultados", "No hay datos para este reporte en el rango elegido.", Icons.Default.Assessment) }
+                    if (!busy) item {
+                        UrbanMascotState(UrbanStateKind.EMPTY, "Sin datos en este periodo", "Prueba con un rango más amplio o con otro tipo de reporte.")
+                    }
                 } else {
                     item { UrbanSectionTitle("Detalle", UrbanFormat.count(r.rows.size, "registro", "registros")) }
                     items(r.rows.take(shown)) { row -> ReportRowCard(r, row) }
@@ -144,31 +153,27 @@ fun ReportsScreen(onBack: () -> Unit, vm: ReportsViewModel = viewModel()) {
                     }
                 }
             }
-            item {
-                Text(
-                    "Para descargar en PDF o Excel usa la versión web.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = UrbanColors.Muted
-                )
-            }
+        }
+        item {
+            Text(
+                "Para descargar en PDF o Excel usa la versión web.",
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
     }
 }
 
 @Composable
-private fun ReportHeader(report: ReportData) {
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Text(report.title ?: "Reporte", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+private fun ReportHeader(report: ReportData, rangeLabel: String) {
+    UrbanHeroCard {
+        UrbanHeroLabel(report.title ?: "Reporte")
+        Spacer(Modifier.height(6.dp))
         val chart = report.chart
         // Las gráficas "top N" (inventario, clientes) no cubren todo: sumarlas como total sería engañoso.
         val isTopN = chart?.title.orEmpty().contains("top", ignoreCase = true)
         if (chart != null && chart.values.isNotEmpty() && !isTopN) {
-            Text(
-                formatChartValue(chart.values.sum(), chart.unit),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = UrbanColors.Ink
-            )
+            Text(formatChartValue(chart.values.sum(), chart.unit), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
             Text(
                 "en total · " + UrbanFormat.count(report.rows.size, "registro", "registros"),
                 style = MaterialTheme.typography.bodySmall,
@@ -177,11 +182,13 @@ private fun ReportHeader(report: ReportData) {
         } else {
             Text(
                 UrbanFormat.count(report.rows.size, "registro", "registros"),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = UrbanColors.Ink
             )
         }
+        Spacer(Modifier.height(10.dp))
+        Text("Periodo: $rangeLabel", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
     }
 }
 

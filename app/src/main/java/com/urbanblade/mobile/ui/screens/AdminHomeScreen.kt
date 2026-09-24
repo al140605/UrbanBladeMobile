@@ -1,6 +1,8 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,11 +47,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.R
 import com.google.gson.JsonObject
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanAvatar
@@ -93,7 +99,6 @@ fun AdminHomeScreen(
     val kpis = state.kpis
     val firstName = user.name.substringBefore(' ')
     val lowStock = kpis.number("low_stock_count")?.toInt() ?: 0
-    val topBarber = kpis.text("top_barber_name")
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -123,7 +128,7 @@ fun AdminHomeScreen(
                 }
             }
             kpis != null -> {
-                item { TodayCard(kpis) }
+                item { TodayPulseCard(kpis, state.occupancyRate) }
 
                 item { UrbanSectionTitle("Requiere tu atención", "Lo que conviene revisar ahora.") }
                 item {
@@ -132,6 +137,8 @@ fun AdminHomeScreen(
                             AttentionRow(
                                 icon = Icons.Default.Payments,
                                 text = UrbanFormat.count(state.pendingPayments, "pago por verificar", "pagos por verificar"),
+                                subtitle = "Citas completadas · Revisa y confirma",
+                                tone = UrbanColors.Danger,
                                 onClick = { onNavigate("payments") }
                             )
                         }
@@ -139,6 +146,8 @@ fun AdminHomeScreen(
                             AttentionRow(
                                 icon = Icons.Default.Inventory2,
                                 text = UrbanFormat.count(lowStock, "producto con stock bajo", "productos con stock bajo"),
+                                subtitle = "Es momento de reabastecer",
+                                tone = UrbanColors.Warning,
                                 onClick = { onNavigate("inventory") }
                             )
                         }
@@ -148,34 +157,14 @@ fun AdminHomeScreen(
                     }
                 }
 
-                item { UrbanSectionTitle("Resumen del mes", "Así va este mes.") }
-                item { MonthGrid(kpis) }
-
-                if (topBarber != null) {
-                    item { TopBarberCard(topBarber, kpis.number("top_barber_total")) }
-                }
             }
         }
 
-        item { UrbanSectionTitle("Módulos", "Tu negocio, a un toque.") }
+        item { UrbanSectionTitle("Acciones rápidas", "Lo esencial, siempre a la mano.") }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeTile("Citas", "Agenda del negocio", Icons.Default.CalendarMonth, { onNavigate("appointments") }, Modifier.weight(1f), highlighted = true)
-                    HomeTile("Pagos", "Cobros y comprobantes", Icons.Default.Payments, { onNavigate("payments") }, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeTile("Clientes", "Atención y gestión", Icons.Default.People, { onNavigate("clients") }, Modifier.weight(1f))
-                    HomeTile("Inventario", "Stock y movimientos", Icons.Default.Inventory2, { onNavigate("inventory") }, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeTile("Reportes", "Datos del negocio", Icons.Default.Assessment, { onNavigate("reports") }, Modifier.weight(1f))
-                    HomeTile("Corte de caja", "Resumen del turno", Icons.Default.PointOfSale, { onNavigate("cash") }, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeTile("Servicios", "Catálogo y precios", Icons.Default.ContentCut, { onNavigate("services_admin") }, Modifier.weight(1f))
-                    HomeTile("Barberos", "Equipo y comisiones", Icons.Default.Badge, { onNavigate("barbers_admin") }, Modifier.weight(1f))
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                HomeTile("Agenda", "Ver y gestionar citas", Icons.Default.CalendarMonth, { onNavigate("appointments") }, Modifier.weight(1f), highlighted = true)
+                HomeTile("Caja", "Cobros, ingresos y cierre", Icons.Default.PointOfSale, { onNavigate("cash") }, Modifier.weight(1f))
             }
         }
         item { Spacer(Modifier.height(4.dp)) }
@@ -183,34 +172,55 @@ fun AdminHomeScreen(
 }
 
 @Composable
-private fun TodayCard(kpis: JsonObject) {
+private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
     val incomeToday = kpis.number("income_today") ?: 0.0
     val appointmentsToday = kpis.number("appointments_today")?.toInt() ?: 0
     val incomeWeek = kpis.number("income_week")
     val appointmentsWeek = kpis.number("appointments_week")?.toInt()
 
-    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        Text(
-            "HOY",
-            style = MaterialTheme.typography.labelMedium,
-            color = UrbanColors.Gold,
-            modifier = Modifier.semantics { heading() }
+    val shape = MaterialTheme.shapes.large
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(1.dp, UrbanColors.Gold.copy(alpha = 0.45f), shape)
+    ) {
+        Image(
+            painter = painterResource(R.drawable.auth_barbershop_background),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize()
         )
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
-                Text("Ingresos", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Text(money(incomeToday), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color(0xF2161210), Color(0xD9110F0E), Color(0x74110F0E))
+                    )
+                )
+        )
+        Column(Modifier.padding(18.dp)) {
+            Text(
+                "INGRESOS DE HOY",
+                style = MaterialTheme.typography.labelMedium,
+                color = UrbanColors.Gold,
+                modifier = Modifier.semantics { heading() }
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(money(incomeToday), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+            kpis.number("income_growth")?.let { growth ->
+                Spacer(Modifier.height(4.dp))
+                TrendPill("vs. periodo anterior", growth)
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Citas", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Text(appointmentsToday.toString(), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Gold)
+            Spacer(Modifier.height(18.dp))
+            HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+            Spacer(Modifier.height(14.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                PulseMetric("Citas hoy", appointmentsToday.toString(), Icons.Default.CalendarMonth, Modifier.weight(1f))
+                PulseMetric("Ocupación", occupancyRate?.let { "$it%" } ?: "—", Icons.Default.People, Modifier.weight(1f))
             }
-        }
-        Spacer(Modifier.height(14.dp))
-        HorizontalDivider(color = UrbanColors.Line)
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.height(12.dp))
             Text(
                 buildString {
                     append("Esta semana: ")
@@ -219,17 +229,27 @@ private fun TodayCard(kpis: JsonObject) {
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Muted,
-                modifier = Modifier.weight(1f)
             )
         }
-        val incomeGrowth = kpis.number("income_growth")
-        val appointmentGrowth = kpis.number("appointment_growth")
-        if (incomeGrowth != null || appointmentGrowth != null) {
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TrendPill("Ingresos", incomeGrowth)
-                TrendPill("Citas", appointmentGrowth)
-            }
+    }
+}
+
+@Composable
+private fun PulseMetric(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(UrbanColors.Gold.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(19.dp))
+        }
+        Spacer(Modifier.width(9.dp))
+        Column {
+            Text(value, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
     }
 }
@@ -261,20 +281,29 @@ private fun TrendPill(label: String, percent: Double?) {
 }
 
 @Composable
-private fun AttentionRow(icon: ImageVector, text: String, onClick: () -> Unit) {
+private fun AttentionRow(
+    icon: ImageVector,
+    text: String,
+    subtitle: String,
+    tone: Color,
+    onClick: () -> Unit
+) {
     UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(UrbanColors.Warning.copy(alpha = 0.16f)),
+                    .background(tone.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = UrbanColors.Warning, modifier = Modifier.size(20.dp))
+                Icon(icon, null, tint = tone, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(12.dp))
-            Text(text, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
+            Column(Modifier.weight(1f)) {
+                Text(text, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            }
             Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted)
         }
     }

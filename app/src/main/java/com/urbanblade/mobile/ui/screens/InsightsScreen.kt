@@ -45,85 +45,114 @@ fun InsightsScreen(onBack: () -> Unit, vm: InsightsViewModel = viewModel()) {
 
     val isEmpty = data.revenue == null && data.appointments == null && data.serviceConcentration == null
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Insights IA", onBack) { IconButton(onClick = { vm.load() }, enabled = !busy) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (busy) {
-                item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
-                            Spacer(Modifier.width(12.dp))
-                            Text("Calculando tendencias sobre el historial reciente…", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
+    val statuses = listOfNotNull(data.revenue?.status, data.appointments?.status, data.serviceConcentration?.status)
+    val attention = statuses.count { it == "warning" || it == "negative" }
+
+    UrbanModuleScreen(
+        eyebrow = "ANÁLISIS",
+        title = "Insights IA",
+        subtitle = "Tendencias calculadas sobre el historial reciente.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        when {
+            error != null && isEmpty -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos calcular los insights", error, "Reintentar") { vm.load() }
+            }
+            busy && isEmpty -> item {
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Calculando tendencias sobre el historial reciente…", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                     }
                 }
             }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            data.revenue?.let { revenue ->
-                item {
-                    InsightCard("Ingresos", Icons.Default.TrendingUp, revenue.status, revenue.message) {
-                        revenue.avgDaily?.let { BigNumber("Promedio diario", "$" + "%,.0f".format(it)) }
-                    }
-                }
+            isEmpty -> item {
+                UrbanMascotState(UrbanStateKind.EMPTY, "Sin insights todavía", "Se necesitan más datos históricos para generar recomendaciones.")
             }
-
-            data.appointments?.let { appts ->
+            else -> {
+                error?.let { item { UrbanErrorBanner(it) } }
                 item {
-                    InsightCard("Citas", Icons.Default.CalendarMonth, appts.status, appts.message) {
-                        val avg = appts.avgDaily
-                        val recent = appts.trend7d
-                        if (avg != null && recent != null) {
-                            // Comparar el ritmo reciente contra el promedio se lee mejor con barras que con dos números.
-                            UrbanHBars(
-                                labels = listOf("Promedio diario", "Últimos 7 días"),
-                                values = listOf(avg, recent),
-                                color = statusColor(appts.status),
-                                format = { "%.1f".format(it) }
+                    UrbanHeroCard {
+                        UrbanHeroLabel("Resumen")
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            if (attention == 0) "Todo va bien" else UrbanFormat.count(attention, "señal requiere atención", "señales requieren atención"),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = UrbanColors.Ink
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                        Spacer(Modifier.height(14.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            UrbanHeroStat("Analizadas", statuses.size.toString(), Icons.Default.Insights, Modifier.weight(1f))
+                            UrbanHeroStat(
+                                "Por revisar",
+                                attention.toString(),
+                                Icons.Default.Warning,
+                                Modifier.weight(1f),
+                                tone = if (attention > 0) UrbanColors.Warning else UrbanColors.Success
                             )
-                        } else {
-                            avg?.let { BigNumber("Promedio diario", "%.1f".format(it)) }
                         }
                     }
                 }
-            }
 
-            data.serviceConcentration?.let { service ->
-                item {
-                    InsightCard("Concentración de servicios", Icons.Default.PieChart, service.status, service.message) {
-                        val percent = service.percentage
-                        if (percent != null) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                UrbanRingGauge(
-                                    fraction = (percent / 100.0).toFloat(),
-                                    centerText = "%.0f%%".format(percent),
-                                    color = statusColor(service.status)
+                data.revenue?.let { revenue ->
+                    item {
+                        InsightCard("Ingresos", Icons.Default.TrendingUp, revenue.status, revenue.message) {
+                            revenue.avgDaily?.let { BigNumber("Promedio diario", "$" + "%,.0f".format(it)) }
+                        }
+                    }
+                }
+
+                data.appointments?.let { appts ->
+                    item {
+                        InsightCard("Citas", Icons.Default.CalendarMonth, appts.status, appts.message) {
+                            val avg = appts.avgDaily
+                            val recent = appts.trend7d
+                            if (avg != null && recent != null) {
+                                // Comparar el ritmo reciente contra el promedio se lee mejor con barras que con dos números.
+                                UrbanHBars(
+                                    labels = listOf("Promedio diario", "Últimos 7 días"),
+                                    values = listOf(avg, recent),
+                                    color = statusColor(appts.status),
+                                    format = { "%.1f".format(it) }
                                 )
-                                Column(Modifier.weight(1f)) {
-                                    service.topService?.let { BigNumber("Servicio principal", it) }
-                                    Text(
-                                        "de los ingresos vienen de un solo servicio",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = UrbanColors.Muted
-                                    )
-                                }
+                            } else {
+                                avg?.let { BigNumber("Promedio diario", "%.1f".format(it)) }
                             }
-                        } else {
-                            service.topService?.let { BigNumber("Servicio principal", it) }
                         }
                     }
                 }
-            }
 
-            if (isEmpty && !busy) {
-                item { UrbanEmptyState("Sin insights todavía", "Se necesitan más datos históricos para generar recomendaciones.", Icons.Default.Lightbulb) }
+                data.serviceConcentration?.let { service ->
+                    item {
+                        InsightCard("Concentración de servicios", Icons.Default.PieChart, service.status, service.message) {
+                            val percent = service.percentage
+                            if (percent != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    UrbanRingGauge(
+                                        fraction = (percent / 100.0).toFloat(),
+                                        centerText = "%.0f%%".format(percent),
+                                        color = statusColor(service.status)
+                                    )
+                                    Column(Modifier.weight(1f)) {
+                                        service.topService?.let { BigNumber("Servicio principal", it) }
+                                        Text(
+                                            "de los ingresos vienen de un solo servicio",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = UrbanColors.Muted
+                                        )
+                                    }
+                                }
+                            } else {
+                                service.topService?.let { BigNumber("Servicio principal", it) }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

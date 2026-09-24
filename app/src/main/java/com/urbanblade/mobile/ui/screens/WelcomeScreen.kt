@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,14 +34,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.components.AuthBackdrop
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
 import com.urbanblade.mobile.ui.components.StaggerIn
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
-import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.theme.MascotMood
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
@@ -65,44 +65,52 @@ fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, sessionExpired: B
             Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 28.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            Spacer(Modifier.weight(1f))
+            StaggerIn(0) { UrbanBrandMark() }
+            Spacer(Modifier.height(36.dp))
 
-            StaggerIn(0) {
-                Image(
-                    painter = painterResource(UrbanColors.current.mascot(MascotMood.WELCOME)),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(232.dp)
-                        .graphicsLayer { translationY = bob.dp.toPx() }
+            StaggerIn(1) {
+                Text(
+                    "MÁS QUE UN CORTE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = UrbanColors.Gold,
+                    fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(Modifier.height(20.dp))
-            StaggerIn(1) { UrbanBrandMark() }
-            Spacer(Modifier.height(20.dp))
-            StaggerIn(2) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "Tu estilo. Tu tiempo.",
-                        style = MaterialTheme.typography.displaySmall,
-                        color = UrbanColors.Ink,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.semantics { heading() }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "Reserva con tu barbero, compra lo mejor y sigue tus beneficios, todo desde tu bolsillo.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = UrbanColors.Muted,
-                        textAlign = TextAlign.Center
+            Spacer(Modifier.height(12.dp))
+
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                StaggerIn(2, Modifier.align(Alignment.TopStart)) {
+                    Column(Modifier.fillMaxWidth(0.76f)) {
+                        Text(
+                            "Tu estilo. Tu tiempo.",
+                            style = MaterialTheme.typography.displaySmall,
+                            color = UrbanColors.Ink,
+                            modifier = Modifier.semantics { heading() }
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Reserva con tu barbero favorito, compra lo mejor y disfruta de tus beneficios.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = UrbanColors.Muted,
+                        )
+                    }
+                }
+                StaggerIn(3, Modifier.align(Alignment.BottomEnd)) {
+                    Image(
+                        painter = painterResource(UrbanColors.current.mascot(MascotMood.WELCOME)),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .padding(bottom = 88.dp)
+                            .size(300.dp)
+                            .graphicsLayer { translationY = bob.dp.toPx() }
                     )
                 }
             }
-
-            Spacer(Modifier.weight(1.1f))
+            Spacer(Modifier.height(20.dp))
 
             if (sessionExpired) {
                 UrbanInfoBanner("Tu sesión venció. Inicia sesión de nuevo para continuar.", Icons.Default.Lock)
@@ -110,22 +118,24 @@ fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, sessionExpired: B
             }
 
             StaggerIn(4) {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AuthPrimaryButton(
                         text = "Crear mi cuenta",
                         onClick = onRegister,
                         icon = Icons.Default.PersonAdd,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    UrbanOutlineButton(
-                        text = "Ya tengo cuenta",
+                    TextButton(
                         onClick = onLogin,
-                        icon = Icons.Default.Login,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                    ) {
+                        Text("Iniciar sesión", color = UrbanColors.Gold, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.size(8.dp))
+                        androidx.compose.material3.Icon(Icons.Default.Login, contentDescription = null, tint = UrbanColors.Gold)
+                    }
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
         }
     }
 }

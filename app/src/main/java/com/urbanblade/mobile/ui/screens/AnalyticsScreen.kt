@@ -103,7 +103,7 @@ private fun SectionContent(section: AnalyticsSection) {
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
         if (section.insights.isEmpty()) {
-            UrbanEmptyState("Sin datos todavía", "Esta sección se llena conforme haya más actividad.", Icons.Default.Insights)
+            UrbanMascotState(UrbanStateKind.EMPTY, "Sin datos todavía", "Esta sección se llena conforme haya más actividad.")
         } else {
             section.insights.forEach { InsightCard(it) }
         }
@@ -126,96 +126,123 @@ fun AnalyticsScreen(onBack: () -> Unit, vm: AnalyticsViewModel = viewModel()) {
         "Predicción" to data.secciones.prediccion,
     )
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Analítica", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            data.ultimaActualizacion?.let {
-                item { Text("Actualizado: $it", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-            }
+    val hasData = data.kpis.isNotEmpty() || data.operational != null || data.sparkFlow.isNotEmpty()
 
-            if (data.kpis.isNotEmpty()) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        data.kpis.chunked(2).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                row.forEach { kpi ->
-                                    UrbanMetricCard(kpi.label ?: "—", kpi.value ?: "—", Icons.Default.TrendingUp, Modifier.weight(1f))
-                                }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-            }
+    UrbanModuleScreen(
+        eyebrow = "ANÁLISIS",
+        title = "Analítica",
+        subtitle = "Operación, clientes y predicción en un solo lugar.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        if (error != null && !hasData) {
+            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar la analítica", error, "Reintentar") { vm.load() } }
+            return@UrbanModuleScreen
+        }
+        if (busy && !hasData) {
+            item { UrbanSkeletonList(2) }
+            return@UrbanModuleScreen
+        }
+        error?.let { item { UrbanErrorBanner(it) } }
 
-            data.operational?.let { operational ->
-                item { UrbanSectionTitle("Operación de hoy", "Citas, pagos y pendientes") }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        operational.kpis.chunked(2).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                row.forEach { kpi ->
-                                    UrbanMetricCard(kpi.label ?: "—", kpi.value.toInt().toString(), Icons.Default.Today, Modifier.weight(1f))
-                                }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-                if (operational.actions.isNotEmpty()) {
-                    items(operational.actions) { action ->
-                        UrbanInfoBanner("${action.label}: ${action.detail}", Icons.Default.PriorityHigh)
-                    }
-                }
-            }
-
-            if (data.sparkFlow.isNotEmpty()) {
-                item { UrbanSectionTitle("Cobertura de la analítica", "Qué tan completo está cada bloque") }
-                items(data.sparkFlow) { step ->
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(step.titulo ?: "—", style = MaterialTheme.typography.titleMedium)
-                            Text("${step.count}/${step.total}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
-                        step.descripcion?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-                        Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            progress = { (step.progress / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                            color = colorFor(step.color),
-                            trackColor = UrbanColors.Line
-                        )
-                    }
-                }
-            }
-
-            item { UrbanSectionTitle("Secciones", "Detalle por área") }
+        val heroKpis = data.kpis.take(2)
+        if (heroKpis.isNotEmpty()) {
             item {
-                ScrollableTabRow(
-                    selectedTabIndex = tab,
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    contentColor = UrbanColors.Gold,
-                    edgePadding = 0.dp
-                ) {
-                    tabs.forEachIndexed { index, (label, _) ->
-                        Tab(selected = tab == index, onClick = { tab = index }, text = { Text(label) })
+                UrbanHeroCard {
+                    UrbanHeroLabel("Indicadores clave")
+                    Spacer(Modifier.height(6.dp))
+                    Text(heroKpis.first().value ?: "—", style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                    Text(heroKpis.first().label ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    heroKpis.getOrNull(1)?.let { second ->
+                        Spacer(Modifier.height(16.dp))
+                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                        Spacer(Modifier.height(14.dp))
+                        UrbanHeroStat(second.label ?: "—", second.value ?: "—", Icons.Default.TrendingUp)
+                    }
+                    data.ultimaActualizacion?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text("Actualizado: $it", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
                     }
                 }
             }
-            item { SectionContent(tabs[tab].second) }
+        }
 
-            if (data.diagnosticoInsights.isNotEmpty()) {
-                item { UrbanSectionTitle("Calidad de los datos", "Diagnóstico del pipeline analítico") }
-                items(data.diagnosticoInsights) { InsightCard(it) }
+        val restKpis = data.kpis.drop(2)
+        if (restKpis.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    restKpis.chunked(2).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { kpi ->
+                                UrbanMetricCard(kpi.label ?: "—", kpi.value ?: "—", Icons.Default.TrendingUp, Modifier.weight(1f))
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
             }
+        }
+
+        data.operational?.let { operational ->
+            item { UrbanSectionTitle("Operación de hoy", "Citas, pagos y pendientes") }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    operational.kpis.chunked(2).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { kpi ->
+                                UrbanMetricCard(kpi.label ?: "—", kpi.value.toInt().toString(), Icons.Default.Today, Modifier.weight(1f))
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+            if (operational.actions.isNotEmpty()) {
+                items(operational.actions) { action ->
+                    UrbanAttentionRow(Icons.Default.PriorityHigh, action.label ?: "Pendiente", action.detail, UrbanColors.Warning)
+                }
+            }
+        }
+
+        if (data.sparkFlow.isNotEmpty()) {
+            item { UrbanSectionTitle("Cobertura de la analítica", "Qué tan completo está cada bloque") }
+            items(data.sparkFlow) { step ->
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(step.titulo ?: "—", style = MaterialTheme.typography.titleMedium)
+                        Text("${step.count}/${step.total}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    }
+                    step.descripcion?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { (step.progress / 100.0).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = colorFor(step.color),
+                        trackColor = UrbanColors.Line
+                    )
+                }
+            }
+        }
+
+        item { UrbanSectionTitle("Secciones", "Detalle por área") }
+        item {
+            ScrollableTabRow(
+                selectedTabIndex = tab,
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                contentColor = UrbanColors.Gold,
+                edgePadding = 0.dp
+            ) {
+                tabs.forEachIndexed { index, (label, _) ->
+                    Tab(selected = tab == index, onClick = { tab = index }, text = { Text(label) })
+                }
+            }
+        }
+        item { SectionContent(tabs[tab].second) }
+
+        if (data.diagnosticoInsights.isNotEmpty()) {
+            item { UrbanSectionTitle("Calidad de los datos", "Diagnóstico del pipeline analítico") }
+            items(data.diagnosticoInsights) { InsightCard(it) }
         }
     }
 }
