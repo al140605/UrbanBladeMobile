@@ -33,7 +33,7 @@ interface UrbanBladeApi {
         @Query("desde") desde: String? = null,
         @Query("hasta") hasta: String? = null
     ): AppointmentsResponse
-    @POST("appointments") suspend fun createAppointment(@Body body: AppointmentRequest): MessageResponse
+    @POST("appointments") suspend fun createAppointment(@Body body: AppointmentRequest): CreateAppointmentResponse
     @PUT("appointments/{code}") suspend fun updateAppointment(@Path("code") code: String, @Body body: AppointmentRequest): MessageResponse
     @PATCH("appointments/{code}/status") suspend fun updateAppointmentStatus(@Path("code") code: String, @Body body: JsonObject): MessageResponse
     @DELETE("appointments/{code}") suspend fun cancelAppointment(@Path("code") code: String): MessageResponse
@@ -103,6 +103,8 @@ interface UrbanBladeApi {
     @POST("payments/{id}/approve") suspend fun approvePayment(@Path("id") id: String): MessageResponse
     @POST("payments/{id}/reject") suspend fun rejectPayment(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
     @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse
+    @GET("payments/transfer-info") suspend fun transferInfo(): TransferInfoResponse
+    @GET("payments/cards") suspend fun savedCards(): SavedCardsResponse
     @POST("profile/push-token") suspend fun savePushToken(@Body body: PushTokenRequest): MessageResponse
     @Multipart
     @POST("appointments/{code}/payment/receipt")

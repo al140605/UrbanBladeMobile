@@ -1,6 +1,13 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.model.ConfirmPaymentIntentParams
+import com.stripe.android.payments.paymentlauncher.PaymentResult
+import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
+import com.urbanblade.mobile.BuildConfig
+import com.urbanblade.mobile.core.payment.isStripeConfigured
+import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -75,7 +82,40 @@ fun BookingScreen(
     var notes by remember { mutableStateOf("") }
     var slotsRequested by remember { mutableStateOf(false) }
     var confirmed by remember { mutableStateOf(false) }
+    val pay = rememberBookingPaymentState()
+    var localError by remember { mutableStateOf<String?>(null) }
+    val paymentNote by vm.paymentNote.collectAsState()
+    val cardConfirm by vm.cardConfirm.collectAsState()
+    val transferInfo by vm.transferInfo.collectAsState()
+    val savedCards by vm.savedCards.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val cardAvailable = remember { isStripeConfigured() }
+    remember { if (cardAvailable) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    val pickReceipt = rememberSingleImagePicker { pay.receiptUri = it }
+    val paymentLauncher = rememberPaymentLauncher(BuildConfig.STRIPE_PUBLISHABLE_KEY) { result ->
+        when (result) {
+            is PaymentResult.Completed -> vm.onCardResult(true, false, null)
+            is PaymentResult.Canceled -> vm.onCardResult(false, true, null)
+            is PaymentResult.Failed -> vm.onCardResult(false, false, result.throwable.localizedMessage)
+        }
+    }
+    // Con la cita ya creada, confirma el cobro con la tarjeta guardada o con lo que el cliente escribió.
+    LaunchedEffect(cardConfirm) {
+        val confirm = cardConfirm ?: return@LaunchedEffect
+        val savedId = confirm.paymentMethodId
+        if (savedId != null) {
+            paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
+        } else {
+            val params = pay.cardWidget?.paymentMethodCreateParams
+            if (params != null) {
+                paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+            } else {
+                vm.onCardResult(false, false, "no se pudieron leer los datos de la tarjeta")
+            }
+        }
+    }
 
+    LaunchedEffect(Unit) { vm.loadPaymentOptions() }
     LaunchedEffect(Unit) { vm.loadCatalog() }
     LaunchedEffect(barberId, serviceId, date) {
         time = ""
@@ -100,7 +140,7 @@ fun BookingScreen(
     if (confirmed) {
         UrbanSuccessScreen(
             title = "¡Cita reservada!",
-            message = "Te avisaremos cuando el barbero la confirme.",
+            message = paymentNote ?: "Te avisaremos cuando el barbero la confirme.",
             details = listOfNotNull(
                 selectedService?.let { "Servicio" to it.nombre },
                 selectedBarber?.user?.name?.let { "Barbero" to it },
@@ -147,11 +187,21 @@ fun BookingScreen(
                         time = time,
                         notes = notes,
                         onNotesChange = { notes = it }
-                    )
+                    ) {
+                        BookingPaymentSection(
+                            state = pay,
+                            servicePrice = selectedService?.precio ?: 0.0,
+                            transferInfo = transferInfo,
+                            savedCards = savedCards,
+                            cardAvailable = cardAvailable,
+                            testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
+                            onPickReceipt = pickReceipt
+                        )
+                    }
                 }
             }
 
-            error?.let {
+            (localError ?: error)?.let {
                 Box(Modifier.padding(horizontal = 18.dp)) { UrbanErrorBanner(it) }
                 Spacer(Modifier.height(8.dp))
             }
@@ -172,7 +222,18 @@ fun BookingScreen(
                     text = if (step == BookingStep.REVIEW) "Confirmar cita" else "Siguiente",
                     onClick = {
                         if (step == BookingStep.REVIEW) {
-                            vm.create(barberId, serviceId, date, time, notes) { confirmed = true }
+                            localError = null
+                            val savedId = pay.savedCardToUse(savedCards)
+                            if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.cardWidget?.paymentMethodCreateParams == null) {
+                                localError = "Revisa los datos de tu tarjeta: número, vencimiento y CVC."
+                            } else {
+                                vm.reserve(
+                                    context, barberId, serviceId, date, time, notes,
+                                    pay.method, pay.tipFor(selectedService?.precio ?: 0.0), pay.receiptUri,
+                                    savedCardId = savedId,
+                                    saveCard = pay.saveCard
+                                ) { confirmed = true }
+                            }
                         } else {
                             step = BookingStep.entries[step.ordinal + 1]
                         }
@@ -452,9 +513,11 @@ private fun ReviewStep(
     date: String,
     time: String,
     notes: String,
-    onNotesChange: (String) -> Unit
+    onNotesChange: (String) -> Unit,
+    payment: @Composable ColumnScope.() -> Unit
 ) {
-    Column {
+    // Con el pago el paso es más largo que la pantalla: sin scroll la barra inferior tapaba las opciones.
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         UrbanSectionTitle("Revisa tu cita", "Confirma los detalles antes de reservar")
         Spacer(Modifier.height(10.dp))
         UrbanPremiumCard(Modifier.fillMaxWidth()) {
@@ -476,7 +539,9 @@ private fun ReviewStep(
             minLines = 3,
             shape = MaterialTheme.shapes.medium
         )
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(28.dp))
+        payment()
+        Spacer(Modifier.height(96.dp))
     }
 }
 

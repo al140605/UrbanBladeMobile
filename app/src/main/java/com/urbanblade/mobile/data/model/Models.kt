@@ -51,6 +51,10 @@ data class ClientInfo(
 
 data class MessageResponse(val message: String? = null)
 
+/** POST /appointments (201): trae la cita creada para poder ofrecer "Pagar ahora" sin buscarla en la lista. */
+data class CreatedAppointmentData(val id: String? = null, val code: String? = null)
+data class CreateAppointmentResponse(val message: String? = null, val data: CreatedAppointmentData? = null)
+
 /** POST /profile/push-token: token de Firebase Cloud Messaging del dispositivo (T142). */
 data class PushTokenRequest(val token: String)
 
@@ -432,8 +436,32 @@ data class StripeIntentRequest(
     @SerializedName("appointment_id") val appointmentId: String,
     @SerializedName("puntos_canjeados") val puntos: Int = 0,
     @SerializedName("codigo_gift_card") val codigoGiftCard: String? = null,
-    val propina: Double = 0.0
+    val propina: Double = 0.0,
+    /** Tarjeta nueva que el cliente quiere guardar para la próxima vez. */
+    @SerializedName("guardar_tarjeta") val guardarTarjeta: Boolean? = null,
+    /** El cliente paga con una tarjeta que ya tenía guardada. */
+    @SerializedName("tarjeta_guardada") val tarjetaGuardada: Boolean? = null
 )
+
+/** GET /payments/transfer-info: datos para transferir que configura el administrador. */
+data class TransferInfo(
+    val configurado: Boolean = false,
+    val banco: String? = null,
+    val beneficiario: String? = null,
+    val clabe: String? = null,
+    val concepto: String? = null
+)
+data class TransferInfoResponse(val data: TransferInfo = TransferInfo())
+
+/** GET /payments/cards: tarjeta guardada en Stripe (solo datos seguros de mostrar). */
+data class SavedCard(
+    val id: String,
+    val brand: String = "card",
+    val last4: String = "",
+    @SerializedName("exp_month") val expMonth: Int = 0,
+    @SerializedName("exp_year") val expYear: Int = 0
+)
+data class SavedCardsResponse(val data: List<SavedCard> = emptyList())
 data class StripeIntentResponseData(
     @SerializedName("client_secret") val clientSecret: String,
     @SerializedName("payment_intent_id") val paymentIntentId: String

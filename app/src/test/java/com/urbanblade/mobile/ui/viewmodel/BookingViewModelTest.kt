@@ -1,6 +1,11 @@
 package com.urbanblade.mobile.ui.viewmodel
 
+import com.urbanblade.mobile.data.model.CreateAppointmentResponse
+import com.urbanblade.mobile.data.model.CreatedAppointmentData
 import com.urbanblade.mobile.data.model.MessageResponse
+import com.urbanblade.mobile.data.model.StripeIntentRequest
+import com.urbanblade.mobile.data.model.StripeIntentResponseData
+import com.urbanblade.mobile.data.model.TransferInfo
 import com.urbanblade.mobile.data.model.WaitlistJoinResponse
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +57,7 @@ class BookingViewModelTest {
 
     @Test
     fun `create exitoso llama onDone y guarda el mensaje`() = runTest(dispatcher) {
-        whenever(repo.createAppointment(any())).thenReturn(MessageResponse("Cita reservada correctamente."))
+        whenever(repo.createAppointment(any())).thenReturn(CreateAppointmentResponse("Cita reservada correctamente.", CreatedAppointmentData("abc123")))
 
         val vm = BookingViewModel(repo)
         var doneCalled = false
@@ -61,6 +66,120 @@ class BookingViewModelTest {
 
         assertTrue(doneCalled)
         assertEquals("Cita reservada correctamente.", vm.message.value)
+    }
+
+    private fun created() = CreateAppointmentResponse("ok", CreatedAppointmentData("abc123", "UB-1"))
+
+    @Test
+    fun `reserve en efectivo no cobra nada y avisa que se paga en el salon`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+
+        val vm = BookingViewModel(repo)
+        var doneId: String? = null
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { doneId = it }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("abc123", doneId)
+        assertEquals("Pagas en el salón el día de tu cita.", vm.paymentNote.value)
+        verify(repo, never()).stripeIntent(any())
+    }
+
+    @Test
+    fun `reserve con tarjeta pide el intent con la propina y espera la confirmacion`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+
+        val vm = BookingViewModel(repo)
+        var doneId: String? = null
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 50.0, null) { doneId = it }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(CardConfirm("secret_1", null), vm.cardConfirm.value)
+        assertEquals(null, doneId) // todavia no: falta que Stripe confirme la tarjeta
+        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 50.0))
+
+        vm.onCardResult(completed = true, canceled = false, reason = null)
+        assertEquals("abc123", doneId)
+        assertEquals(null, vm.cardConfirm.value)
+        assertEquals("Pago con tarjeta enviado. UrbanBlade lo está confirmando.", vm.paymentNote.value)
+    }
+
+    @Test
+    fun `reserve con tarjeta cancelada deja la cita reservada y lo avisa`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+
+        val vm = BookingViewModel(repo)
+        var doneId: String? = null
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { doneId = it }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.onCardResult(completed = false, canceled = true, reason = null)
+
+        assertEquals("abc123", doneId)
+        assertEquals("Cancelaste el pago. Tu cita quedó reservada y puedes pagarla desde Mis citas.", vm.paymentNote.value)
+    }
+
+    @Test
+    fun `reserve con transferencia sin comprobante reserva y pide subirlo despues`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+
+        val vm = BookingViewModel(repo)
+        var doneId: String? = null
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TRANSFERENCIA, 0.0, null) { doneId = it }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("abc123", doneId)
+        assertEquals("Transfiere a la CLABE que te mostramos y sube tu comprobante desde Mis citas.", vm.paymentNote.value)
+    }
+
+    @Test
+    fun `reserve con tarjeta guardada la manda al intent y la usa al confirmar`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_2", "pi_2"))
+
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null, savedCardId = "pm_42", saveCard = true) { }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 0.0, tarjetaGuardada = true))
+        assertEquals(CardConfirm("secret_2", "pm_42"), vm.cardConfirm.value)
+    }
+
+    @Test
+    fun `reserve con tarjeta nueva pide guardarla solo si el cliente lo marco`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.stripeIntent(any())).thenReturn(StripeIntentResponseData("secret_3", "pi_3"))
+
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null, saveCard = true) { }
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(repo).stripeIntent(StripeIntentRequest("abc123", propina = 0.0, guardarTarjeta = true))
+    }
+
+    @Test
+    fun `loadPaymentOptions deja la reserva usable aunque fallen los datos de pago`() = runTest(dispatcher) {
+        whenever(repo.transferInfo()).thenThrow(RuntimeException("sin red"))
+        whenever(repo.savedCards()).thenThrow(RuntimeException("sin red"))
+
+        val vm = BookingViewModel(repo)
+        vm.loadPaymentOptions()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(TransferInfo(), vm.transferInfo.value)
+        assertTrue(vm.savedCards.value.isEmpty())
+    }
+
+    @Test
+    fun `create entrega el id de la cita para poder pagar ahora`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(CreateAppointmentResponse("ok", CreatedAppointmentData("abc123")))
+
+        val vm = BookingViewModel(repo)
+        var receivedId: String? = null
+        vm.create("barber1", "svc1", "2026-10-01", "10:00", "", { receivedId = it })
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("abc123", receivedId)
     }
 
     @Test
