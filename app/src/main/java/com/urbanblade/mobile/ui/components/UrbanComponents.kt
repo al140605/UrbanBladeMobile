@@ -346,10 +346,10 @@ fun UrbanPrimaryButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = UrbanColors.Gold,
             contentColor = UrbanColors.OnGold,
-            disabledContainerColor = if (enabled) UrbanColors.Gold else UrbanColors.Card,
-            disabledContentColor = if (enabled) UrbanColors.OnGold else UrbanColors.Muted
+            disabledContainerColor = if (enabled || loading) UrbanColors.Gold else UrbanColors.Card,
+            disabledContentColor = if (enabled || loading) UrbanColors.OnGold else UrbanColors.Muted
         ),
-        border = if (enabled) null else BorderStroke(1.dp, UrbanColors.Line)
+        border = if (enabled || loading) null else BorderStroke(1.dp, UrbanColors.Line)
     ) {
         if (loading) {
             CircularProgressIndicator(Modifier.size(19.dp), strokeWidth = 2.dp, color = UrbanColors.OnGold)
