@@ -140,6 +140,14 @@ class AuthViewModel @JvmOverloads constructor(
         }
     }
 
+    /** Tras editar la cuenta, actualiza nombre, correo y foto en toda la app sin cerrar sesión. */
+    fun refreshUser() {
+        viewModelScope.launch {
+            if (_state.value !is AuthState.Authenticated) return@launch
+            runCatching { repository.currentUser() }.onSuccess { _state.value = AuthState.Authenticated(it) }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             repository.logout()

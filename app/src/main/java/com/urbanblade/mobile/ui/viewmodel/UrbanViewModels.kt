@@ -538,42 +538,6 @@ class CatalogViewModel : ViewModel() {
     }
 }
 
-class ProfileViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
-    private val _profile = MutableStateFlow<ProfileUser?>(null)
-    val profile = _profile.asStateFlow()
-    private val _busy = MutableStateFlow(false)
-    val busy = _busy.asStateFlow()
-    private val _message = MutableStateFlow<String?>(null)
-    val message = _message.asStateFlow()
-    private val _error = MutableStateFlow<String?>(null)
-    val error = _error.asStateFlow()
-
-    fun load() = viewModelScope.launch {
-        _busy.value = true; _error.value = null
-        try { _profile.value = repo.profile() }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu perfil.") }
-        finally { _busy.value = false }
-    }
-
-    fun save(name: String, email: String, phone: String, birth: String, sex: String) = viewModelScope.launch {
-        _busy.value = true; _message.value = null; _error.value = null
-        try {
-            val res = repo.updateProfile(
-                UpdateProfileRequest(
-                    name = name.trim(), email = email.trim(),
-                    telefono = phone.ifBlank { null },
-                    fechaNacimiento = birth.ifBlank { null },
-                    sexo = sex.ifBlank { null }
-                )
-            )
-            _message.value = res.message ?: "Perfil actualizado."
-            load()
-        } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo guardar el perfil.") }
-        finally { _busy.value = false }
-    }
-}
-
 data class WalletData(
     val loyalty: ClientLoyalty? = null,
     val membership: MyMembership? = null,

@@ -109,3 +109,6 @@ integradas al proyecto.
 3. Loading/error/vacío explícitos por pantalla — no dejar un estado sin manejar.
 4. Si el flujo toca dinero, stock o permisos por rol, releer la sección de seguridad de
    arriba antes de escribir el ViewModel.
+5. Para el diseño (encabezado, tarjeta héroe, estados con mascotas, formularios, Mi
+   cuenta) seguir `.claude/skills/urbanblade-mobile-ui-patrones/SKILL.md`: reutilizar
+   sus piezas antes de crear componentes nuevos.

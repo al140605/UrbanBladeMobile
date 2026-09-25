@@ -37,6 +37,9 @@ class AuthRepository(
             ?: "Si el correo existe, recibirás instrucciones."
     }
 
+    /** Vuelve a leer el usuario de la sesión (tras cambiar nombre, correo o foto en Mi cuenta). */
+    suspend fun currentUser(): AuthUser = api.me().user
+
     suspend fun restoreSession(): AuthUser? {
         if (session.currentToken().isNullOrBlank()) return null
         return try {
@@ -136,6 +139,16 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     }
     suspend fun profile() = api.profile().user
     suspend fun updateProfile(body: UpdateProfileRequest) = api.updateProfile(body)
+    suspend fun updatePassword(current: String, password: String, confirmation: String) =
+        api.updatePassword(ChangePasswordRequest(current, password, confirmation))
+    suspend fun updateAvatar(context: Context, uri: Uri): AvatarResponse {
+        val avatar = MediaUploadHelper.uriToPart(context, uri, "avatar")
+            ?: error("No se pudo leer la foto seleccionada.")
+        return api.updateAvatar(avatar)
+    }
+    suspend fun notificationPreferences() = api.notificationPreferences().data
+    suspend fun updateNotificationPreference(key: String, enabled: Boolean) =
+        api.updateNotificationPreferences(mapOf(key to enabled)).data
     suspend fun products(query: String? = null) = api.products(query).data
     suspend fun orders(page: Int = 1, estado: String? = null, q: String? = null) = api.orders(page, estado, q)
     suspend fun createOrder(body: OrderRequest) = api.createOrder(body)

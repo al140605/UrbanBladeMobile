@@ -25,6 +25,18 @@ object UrbanFormat {
         "${d.dayOfMonth} ${MONTHS_SHORT[d.monthValue - 1]}"
     }.getOrDefault(iso)
 
+    /** "1995-05-15" -> "15 de mayo de 1995" (fechas sin día de la semana, como un cumpleaños). */
+    fun dateLong(iso: String): String = runCatching {
+        val d = LocalDate.parse(iso.take(10))
+        "${d.dayOfMonth} de ${d.month.getDisplayName(TextStyle.FULL, es)} de ${d.year}"
+    }.getOrDefault(iso)
+
+    /** "2026-09-21T10:00:00Z" -> "sep 2026" (antigüedad de una cuenta). */
+    fun monthYear(iso: String): String = runCatching {
+        val d = LocalDate.parse(iso.take(10))
+        "${MONTHS_SHORT[d.monthValue - 1]} ${d.year}"
+    }.getOrDefault(iso)
+
     // Tabla fija: el nombre abreviado del sistema varía entre versiones de Android ("sep" o "sept").
     private val MONTHS_SHORT = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 

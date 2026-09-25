@@ -230,7 +230,14 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("notifications") { NotificationsScreen(onBack = { nav.popBackStack() }) }
                 composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }) }
                 composable("more") { MoreScreen(user = user, onNavigate = { nav.navigate(it) }) }
-                composable("profile") { ProfileScreen(user = user, onLogout = { authViewModel.logout() }) }
+                composable("profile") {
+                    com.urbanblade.mobile.ui.account.AccountScreen(
+                        user = user,
+                        onLogout = { authViewModel.logout() },
+                        onNavigate = { nav.navigate(it) },
+                        onUserChanged = { authViewModel.refreshUser() }
+                    )
+                }
 
                 composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
                 composable("social") {

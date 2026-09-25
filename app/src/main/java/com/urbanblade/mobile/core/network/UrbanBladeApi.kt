@@ -123,9 +123,14 @@ interface UrbanBladeApi {
         @Part propina: MultipartBody.Part?
     ): UploadPaymentReceiptResponse
 
-    @GET("profile") suspend fun profile(): ProfileResponse
+    @GET("profile") suspend fun profile(): AccountProfileResponse
     @PUT("profile") suspend fun updateProfile(@Body body: UpdateProfileRequest): UpdateProfileResponse
     @PUT("profile/password") suspend fun updatePassword(@Body body: ChangePasswordRequest): MessageResponse
+    @Multipart
+    @POST("profile/avatar") suspend fun updateAvatar(@Part avatar: MultipartBody.Part): AvatarResponse
+    @GET("notifications/preferences") suspend fun notificationPreferences(): NotificationPreferencesResponse
+    @PATCH("notifications/preferences")
+    suspend fun updateNotificationPreferences(@Body body: Map<String, Boolean>): NotificationPreferencesResponse
 
     @GET("notifications") suspend fun notifications(): JsonObject
     @POST("notifications/read-all") suspend fun markNotificationsRead(): MessageResponse
