@@ -153,7 +153,7 @@ fun AccountScreen(
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             UrbanAttentionRow(Icons.Default.Stars, "Beneficios", "Nivel, puntos, membresía y tu código para invitar.", UrbanColors.Gold, onClick = { onNavigate("wallet") })
-                            UrbanAttentionRow(Icons.Default.ReceiptLong, "Mis pagos", "Historial y comprobantes.", UrbanColors.Gold, onClick = { onNavigate("payments") })
+                            UrbanAttentionRow(Icons.Default.ReceiptLong, "Mis facturas", "Comprobantes de tus citas y compras.", UrbanColors.Gold, onClick = { onNavigate("payments") })
                             UrbanAttentionRow(Icons.Default.ShoppingBag, "Mis pedidos", "Compras de la tienda.", UrbanColors.Gold, onClick = { onNavigate("orders") })
                         }
                     }

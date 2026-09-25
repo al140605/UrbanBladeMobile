@@ -343,6 +343,12 @@ class BookingViewModel @JvmOverloads constructor(
     val barbers = _barbers.asStateFlow()
     private val _slots = MutableStateFlow<List<SlotItem>>(emptyList())
     val slots = _slots.asStateFlow()
+    /** Productos con existencias para el paso "Extras" (mismo catálogo que la tienda). */
+    private val _products = MutableStateFlow<List<ProductItem>>(emptyList())
+    val products = _products.asStateFlow()
+    /** Qué pasó con los productos de la visita, para el mensaje final. */
+    private val _productsNote = MutableStateFlow<String?>(null)
+    val productsNote = _productsNote.asStateFlow()
     private val _busy = MutableStateFlow(false)
     val busy = _busy.asStateFlow()
     private val _message = MutableStateFlow<String?>(null)
@@ -380,6 +386,8 @@ class BookingViewModel @JvmOverloads constructor(
     }
 
     fun loadCatalog() = viewModelScope.launch {
+        // Los productos son opcionales: si fallan, la reserva sigue sin el paso de extras con productos.
+        launch { _products.value = runCatching { repo.products() }.getOrDefault(emptyList()).filter { it.stockActual > 0 } }
         try {
             _services.value = repo.services()
             _barbers.value = repo.barbers()
@@ -422,6 +430,7 @@ class BookingViewModel @JvmOverloads constructor(
         barberId: String, serviceId: String, date: String, time: String, notes: String,
         method: BookingPayMethod, propina: Double, receiptUri: Uri?,
         savedCardId: String? = null, saveCard: Boolean = false,
+        productos: List<OrderItemRequest> = emptyList(),
         onDone: (String?) -> Unit
     ) {
         if (barberId.isBlank() || serviceId.isBlank() || date.isBlank() || time.isBlank()) {
@@ -438,7 +447,8 @@ class BookingViewModel @JvmOverloads constructor(
                     AppointmentRequest(
                         barberId, serviceId, date, time, notes.ifBlank { null },
                         pagarAhora = payNow.takeIf { it },
-                        propinaSugerida = propina.takeIf { payNow && it > 0 }
+                        propinaSugerida = propina.takeIf { payNow && it > 0 },
+                        productos = productos.ifEmpty { null }
                     )
                 )
             } catch (e: Exception) {
@@ -450,6 +460,11 @@ class BookingViewModel @JvmOverloads constructor(
             }
             val id = res.data?.id
             val code = res.data?.code
+            _productsNote.value = when {
+                productos.isEmpty() -> null
+                res.productosError != null -> "Tu cita quedó reservada, pero no pudimos agregar los productos: ${res.productosError}"
+                else -> "Tus productos te esperan en el salón y se pagan al recogerlos."
+            }
             when (method) {
                 BookingPayMethod.EFECTIVO -> {
                     _paymentNote.value = "Pagas en el salón el día de tu cita."

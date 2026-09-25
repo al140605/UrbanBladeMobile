@@ -41,17 +41,6 @@ class StoreViewModel : ViewModel() {
     }
 }
 
-class PaymentsViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
-    private val _payments = MutableStateFlow(PaymentsResponse()); val payments = _payments.asStateFlow()
-    private val _pending = MutableStateFlow(PendingPaymentsResponse()); val pending = _pending.asStateFlow()
-    private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
-    private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
-    fun load(staff:Boolean)=viewModelScope.launch { _busy.value=true; _error.value=null; try { _payments.value=repo.payments(); if(staff)_pending.value=repo.pendingPayments() } catch(e:Exception){_error.value=e.toFriendlyMessage("No se pudieron cargar los pagos.")} finally{_busy.value=false} }
-    fun approve(id:String,staff:Boolean)=viewModelScope.launch{ try{repo.approvePayment(id);load(staff)}catch(e:Exception){_error.value=e.toFriendlyMessage("No se pudo aprobar.")} }
-    fun reject(id:String,reason:String,staff:Boolean)=viewModelScope.launch{try{repo.rejectPayment(id,reason);load(staff)}catch(e:Exception){_error.value=e.toFriendlyMessage("No se pudo rechazar.")}}
-}
-
 class NotificationsViewModel : ViewModel() {
     private val repo = AppContainer.urbanRepository
     private val _data = MutableStateFlow<JsonObject?>(null); val data = _data.asStateFlow()

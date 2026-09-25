@@ -204,63 +204,12 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentsScreen(user: AuthUser, onBack: () -> Unit, vm: PaymentsViewModel = viewModel()) {
+fun PaymentsScreen(user: AuthUser, onBack: () -> Unit) {
     val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
-    // El personal tiene su propia pantalla (filtros, estadísticas del servidor, revisión de comprobantes).
-    if (staff) {
-        PaymentsStaffScreen(onBack)
-        return
-    }
-    val payments by vm.payments.collectAsState()
-    val pending by vm.pending.collectAsState()
-    val busy by vm.busy.collectAsState()
-    val error by vm.error.collectAsState()
-    LaunchedEffect(Unit) { vm.load(staff) }
-
-    UrbanModuleScreen(
-        eyebrow = "CUENTA",
-        title = "Mis pagos",
-        subtitle = "Lo que has pagado, conectado a tus citas.",
-        onBack = onBack,
-        onRefresh = { vm.load(staff) },
-        refreshing = busy
-    ) {
-        when {
-            error != null && payments.data.isEmpty() -> item {
-                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus pagos", error, "Reintentar") { vm.load(staff) }
-            }
-            payments.data.isEmpty() && !busy -> item {
-                UrbanMascotState(UrbanStateKind.EMPTY, "Aún no hay pagos", "Cuando pagues una cita o un pedido lo verás aquí con su comprobante.")
-            }
-            else -> {
-                error?.let { item { UrbanErrorBanner(it) } }
-                item { PaymentsSummary(payments.data, staff) }
-                item { UrbanSectionTitle("Historial", UrbanFormat.count(payments.data.size, "pago", "pagos")) }
-                items(payments.data, key = { it.id }) { payment ->
-                    val metodo = payment.metodoPago?.lowercase()
-                    UrbanAttentionRow(
-                        icon = when (metodo) {
-                            "tarjeta" -> Icons.Default.CreditCard
-                            "transferencia" -> Icons.Default.AccountBalance
-                            else -> Icons.Default.Payments
-                        },
-                        text = payment.appointment?.service ?: payment.metodoPago?.replaceFirstChar { it.uppercase() } ?: "Pago",
-                        subtitle = listOfNotNull(
-                            payment.metodoPago?.replaceFirstChar { it.uppercase() },
-                            payment.appointment?.barber,
-                            payment.appointment?.fecha?.let { UrbanFormat.date(it) }
-                        ).joinToString(" · ").ifBlank { null },
-                        tone = UrbanColors.Gold,
-                        trailing = {
-                            Text("\$${"%,.2f".format(payment.monto + payment.propina)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                        }
-                    )
-                }
-            }
-        }
-    }
+    // El personal tiene su propia pantalla (filtros, estadísticas del servidor, revisión de comprobantes);
+    // el cliente ve "Mis facturas": comprobantes de sus citas y de sus compras de productos.
+    if (staff) PaymentsStaffScreen(onBack) else InvoicesScreen(onBack)
 }
 
 @Composable

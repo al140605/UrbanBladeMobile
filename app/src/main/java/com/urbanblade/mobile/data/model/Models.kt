@@ -53,7 +53,12 @@ data class MessageResponse(val message: String? = null)
 
 /** POST /appointments (201): trae la cita creada para poder ofrecer "Pagar ahora" sin buscarla en la lista. */
 data class CreatedAppointmentData(val id: String? = null, val code: String? = null)
-data class CreateAppointmentResponse(val message: String? = null, val data: CreatedAppointmentData? = null)
+data class CreateAppointmentResponse(
+    val message: String? = null,
+    val data: CreatedAppointmentData? = null,
+    /** Si los productos no se pudieron agregar (p. ej. sin stock); la cita igual queda reservada. */
+    @SerializedName("productos_error") val productosError: String? = null
+)
 
 /** POST /profile/push-token: token de Firebase Cloud Messaging del dispositivo (T142). */
 data class PushTokenRequest(val token: String, val provider: String = "fcm")
@@ -278,7 +283,9 @@ data class AppointmentRequest(
     val notas: String? = null,
     /** Pagar todo al reservar: barber fija el monto (con descuento) como cobro de la cita pendiente. */
     @SerializedName("pagar_ahora") val pagarAhora: Boolean? = null,
-    @SerializedName("propina_sugerida") val propinaSugerida: Double? = null
+    @SerializedName("propina_sugerida") val propinaSugerida: Double? = null,
+    /** Productos opcionales de la visita: barber crea un pedido ligado a la cita que se paga en el salón. */
+    val productos: List<OrderItemRequest>? = null
 )
 
 /** POST /appointments/{code}/deposit/stripe-intent: cobro de "pagar ahora" (o depósito anti-no-show). */
@@ -361,9 +368,13 @@ data class OrderRow(
     val total: Double = 0.0,
     @SerializedName("metodo_pago") val metodoPago: String? = null,
     @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("entregado_en") val entregadoEn: String? = null,
     val items: List<OrderLine> = emptyList(),
     val client: OrderClient? = null
 )
+/** GET orders/{id}/receipt-link: liga firmada al comprobante PDF de un pedido entregado. */
+data class OrderReceiptData(@SerializedName("order_id") val orderId: String? = null, @SerializedName("receipt_url") val receiptUrl: String? = null)
+data class OrderReceiptResponse(val data: OrderReceiptData? = null)
 /** Totales que el servidor calcula solo para el personal. */
 data class OrderStats(
     val pendientes: Int = 0,

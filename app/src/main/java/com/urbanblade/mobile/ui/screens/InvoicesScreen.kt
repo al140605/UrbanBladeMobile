@@ -1,0 +1,215 @@
+package com.urbanblade.mobile.ui.screens
+
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.data.model.OrderRow
+import com.urbanblade.mobile.data.model.PaymentRow
+import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanErrorBanner
+import com.urbanblade.mobile.ui.components.UrbanFormat
+import com.urbanblade.mobile.ui.components.UrbanHeroCard
+import com.urbanblade.mobile.ui.components.UrbanHeroLabel
+import com.urbanblade.mobile.ui.components.UrbanHeroStat
+import com.urbanblade.mobile.ui.components.UrbanInfoBanner
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanPillTabs
+import com.urbanblade.mobile.ui.components.UrbanSectionTitle
+import com.urbanblade.mobile.ui.components.UrbanSkeletonList
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.UrbanStatusPill
+import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.viewmodel.InvoicesViewModel
+
+private fun money(value: Double) = "\$" + "%,.2f".format(value)
+
+private val METODO = mapOf("efectivo" to "Efectivo", "tarjeta" to "Tarjeta", "transferencia" to "Transferencia", "qr" to "QR")
+
+/**
+ * Mis facturas del cliente: el comprobante de cada cita pagada y de cada compra de productos
+ * entregada. Los productos que agregó al reservar se pagan en el salón y tienen su propio
+ * comprobante (mismo criterio que la web).
+ */
+@Composable
+fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
+    val state by vm.state.collectAsState()
+    val context = LocalContext.current
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val open: (String) -> Unit = { url -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
+
+    LaunchedEffect(Unit) { vm.load() }
+
+    UrbanModuleScreen(
+        eyebrow = "Cuenta",
+        title = "Mis facturas",
+        subtitle = "Comprobantes de tus citas y de tus compras.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading
+    ) {
+        when {
+            state.loading && state.payments.isEmpty() && state.orders.isEmpty() -> item { UrbanSkeletonList(3) }
+            state.error != null && state.payments.isEmpty() -> item {
+                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus facturas", state.error, "Reintentar") { vm.load() }
+            }
+            else -> {
+                item {
+                    UrbanHeroCard {
+                        UrbanHeroLabel("Total pagado")
+                        Spacer(Modifier.height(6.dp))
+                        Text(money(state.totalPaid + state.productsPaid), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                        Spacer(Modifier.height(14.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            UrbanHeroStat("Citas", "${state.payments.size}", Icons.Default.ContentCut, Modifier.weight(1f))
+                            UrbanHeroStat("Compras", "${state.delivered.size}", Icons.Default.ShoppingBag, Modifier.weight(1f))
+                        }
+                    }
+                }
+                state.receiptError?.let { item { UrbanErrorBanner(it) } }
+                item {
+                    UrbanPillTabs(
+                        listOf("Citas (${state.payments.size})" to Icons.Default.ContentCut, "Productos (${state.orders.size})" to Icons.Default.ShoppingBag),
+                        tab
+                    ) { tab = it }
+                }
+
+                if (tab == 0) {
+                    if (state.payments.isEmpty()) item {
+                        UrbanMascotState(UrbanStateKind.EMPTY, "Aún no tienes citas pagadas", "Cuando pagues una cita, aquí tendrás su comprobante.")
+                    }
+                    items(state.payments, key = { "pay-${it.id}" }) { payment ->
+                        PaymentInvoice(payment, opening = state.openingId == payment.id) { vm.openPaymentReceipt(payment.id, open) }
+                    }
+                } else {
+                    if (state.orders.isEmpty()) item {
+                        UrbanMascotState(UrbanStateKind.EMPTY, "Aún no tienes compras", "Los productos que agregues al reservar o compres en la tienda aparecerán aquí.")
+                    }
+                    if (state.toPickUp.isNotEmpty()) {
+                        item { UrbanSectionTitle("Por recoger", "Se pagan en el salón; el comprobante se genera al pagarlos.") }
+                        items(state.toPickUp, key = { "pick-${it.id}" }) { order -> OrderInvoice(order, opening = false, onReceipt = null) }
+                    }
+                    if (state.delivered.isNotEmpty()) {
+                        item { UrbanSectionTitle("Pagadas", UrbanFormat.count(state.delivered.size, "compra", "compras")) }
+                        items(state.delivered, key = { "ord-${it.id}" }) { order ->
+                            OrderInvoice(order, opening = state.openingId == order.id) { vm.openOrderReceipt(order.id, open) }
+                        }
+                    }
+                    if (state.orders.any { it.tipo == "cita" }) item {
+                        UrbanInfoBanner("Los productos que agregas al reservar se pagan aparte, en el salón, con su propio comprobante.", Icons.Default.Storefront)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentInvoice(payment: PaymentRow, opening: Boolean, onReceipt: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(payment.appointment?.service ?: "Cita", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                Text(
+                    listOfNotNull(
+                        payment.appointment?.fecha?.let { UrbanFormat.dateShort(it) },
+                        payment.appointment?.barber,
+                        payment.metodoPago?.let { METODO[it.lowercase()] ?: it.replaceFirstChar { c -> c.uppercase() } }
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (payment.propina > 0) {
+                    Text("Incluye propina de ${money(payment.propina)}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
+            }
+            Text(money(payment.monto + payment.propina), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+        }
+        ReceiptButton(opening, onReceipt)
+    }
+}
+
+@Composable
+private fun OrderInvoice(order: OrderRow, opening: Boolean, onReceipt: (() -> Unit)?) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (order.tipo == "cita") "Productos de tu cita" else "Compra en tienda",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = UrbanColors.Ink,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    UrbanStatusPill(order.estado)
+                }
+                Text(
+                    order.items.joinToString(", ") { l -> if (l.cantidad > 1) "${l.nombre} ×${l.cantidad}" else l.nombre.orEmpty() },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    listOfNotNull(
+                        order.folio,
+                        (order.entregadoEn ?: order.createdAt)?.let { UrbanFormat.dateShort(it) },
+                        order.metodoPago?.let { METODO[it.lowercase()] ?: it }
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+            }
+            Text(money(order.total), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+        }
+        onReceipt?.let { ReceiptButton(opening, it) }
+    }
+}
+
+@Composable
+private fun ReceiptButton(opening: Boolean, onClick: () -> Unit) {
+    Spacer(Modifier.height(6.dp))
+    TextButton(onClick = onClick, enabled = !opening) {
+        if (opening) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
+        } else {
+            Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(if (opening) "Generando comprobante…" else "Ver comprobante", color = UrbanColors.Gold)
+    }
+}

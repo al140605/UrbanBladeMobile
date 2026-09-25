@@ -61,6 +61,7 @@ interface UrbanBladeApi {
     ): OrdersResponse
     @POST("orders") suspend fun createOrder(@Body body: OrderRequest): OrderMutationResponse
     @PATCH("orders/{id}/cancel") suspend fun cancelOrder(@Path("id") id: String): OrderMutationResponse
+    @GET("orders/{id}/receipt-link") suspend fun orderReceiptLink(@Path("id") id: String): OrderReceiptResponse
     @PATCH("orders/{id}/deliver") suspend fun deliverOrder(@Path("id") id: String, @Body body: DeliverOrderRequest): OrderMutationResponse
 
     @GET("payments") suspend fun payments(): PaymentsResponse

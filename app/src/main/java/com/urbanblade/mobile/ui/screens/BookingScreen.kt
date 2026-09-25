@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.BarberItem
 import com.urbanblade.mobile.data.model.ServiceItem
+import com.urbanblade.mobile.data.model.ProductItem
 import com.urbanblade.mobile.data.model.SlotItem
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -53,15 +54,15 @@ import java.util.Locale
 
 private enum class BookingStep(val label: String, val title: String, val hint: String) {
     SERVICE("Servicio", "Elige tu servicio", "Precio y duración reales de UrbanBlade."),
-    BARBER("Barbero", "Elige tu barbero", "Cada barbero confirma su propia agenda."),
-    CALENDAR("Horario", "Elige día y hora", "Solo ves horarios libres de verdad."),
-    REVIEW("Confirmar", "Revisa y confirma", "Revisa los datos y elige cómo pagar.")
+    SCHEDULE("Horario", "Barbero, día y hora", "Solo ves horarios libres de verdad."),
+    EXTRAS("Extras", "¿Algo más para tu visita?", "Productos opcionales y notas para tu barbero."),
+    PAY("Pago", "Revisa y reserva", "Elige cómo pagar tu servicio.")
 }
 
 /**
- * Wizard visual de reserva: un paso a la vez (servicio -> profesional ->
- * calendario con horarios reales del servidor -> revisión), reemplaza el
- * diseño anterior de dropdowns + fecha de texto libre. `initialServiceId`/
+ * Reserva en cuatro pasos cortos (propuesta A, 25-sep): servicio -> barbero, día y hora
+ * (horarios reales; con un solo barbero se asigna solo) -> extras (productos opcionales que
+ * se pagan en el salón, y notas) -> pago. Una barra fija muestra el total de la visita. `initialServiceId`/
  * `initialBarberId` llegan de un tap en el catálogo (autenticado, por
  * argumento de ruta) o de PendingBooking (invitado que acaba de iniciar
  * sesión) -- ver UrbanBladeRoot.kt.
@@ -81,6 +82,10 @@ fun BookingScreen(
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     val waitlistJoined by vm.waitlistJoined.collectAsState()
+    val products by vm.products.collectAsState()
+    val productsNote by vm.productsNote.collectAsState()
+    // Productos de la visita: id -> cantidad (se pagan en el salón, como en la web).
+    var cart by remember { mutableStateOf(mapOf<String, Int>()) }
 
     var step by remember { mutableStateOf(BookingStep.SERVICE) }
     var serviceId by remember { mutableStateOf(initialServiceId.orEmpty()) }
@@ -140,22 +145,35 @@ fun BookingScreen(
         resolveBarberId(barbers, barberId)?.let { resolved -> if (resolved != barberId) barberId = resolved }
     }
     val selectedBarber = barbers.firstOrNull { it.id == barberId }
+    // Con un solo barbero no hay nada que elegir: se asigna solo.
+    LaunchedEffect(barbers) {
+        if (barberId.isBlank() && barbers.size == 1) barberId = barbers.first().id
+    }
+    val cartLines = products.mapNotNull { p -> cart[p.id]?.takeIf { it > 0 }?.let { p to it } }
+    val productsTotal = cartLines.sumOf { (p, qty) -> p.precioVenta * qty }
+    val servicePrice = selectedService?.precio ?: 0.0
+    val visitTotal = servicePrice + productsTotal + if (step == BookingStep.PAY) pay.tipFor(servicePrice) else 0.0
 
     val canAdvance = when (step) {
         BookingStep.SERVICE -> serviceId.isNotBlank()
-        BookingStep.BARBER -> barberId.isNotBlank()
-        BookingStep.CALENDAR -> time.isNotBlank()
-        BookingStep.REVIEW -> true
+        BookingStep.SCHEDULE -> barberId.isNotBlank() && time.isNotBlank()
+        BookingStep.EXTRAS -> true
+        BookingStep.PAY -> true
+    }
+    // El "atrás" del teléfono regresa un paso; desde el primero sale de la reserva.
+    androidx.activity.compose.BackHandler(enabled = !confirmed && step != BookingStep.SERVICE) {
+        step = BookingStep.entries[step.ordinal - 1]
     }
 
     // Momento de éxito antes de salir del flujo (antes se saltaba de pantalla sin confirmar nada).
     if (confirmed) {
         UrbanSuccessScreen(
             title = "¡Cita reservada!",
-            message = paymentNote ?: "Te avisaremos cuando el barbero la confirme.",
+            message = listOfNotNull(paymentNote ?: "Te avisaremos cuando el barbero la confirme.", productsNote).joinToString("\n\n"),
             details = listOfNotNull(
                 selectedService?.let { "Servicio" to it.nombre },
                 selectedBarber?.user?.name?.let { "Barbero" to it },
+                cartLines.takeIf { it.isNotEmpty() }?.let { lines -> "Productos" to lines.joinToString(", ") { (p, q) -> if (q > 1) "${p.nombre} ×$q" else p.nombre } },
                 "Fecha" to UrbanFormat.date(date),
                 "Hora" to UrbanFormat.time(time)
             ),
@@ -174,9 +192,9 @@ fun BookingScreen(
                 step = step,
                 // Lo que ya eligió, visible en los pasos siguientes para no perder el hilo.
                 summary = listOfNotNull(
-                    selectedService?.takeIf { step != BookingStep.SERVICE }?.let { "${it.nombre} · \$${"%.0f".format(it.precio)}" },
-                    selectedBarber?.takeIf { step.ordinal > BookingStep.BARBER.ordinal }?.user?.name,
-                    time.takeIf { it.isNotBlank() && step == BookingStep.REVIEW }?.let { "${UrbanFormat.dateShort(date)} · ${UrbanFormat.time(it)}" }
+                    selectedService?.takeIf { step != BookingStep.SERVICE }?.nombre,
+                    selectedBarber?.takeIf { step.ordinal > BookingStep.SCHEDULE.ordinal }?.user?.name,
+                    time.takeIf { it.isNotBlank() && step.ordinal > BookingStep.SCHEDULE.ordinal }?.let { "${UrbanFormat.dateShort(date)} · ${UrbanFormat.time(it)}" }
                 ).joinToString("  ·  ").ifBlank { null }
             )
             Spacer(Modifier.height(8.dp))
@@ -189,7 +207,7 @@ fun BookingScreen(
             ) {
                 when (step) {
                     BookingStep.SERVICE -> Column {
-                        if (initialBarberId != null && selectedBarber != null) {
+                        if (initialBarberId != null && selectedBarber != null && barbers.size > 1) {
                             UrbanInfoBanner(
                                 "Reservando con ${selectedBarber.user?.name ?: "tu barbero"}. Puedes cambiarlo en el paso 2.",
                                 Icons.Default.Person
@@ -198,8 +216,8 @@ fun BookingScreen(
                         }
                         ServiceStep(services, serviceId) { serviceId = it }
                     }
-                    BookingStep.BARBER -> BarberStep(barbers, barberId) { barberId = it }
-                    BookingStep.CALENDAR -> CalendarStep(
+                    BookingStep.SCHEDULE -> CalendarStep(
+                        header = { BarberPicker(barbers, barberId) { barberId = it } },
                         date = date,
                         onDateChange = { date = it },
                         slots = slots,
@@ -209,13 +227,20 @@ fun BookingScreen(
                         waitlistJoined = waitlistJoined,
                         onJoinWaitlist = { vm.joinWaitlist(barberId, serviceId, date) }
                     )
-                    BookingStep.REVIEW -> ReviewStep(
+                    BookingStep.EXTRAS -> ExtrasStep(
+                        products = products,
+                        cart = cart,
+                        onQuantity = { id, qty -> cart = if (qty <= 0) cart - id else cart + (id to qty) },
+                        notes = notes,
+                        onNotesChange = { notes = it }
+                    )
+                    BookingStep.PAY -> ReviewStep(
                         service = selectedService,
                         barber = selectedBarber,
                         date = date,
                         time = time,
-                        notes = notes,
-                        onNotesChange = { notes = it }
+                        extras = cartLines,
+                        notes = notes
                     ) {
                         BookingPaymentSection(
                             state = pay,
@@ -235,8 +260,28 @@ fun BookingScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
+            // Barra fija: el total de la visita se va sumando conforme eliges.
+            if (selectedService != null) {
+                HorizontalDivider(color = UrbanColors.Line)
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Total de tu visita", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                        if (productsTotal > 0) {
+                            Text(
+                                "Servicio \$${"%.0f".format(servicePrice)} · productos \$${"%.0f".format(productsTotal)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = UrbanColors.Muted
+                            )
+                        }
+                    }
+                    Text("\$${"%.0f".format(visitTotal)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
+                }
+            }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (step != BookingStep.SERVICE) {
@@ -248,9 +293,13 @@ fun BookingScreen(
                     )
                 }
                 UrbanPrimaryButton(
-                    text = if (step == BookingStep.REVIEW) "Confirmar cita" else "Siguiente",
+                    text = when (step) {
+                        BookingStep.PAY -> "Reservar"
+                        BookingStep.EXTRAS -> if (cartLines.isEmpty() && notes.isBlank()) "Omitir" else "Continuar"
+                        else -> "Continuar"
+                    },
                     onClick = {
-                        if (step == BookingStep.REVIEW) {
+                        if (step == BookingStep.PAY) {
                             localError = null
                             val savedId = pay.savedCardToUse(savedCards)
                             if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.cardWidget?.paymentMethodCreateParams == null) {
@@ -260,7 +309,8 @@ fun BookingScreen(
                                     context, barberId, serviceId, date, time, notes,
                                     pay.method, pay.tipFor(selectedService?.precio ?: 0.0), pay.receiptUri,
                                     savedCardId = savedId,
-                                    saveCard = pay.saveCard
+                                    saveCard = pay.saveCard,
+                                    productos = cartLines.map { (p, qty) -> com.urbanblade.mobile.data.model.OrderItemRequest(p.id, qty) }
                                 ) { confirmed = true }
                             }
                         } else {
@@ -268,8 +318,8 @@ fun BookingScreen(
                         }
                     },
                     enabled = canAdvance,
-                    loading = busy && step == BookingStep.REVIEW,
-                    icon = if (step == BookingStep.REVIEW) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
+                    loading = busy && step == BookingStep.PAY,
+                    icon = if (step == BookingStep.PAY) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -380,35 +430,6 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
 }
 
 @Composable
-private fun BarberStep(barbers: List<BarberItem>, selectedId: String, onSelect: (String) -> Unit) {
-    Column {
-        if (barbers.isEmpty()) {
-            UrbanSkeletonList(3)
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(1),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(barbers, key = { it.id }) { barber ->
-                    SelectableRow(
-                        selected = barber.id == selectedId,
-                        onClick = { onSelect(barber.id) },
-                        title = barber.user?.name ?: "Barbero",
-                        subtitle = listOfNotNull(
-                            barber.avgRating?.takeIf { barber.totalReviews > 0 }?.let { "★ %.1f (%d)".format(java.util.Locale.US, it, barber.totalReviews) },
-                            barber.especialidades?.takeIf { it.isNotBlank() }
-                        ).joinToString(" · ").ifBlank { "Aún sin reseñas" },
-                        imageUrl = barber.foto,
-                        avatarName = barber.user?.name ?: "Barbero"
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun SelectableRow(
     selected: Boolean,
     onClick: () -> Unit,
@@ -484,6 +505,7 @@ private fun SelectableRow(
 
 @Composable
 private fun CalendarStep(
+    header: @Composable () -> Unit = {},
     date: String,
     onDateChange: (String) -> Unit,
     slots: List<SlotItem>,
@@ -497,6 +519,7 @@ private fun CalendarStep(
     val selectedDate = remember(date) { runCatching { LocalDate.parse(date) }.getOrNull() }
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
+        header()
         UrbanFieldLabel("Día")
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -576,6 +599,100 @@ private fun CalendarStep(
     }
 }
 
+/** Barbero dentro del paso de horario: si solo hay uno, se muestra ya elegido. */
+@Composable
+private fun BarberPicker(barbers: List<BarberItem>, selectedId: String, onSelect: (String) -> Unit) {
+    if (barbers.isEmpty()) {
+        UrbanSkeletonList(1)
+        Spacer(Modifier.height(12.dp))
+        return
+    }
+    UrbanFieldLabel("Barbero")
+    Spacer(Modifier.height(8.dp))
+    if (barbers.size == 1) {
+        val only = barbers.first()
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            UrbanAvatar(only.user?.name ?: "Barbero", Modifier.size(36.dp), imageUrl = only.foto)
+            Spacer(Modifier.width(10.dp))
+            Text("Con ${only.user?.name ?: "tu barbero"}", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+        }
+    } else {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            barbers.forEach { b ->
+                FilterChip(
+                    selected = b.id == selectedId,
+                    onClick = { onSelect(b.id) },
+                    label = { Text(b.user?.name?.substringBefore(' ') ?: "Barbero") },
+                    leadingIcon = { UrbanAvatar(b.user?.name ?: "B", Modifier.size(22.dp), imageUrl = b.foto) },
+                    colors = bookingChipColors()
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(16.dp))
+}
+
+/** Paso 3: productos opcionales (se pagan en el salón) y notas para el barbero. */
+@Composable
+private fun ExtrasStep(
+    products: List<ProductItem>,
+    cart: Map<String, Int>,
+    onQuantity: (String, Int) -> Unit,
+    notes: String,
+    onNotesChange: (String) -> Unit
+) {
+    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (products.isNotEmpty()) {
+            UrbanFieldLabel("Productos (opcional)")
+            Text("Te los apartamos para tu visita y los pagas en el salón.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            products.forEach { p ->
+                val qty = cart[p.id] ?: 0
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!p.imagen.isNullOrBlank()) {
+                            AsyncImage(p.imagen, null, contentScale = ContentScale.Crop, modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(UrbanColors.CardAlt))
+                        } else {
+                            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(UrbanColors.Gold.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.ShoppingBag, null, tint = UrbanColors.Gold)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(p.nombre, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text("\$${"%.0f".format(p.precioVenta)}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Gold)
+                        }
+                        if (qty == 0) {
+                            TextButton(onClick = { onQuantity(p.id, 1) }) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Agregar", color = UrbanColors.Gold)
+                            }
+                        } else {
+                            IconButton(onClick = { onQuantity(p.id, qty - 1) }) { Icon(Icons.Default.Remove, "Quitar uno", tint = UrbanColors.Gold) }
+                            Text("$qty", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                            IconButton(onClick = { onQuantity(p.id, qty + 1) }, enabled = qty < minOf(p.stockActual, 5)) {
+                                Icon(Icons.Default.Add, "Agregar uno", tint = UrbanColors.Gold)
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+        UrbanTextField(
+            value = notes,
+            onValueChange = onNotesChange,
+            label = "Notas para tu barbero (opcional)",
+            placeholder = "Ej. degradado bajo, barba corta…",
+            leadingIcon = Icons.Default.EditNote,
+            capitalization = KeyboardCapitalization.Sentences,
+            imeAction = ImeAction.Default,
+            minLines = 3
+        )
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
 @Composable
 private fun bookingChipColors() = FilterChipDefaults.filterChipColors(
     selectedContainerColor = UrbanColors.Gold,
@@ -607,8 +724,8 @@ private fun ReviewStep(
     barber: BarberItem?,
     date: String,
     time: String,
+    extras: List<Pair<ProductItem, Int>>,
     notes: String,
-    onNotesChange: (String) -> Unit,
     payment: @Composable ColumnScope.() -> Unit
 ) {
     // Con el pago el paso es más largo que la pantalla: sin scroll la barra inferior tapaba las opciones.
@@ -625,17 +742,24 @@ private fun ReviewStep(
             Spacer(Modifier.height(10.dp))
             ReviewRow(Icons.Default.Person, barber?.user?.name ?: "—", "Te confirma la cita desde su agenda")
         }
-        Spacer(Modifier.height(16.dp))
-        UrbanTextField(
-            value = notes,
-            onValueChange = onNotesChange,
-            label = "Notas para tu barbero (opcional)",
-            placeholder = "Ej. degradado bajo, barba corta…",
-            leadingIcon = Icons.Default.EditNote,
-            capitalization = KeyboardCapitalization.Sentences,
-            imeAction = ImeAction.Default,
-            minLines = 3
-        )
+        if (notes.isNotBlank()) {
+            Spacer(Modifier.height(12.dp))
+            UrbanInfoBanner("Nota para tu barbero: $notes", Icons.Default.EditNote)
+        }
+        if (extras.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Text("Productos de tu visita", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+                Text("Se pagan en el salón al recogerlos, con su propio comprobante.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                Spacer(Modifier.height(8.dp))
+                extras.forEach { (p, qty) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Text("${p.nombre}${if (qty > 1) " ×$qty" else ""}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
+                        Text("\$${"%.0f".format(p.precioVenta * qty)}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Gold)
+                    }
+                }
+            }
+        }
         Spacer(Modifier.height(28.dp))
         payment()
         Spacer(Modifier.height(96.dp))

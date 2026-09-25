@@ -158,6 +158,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun paymentsForStaff(page: Int, q: String?, metodo: String?, desde: String?, hasta: String?) =
         api.paymentsForStaff(page, q, metodo, desde, hasta)
     suspend fun paymentReceiptUrl(id: String) = api.paymentReceipt(id).data?.receiptUrl
+    suspend fun orderReceiptUrl(id: String) = api.orderReceiptLink(id).data?.receiptUrl
     suspend fun pendingPayments() = api.pendingPayments()
     suspend fun approvePayment(id: String) = api.approvePayment(id)
     suspend fun rejectPayment(id: String, reason: String) = api.rejectPayment(id, RejectPaymentRequest(reason))

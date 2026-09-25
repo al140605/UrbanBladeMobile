@@ -134,4 +134,35 @@ class UrbanBladeApiContractTest {
         assertEquals("""{"token":"fcm-token-123","provider":"fcm"}""", request.body.readUtf8())
         assertEquals("Token registrado", response.message)
     }
+
+    @Test
+    fun `reservar con productos los envia y lee productos_error sin perder la cita`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(201).setBody(
+                """{"message":"Cita creada correctamente.","data":{"id":"c1"},"productos_agregados":null,"productos_error":"Sin stock"}"""
+            )
+        )
+
+        val response = api.createAppointment(
+            com.urbanblade.mobile.data.model.AppointmentRequest(
+                barberId = "b1", serviceId = "s1", fecha = "2026-09-30", horaInicio = "10:00",
+                productos = listOf(com.urbanblade.mobile.data.model.OrderItemRequest("p1", 2))
+            )
+        )
+
+        val sent = server.takeRequest().body.readUtf8()
+        assertEquals(true, sent.contains("\"productos\":[{\"product_id\":\"p1\",\"cantidad\":2}]"))
+        assertEquals("c1", response.data?.id)
+        assertEquals("Sin stock", response.productosError)
+    }
+
+    @Test
+    fun `comprobante de pedido pide la liga firmada del pedido`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"data":{"order_id":"o1","receipt_url":"https://cdn.test/pedido-o1.pdf"}}"""))
+
+        val response = api.orderReceiptLink("o1")
+
+        assertEquals("/api/v1/orders/o1/receipt-link", server.takeRequest().path)
+        assertEquals("https://cdn.test/pedido-o1.pdf", response.data?.receiptUrl)
+    }
 }
