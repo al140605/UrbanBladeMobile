@@ -189,6 +189,7 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     checkoutPlan?.let { plan ->
         ModalBottomSheet(
             onDismissRequest = { if (!busy) checkoutPlan = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = UrbanColors.Background
         ) {
             MembershipCheckoutSheet(
@@ -368,16 +369,23 @@ private fun MembershipPlanCard(plan: MembershipPlan, busy: Boolean, onSubscribe:
             }
             Text("\$${"%.0f".format(plan.precioMensual)}/mes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
-        plan.descripcion?.takeIf { it.isNotBlank() }?.let {
+        planExtraBenefit(plan)?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, null, tint = UrbanColors.Gold, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
+            }
         }
         Spacer(Modifier.height(12.dp))
-        UrbanPrimaryButton(text = "Contratar", onClick = onSubscribe, enabled = !busy, icon = Icons.Default.CardMembership, modifier = Modifier.fillMaxWidth())
+        UrbanOutlineButton(text = "Contratar", onClick = { if (!busy) onSubscribe() }, icon = Icons.Default.CardMembership, modifier = Modifier.fillMaxWidth())
     }
 }
 
-/** Hoja de pago del primer mes: tarjeta guardada o nueva (Stripe), con el cobro y la renovación claros. */
+/**
+ * Hoja de pago del primer mes, con el patrón de la app: el plan en la tarjeta con foto, qué incluye,
+ * con qué tarjeta se paga (guardada o nueva, Stripe) y el total de hoy junto al botón.
+ */
 @Composable
 private fun MembershipCheckoutSheet(
     plan: MembershipPlan,
@@ -388,6 +396,7 @@ private fun MembershipCheckoutSheet(
     testMode: Boolean,
     onPay: () -> Unit
 ) {
+    val pct = plan.descuentoPct.toInt()
     Column(
         Modifier
             .fillMaxWidth()
@@ -395,34 +404,81 @@ private fun MembershipCheckoutSheet(
             .padding(horizontal = 18.dp)
             .padding(bottom = 24.dp)
     ) {
-        Text("Contratar ${plan.nombre}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "${plan.descuentoPct.toInt()}% de descuento en cada servicio. Se cobra hoy y se renueva cada mes; puedes cancelarla cuando quieras y conservas el mes pagado.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = UrbanColors.Muted
-        )
-        Spacer(Modifier.height(16.dp))
-        UrbanPremiumCard(Modifier.fillMaxWidth()) {
-            UrbanKeyValue("Primer mes", "\$${"%.2f".format(plan.precioMensual)}")
-            Spacer(Modifier.height(4.dp))
-            UrbanKeyValue("Después", "\$${"%.0f".format(plan.precioMensual)} cada mes")
+        UrbanHeroCard {
+            UrbanHeroLabel("Membresía UrbanBlade")
+            Spacer(Modifier.height(6.dp))
+            Text(plan.nombre, style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Ink)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("\$${"%.0f".format(plan.precioMensual)}", style = MaterialTheme.typography.displaySmall, color = UrbanColors.Gold)
+                Text(" /mes", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Muted, modifier = Modifier.padding(bottom = 6.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            Surface(shape = CircleShape, color = UrbanColors.Gold.copy(alpha = 0.18f)) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Sell, null, tint = UrbanColors.Gold, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("$pct% de descuento en cada servicio", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                }
+            }
         }
-        Spacer(Modifier.height(16.dp))
+
+        Spacer(Modifier.height(20.dp))
+        UrbanSectionTitle("Qué incluye", null)
+        Spacer(Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            MembershipBenefit("$pct% menos en cada corte y servicio, aplicado al cobrar")
+            planExtraBenefit(plan)?.let { MembershipBenefit(it) }
+            MembershipBenefit("Se renueva sola cada mes con la misma tarjeta")
+            MembershipBenefit("Cancela cuando quieras y conservas el mes pagado")
+        }
+
+        Spacer(Modifier.height(20.dp))
+        UrbanSectionTitle("Pagar con", null)
+        Spacer(Modifier.height(8.dp))
         CardDetails(payState, savedCards, testMode, showSaveOption = false)
         error?.let {
             Spacer(Modifier.height(12.dp))
             UrbanErrorBanner(it)
         }
-        Spacer(Modifier.height(16.dp))
-        UrbanPrimaryButton(
-            text = "Pagar \$${"%.0f".format(plan.precioMensual)} y activar",
-            onClick = onPay,
-            enabled = !busy,
-            loading = busy,
-            icon = Icons.Default.Lock,
-            modifier = Modifier.fillMaxWidth()
-        )
+
+        Spacer(Modifier.height(20.dp))
+        HorizontalDivider(color = UrbanColors.Muted.copy(alpha = 0.2f))
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Hoy pagas", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                Text("\$${"%,.2f".format(plan.precioMensual)} MXN", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink, fontWeight = FontWeight.Bold)
+            }
+            UrbanPrimaryButton(
+                text = "Pagar y activar",
+                onClick = onPay,
+                enabled = !busy,
+                loading = busy,
+                icon = Icons.Default.Lock,
+                modifier = Modifier.weight(1.2f)
+            )
+        }
+    }
+}
+
+/**
+ * Lo que el plan da además del descuento, sacado de su descripción: «15% de descuento y prioridad de
+ * agenda» -> «Prioridad de agenda». Null si la descripción solo repite el descuento.
+ */
+internal fun planExtraBenefit(plan: MembershipPlan): String? {
+    val pct = plan.descuentoPct.toInt()
+    val extra = plan.descripcion.orEmpty()
+        .replace(Regex("""^\s*$pct\s*%\s*de descuento( en todos los servicios| en cada servicio)?\s*(y|,)?\s*""", RegexOption.IGNORE_CASE), "")
+        .trim().trimEnd('.').trim()
+    return extra.takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() }
+}
+
+@Composable
+private fun MembershipBenefit(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.CheckCircle, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
     }
 }
 

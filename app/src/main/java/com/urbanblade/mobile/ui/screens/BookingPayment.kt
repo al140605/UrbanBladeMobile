@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -359,19 +360,37 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
         if (savedCards.isNotEmpty()) Spacer(Modifier.height(16.dp))
         UrbanFieldLabel("Datos de la tarjeta")
         Spacer(Modifier.height(8.dp))
-        // El formulario de Stripe es una vista clásica con tema claro: se muestra sobre una tarjeta blanca
-        // para que se lea bien en el tema oscuro de la app.
-        Surface(shape = MaterialTheme.shapes.medium, color = Color.White, modifier = Modifier.fillMaxWidth()) {
+        // El formulario de Stripe es una vista clásica: toma los colores del tema de la app (tarjeta,
+        // texto, pistas y dorado al enfocar) en lugar de un recuadro blanco que no combinaba.
+        val colors = CardFormColors(
+            ink = UrbanColors.Ink.toArgb(),
+            hint = UrbanColors.Muted.toArgb(),
+            accent = UrbanColors.Gold.toArgb(),
+            line = UrbanColors.Muted.copy(alpha = 0.45f).toArgb()
+        )
+        val darkTheme = UrbanColors.Card.luminance() < 0.5f
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = UrbanColors.Card,
+            border = BorderStroke(1.dp, UrbanColors.Muted.copy(alpha = 0.3f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
             AndroidView(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 factory = { ctx ->
-                    val themed = ContextThemeWrapper(ctx, com.google.android.material.R.style.Theme_MaterialComponents_Light_NoActionBar)
+                    val themed = ContextThemeWrapper(
+                        ctx,
+                        if (darkTheme) com.google.android.material.R.style.Theme_MaterialComponents_NoActionBar
+                        else com.google.android.material.R.style.Theme_MaterialComponents_Light_NoActionBar
+                    )
                     CardMultilineWidget(themed).also { widget ->
                         widget.setShouldShowPostalCode(false)
-                        styleCardWidget(widget, UrbanColors.Gold.toArgb())
+                        styleCardWidget(widget, colors)
                         state.cardWidget = widget
                     }
-                }
+                },
+                // Si el usuario cambia de tema con la hoja abierta, se vuelven a pintar los campos.
+                update = { widget -> styleCardWidget(widget, colors) }
             )
         }
         if (showSaveOption) {
@@ -410,13 +429,20 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
     }
 }
 
+/** Colores del tema (ARGB) para el formulario de tarjeta de Stripe. */
+private data class CardFormColors(val ink: Int, val hint: Int, val accent: Int, val line: Int)
+
 /**
- * El formulario de Stripe hereda los colores claros del tema oscuro de la app: sin esto los textos
- * ("Número de tarjeta", "Fecha de vencimiento", "CVC") salen blancos sobre el recuadro blanco.
+ * El formulario de Stripe no conoce el tema de la app: sin esto sus textos ("Número de tarjeta",
+ * "Fecha de vencimiento", "CVC") heredan colores que no se leen. Texto e hint del tema, y la línea
+ * de cada campo en gris que pasa a dorado al enfocar.
  */
-private fun styleCardWidget(widget: CardMultilineWidget, accent: Int) {
-    val ink = android.graphics.Color.rgb(0x1F, 0x1F, 0x1F)
-    val hint = android.graphics.Color.rgb(0x6B, 0x6B, 0x6B)
+private fun styleCardWidget(widget: CardMultilineWidget, colors: CardFormColors) {
+    val (ink, hint, accent, line) = colors
+    val underline = ColorStateList(
+        arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
+        intArrayOf(accent, line)
+    )
     fun id(name: String) = widget.resources.getIdentifier(name, "id", widget.context.packageName)
     // Los contenedores son TextInputLayout de Material, que la app no compila directamente (llega con
     // Stripe): se ajustan sus colores por nombre de método y, si algún día cambian, se ignora sin romper.
@@ -430,6 +456,8 @@ private fun styleCardWidget(widget: CardMultilineWidget, accent: Int) {
         widget.findViewById<EditText>(id(name))?.apply {
             setTextColor(ink)
             setHintTextColor(hint)
+            backgroundTintList = underline
+            highlightColor = accent
         }
     }
 }
