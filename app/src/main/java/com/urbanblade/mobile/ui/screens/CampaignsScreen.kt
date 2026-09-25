@@ -142,9 +142,9 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
             if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
             if (!state.loading && data.data.isEmpty() && state.error == null) {
                 item {
+                    // Sin botón propio: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
                     UrbanMascotState(
-                        UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento.",
-                        actionLabel = "Nueva campaña", actionIcon = Icons.Default.Add, onAction = { vm.clearMessages(); creating = true }
+                        UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
                     )
                 }
             }
