@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 o anterior: misma regla que data_extraction_rules.xml, el token no se respalda. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/urbanblade_session.preferences_pb" />
+</full-backup-content>

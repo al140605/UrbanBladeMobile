@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La sesión (token Bearer en DataStore "urbanblade_session") nunca sale del teléfono:
+  ni en el respaldo en la nube ni al pasar los datos a otro dispositivo. Así, restaurar
+  un respaldo en otro celular no abre la cuenta sin iniciar sesión (checklist CN-092).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/urbanblade_session.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/urbanblade_session.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

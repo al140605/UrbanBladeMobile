@@ -266,26 +266,26 @@ fun UrbanQuickAction(
 
 @Composable
 fun UrbanStatusPill(status: String) {
-    val normalized = status.lowercase()
-    val color = when {
-        normalized.contains("complet") || normalized.contains("confirm") || normalized.contains("entreg") || normalized.contains("verific") -> UrbanColors.Success
-        normalized.contains("cancel") || normalized.contains("rechaz") || normalized.contains("error") -> UrbanColors.Danger
-        normalized.contains("pend") || normalized.contains("proceso") -> UrbanColors.Warning
-        else -> UrbanColors.Info
-    }
+    // Etiqueta, color e ícono salen de statusStyle() (UrbanStatus.kt), el mismo en toda la app.
+    val style = statusStyle(status)
+    val color = style.tone.color()
+    // Mezclado con el texto del tema: el ámbar o verde puros casi no se leen sobre el crema de "Libreta".
+    val content = androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f)
     Surface(
         shape = CircleShape,
         color = color.copy(alpha = 0.13f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
     ) {
-        Text(
-            status.replace('_', ' ').replaceFirstChar { it.uppercase() },
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium,
-            // Mezclado con el texto del tema: el ámbar o verde puros casi no se leen sobre el crema de "Libreta".
-            color = androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f),
-            maxLines = 1
-        )
+        Row(
+            Modifier.padding(start = if (style.icon != null) 8.dp else 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            style.icon?.let {
+                Icon(it, null, tint = content, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(style.label, style = MaterialTheme.typography.labelMedium, color = content, maxLines = 1)
+        }
     }
 }
 

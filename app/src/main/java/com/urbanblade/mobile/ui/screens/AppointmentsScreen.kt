@@ -694,6 +694,18 @@ private fun AppointmentCard(
 
 @Composable
 internal fun WaitlistCard(entry: WaitlistEntry, onLeave: () -> Unit) {
+    // Salir de la lista hace perder el lugar: se confirma como las demás acciones que no se deshacen.
+    var confirmLeave by remember { mutableStateOf(false) }
+    if (confirmLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            containerColor = UrbanColors.Card,
+            title = { Text("¿Salir de la lista de espera?") },
+            text = { Text("Ya no te avisaremos si se libera un horario para ${entry.service?.nombre ?: "este servicio"}.", color = UrbanColors.Muted) },
+            confirmButton = { TextButton(onClick = { confirmLeave = false; onLeave() }) { Text("Sí, salir", color = UrbanColors.Danger) } },
+            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text("Volver") } }
+        )
+    }
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -706,7 +718,7 @@ internal fun WaitlistCard(entry: WaitlistEntry, onLeave: () -> Unit) {
             }
             UrbanStatusPill(entry.estado)
             Spacer(Modifier.width(8.dp))
-            IconButton(onClick = onLeave) { Icon(Icons.Default.Close, "Salir de la lista de espera", tint = UrbanColors.Danger) }
+            IconButton(onClick = { confirmLeave = true }) { Icon(Icons.Default.Close, "Salir de la lista de espera", tint = UrbanColors.Danger) }
         }
     }
 }
