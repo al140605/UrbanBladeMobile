@@ -441,15 +441,3 @@ class LogsViewModel : ViewModel() {
 }
 
 
-class ChatbotViewModel : ViewModel() {
-    private val repo=AppContainer.urbanRepository
-    private val _messages=MutableStateFlow<List<Pair<Boolean,String>>>(emptyList()); val messages=_messages.asStateFlow()
-    private val _busy=MutableStateFlow(false); val busy=_busy.asStateFlow()
-    fun send(text:String)=viewModelScope.launch{
-        if(text.isBlank())return@launch
-        _messages.value += true to text; _busy.value=true
-        try { val r=repo.chatbot(text); val answer = sequenceOf("answer","response","message","reply").mapNotNull { k-> r.get(k)?.takeIf{!it.isJsonNull}?.asString }.firstOrNull() ?: r.toString(); _messages.value += false to answer }
-        catch(e:Exception){_messages.value += false to e.toFriendlyMessage("No pude responder ahora.")}
-        finally{_busy.value=false}
-    }
-}
