@@ -196,7 +196,7 @@ private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
                 .matchParentSize()
                 .background(
                     Brush.horizontalGradient(
-                        listOf(UrbanColors.Background.copy(alpha = 0.95f), UrbanColors.Background.copy(alpha = 0.85f), UrbanColors.Background.copy(alpha = 0.45f))
+                        listOf(UrbanColors.Background.copy(alpha = 0.95f), UrbanColors.Background.copy(alpha = 0.85f), UrbanColors.Background.copy(alpha = 0.65f))
                     )
                 )
         )

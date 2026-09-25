@@ -131,7 +131,7 @@ fun UrbanHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScop
                         listOf(
                             UrbanColors.Background.copy(alpha = 0.95f),
                             UrbanColors.Background.copy(alpha = 0.85f),
-                            UrbanColors.Background.copy(alpha = 0.45f)
+                            UrbanColors.Background.copy(alpha = 0.65f)
                         )
                     )
                 )

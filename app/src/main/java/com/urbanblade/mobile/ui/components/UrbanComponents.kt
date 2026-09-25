@@ -282,7 +282,8 @@ fun UrbanStatusPill(status: String) {
             status.replace('_', ' ').replaceFirstChar { it.uppercase() },
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
             style = MaterialTheme.typography.labelMedium,
-            color = color,
+            // Mezclado con el texto del tema: el ámbar o verde puros casi no se leen sobre el crema de "Libreta".
+            color = androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f),
             maxLines = 1
         )
     }
