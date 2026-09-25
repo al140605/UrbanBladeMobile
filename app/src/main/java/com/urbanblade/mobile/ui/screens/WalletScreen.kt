@@ -48,20 +48,20 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.load() }
 
-    // Wallet es una pestaña de la barra inferior: sin barra superior con título (antes decía "Wallet"
-    // arriba y "Tus beneficios" abajo, el mismo encabezado dos veces).
+    // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
     val nothingYet = data.membership == null && data.packages.isEmpty() && data.giftCards.isEmpty()
 
+    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().padding(padding),
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             UrbanPageHeader(
-                title = "Tus beneficios",
+                title = "Beneficios",
                 subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
-                eyebrow = "Wallet"
+                eyebrow = "Cuenta"
             )
         }
         message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -140,6 +140,7 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
             }
         }
         item { Spacer(Modifier.height(8.dp)) }
+    }
     }
 
     if (confirmCancelMembership) {

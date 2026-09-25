@@ -62,9 +62,9 @@ fun CatalogScreen(
     ) {
         item {
             UrbanPageHeader(
-                title = "Explora UrbanBlade",
-                subtitle = "Servicios precisos. Barberos con estilo propio.",
-                eyebrow = "Catálogo"
+                title = "Reservar",
+                subtitle = "Elige un servicio o un barbero y un horario real.",
+                eyebrow = "Reserva"
             )
         }
         if (isGuest) {
@@ -167,27 +167,6 @@ fun CatalogScreen(
         item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
         items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
         if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
-        if (!isGuest && onOpenInspiration != null) {
-            item {
-                UrbanAttentionRow(
-                    Icons.Default.Groups,
-                    "Muro de Inspiración",
-                    "¿No sabes qué corte hacerte? Mira los últimos trabajos del equipo.",
-                    UrbanColors.Gold,
-                    onClick = onOpenInspiration
-                )
-            }
-        }
-        if (!isGuest && onOpenStore != null) {
-            item {
-                UrbanOutlineButton(
-                    text = "Ver tienda de productos",
-                    onClick = onOpenStore,
-                    icon = Icons.Default.Storefront,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
         item { Spacer(Modifier.height(8.dp)) }
     }
 }

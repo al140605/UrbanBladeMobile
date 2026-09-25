@@ -121,11 +121,11 @@ fun ClientAppointmentsScreen(
     ) {
         item {
             UrbanPageHeader(
-                title = "Tus citas",
+                title = "Mis citas",
                 subtitle = "Lo que viene y lo que ya viviste.",
-                eyebrow = "Mis citas",
+                eyebrow = "Agenda",
                 trailing = {
-                    UrbanPrimaryButton(text = "Nueva", onClick = onBook, icon = Icons.Default.Add)
+                    UrbanPrimaryButton(text = "Reservar", onClick = onBook, icon = Icons.Default.Add)
                 }
             )
         }

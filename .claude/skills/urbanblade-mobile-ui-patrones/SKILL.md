@@ -85,7 +85,18 @@ tarjeta héroe con Pagar, Reagendar y Cancelar a la vista. Reutiliza `Reschedule
 (son `internal` para eso): no duplicarlas. "Nueva" va en el encabezado, nunca como botón
 flotante sobre la lista.
 
-## 4. Mascotas y tono
+## 4. Navegación del cliente (propuesta A, 25-sep-2026)
+
+Cuatro pestañas: **Inicio · Reservar · Mis citas · Cuenta**. Reglas que la sostienen:
+
+- El título de cada pantalla es el nombre de su pestaña (Reservar, Mis citas, Cuenta).
+- Un solo verbo para reservar: «Reservar» / «Reservar cita» / «Reservar de nuevo». Nada de
+  «Nueva», «Agendar» ni «Explorar».
+- Cada cosa en un solo lugar: Beneficios (antes Wallet), Mis pagos y Mis pedidos en Cuenta
+  → «Tu actividad»; Muro y Tienda en Inicio → «Descubre»; Bladebot en Inicio.
+- Pantallas que no son pestaña llevan `UrbanTopBar("", onBack)`.
+
+## 5. Mascotas y tono
 
 - **Bruno**: errores y datos técnicos (`UrbanStateKind.ERROR`).
 - **Nava**: vacíos y "todavía no hay nada" (`UrbanStateKind.EMPTY`).
@@ -96,13 +107,13 @@ Textos: español de México, frases cortas, sin tecnicismos ("No pudimos abrir t
 cuenta", no "Error 500"). En un 422 mostrar el `message` del servidor
 (`HttpException.serverMessage()`), que ya explica qué falló.
 
-## 5. Eyebrow por rol
+## 6. Eyebrow por rol
 
 `Administrador`, `Recepción`, `Barbero`, `Ingeniero`, `Cliente` (usar
 `accountRoleLabel(user.roles)`; si alguien tiene varios roles gana el de más
 responsabilidad).
 
-## 6. Lecciones aprendidas (no repetirlas)
+## 7. Lecciones aprendidas (no repetirlas)
 
 1. **Leer el backend antes de escribir un texto o un dato.** Varias veces un mensaje
    prometía algo que la API no hacía (p. ej. "pagos pendientes" eran citas completadas

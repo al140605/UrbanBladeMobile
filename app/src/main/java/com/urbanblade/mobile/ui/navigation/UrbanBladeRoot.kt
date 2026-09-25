@@ -112,23 +112,22 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val engineerOnly = user.roles.contains("ingeniero") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "cliente") }
 
-    // Nav por rol: el cliente tiene su propia barra (Inicio/Explorar/Mis
-    // citas/Wallet/Perfil); el resto de roles conserva la barra de siempre
-    // (Inicio/Citas/Más/Perfil) sin cambios.
+    // Nav por rol. Cliente (propuesta A, 25-sep): cuatro pestañas con un solo verbo para
+    // reservar; Beneficios, pagos y pedidos viven en Cuenta y en el Inicio, ya no en la barra.
+    // Cada pestaña se llama igual que el título de su pantalla.
     val items = if (isClient) {
         listOf(
             NavItem("home", "Inicio", Icons.Default.Home),
-            NavItem("catalog", "Explorar", Icons.Default.Explore),
+            NavItem("catalog", "Reservar", Icons.Default.ContentCut),
             NavItem("appointments", "Mis citas", Icons.Default.CalendarMonth),
-            NavItem("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-            NavItem("profile", "Perfil", Icons.Default.Person)
+            NavItem("profile", "Cuenta", Icons.Default.Person)
         )
     } else {
         buildList {
             add(NavItem("home", "Inicio", Icons.Default.Home))
             if (!engineerOnly) add(NavItem("appointments", "Citas", Icons.Default.CalendarMonth))
             add(NavItem("more", "Más", Icons.Default.GridView))
-            add(NavItem("profile", "Perfil", Icons.Default.Person))
+            add(NavItem("profile", "Cuenta", Icons.Default.Person))
         }
     }
     val rootRoutes = items.map { it.route }

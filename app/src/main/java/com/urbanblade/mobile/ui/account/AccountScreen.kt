@@ -17,7 +17,8 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -45,6 +46,7 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStateKind
@@ -98,7 +100,7 @@ fun AccountScreen(
     ) {
         item {
             UrbanPageHeader(
-                title = "Mi cuenta",
+                title = "Cuenta",
                 subtitle = "Tu perfil, tu seguridad y tus ajustes.",
                 eyebrow = accountRoleLabel(user.roles)
             )
@@ -143,6 +145,18 @@ fun AccountScreen(
                         }
                     )
                     if (notice?.section == AccountSection.AVATAR) AccountNoticeBanner(notice) }
+                }
+
+                // Lo del cliente que antes estaba repartido entre la pestaña Wallet y el Inicio.
+                if (isClient) {
+                    item { UrbanSectionTitle("Tu actividad", "Beneficios, pagos y compras.") }
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            UrbanAttentionRow(Icons.Default.Stars, "Beneficios", "Nivel, puntos, membresía y tu código para invitar.", UrbanColors.Gold, onClick = { onNavigate("wallet") })
+                            UrbanAttentionRow(Icons.Default.ReceiptLong, "Mis pagos", "Historial y comprobantes.", UrbanColors.Gold, onClick = { onNavigate("payments") })
+                            UrbanAttentionRow(Icons.Default.ShoppingBag, "Mis pedidos", "Compras de la tienda.", UrbanColors.Gold, onClick = { onNavigate("orders") })
+                        }
+                    }
                 }
 
                 item {
@@ -226,15 +240,6 @@ fun AccountScreen(
                                     UrbanOutlineButton("Reintentar", onClick = { vm.load(isClient) }, modifier = Modifier.fillMaxWidth())
                                 }
                             }
-                        }
-                        if (isClient) item {
-                            UrbanAttentionRow(
-                                icon = Icons.Default.SmartToy,
-                                text = "Ayuda con Bladebot",
-                                subtitle = "Pregunta por horarios, servicios o tus citas.",
-                                tone = UrbanColors.Gold,
-                                onClick = { onNavigate("chatbot") }
-                            )
                         }
                     }
                 }

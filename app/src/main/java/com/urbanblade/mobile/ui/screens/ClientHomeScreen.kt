@@ -79,11 +79,14 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.filled.Stars
+import com.urbanblade.mobile.ui.viewmodel.LoyaltySummaryViewModel
 import java.time.LocalTime
 
 /**
- * Inicio del cliente: su próxima cita (o una invitación a reservar), lo que conviene resolver,
- * repetir su última visita y lo que no tiene pestaña propia (Muro, Tienda, pagos y pedidos). El personal conserva el tablero con indicadores de DashboardScreen.
+ * Inicio del cliente: su próxima cita con "Reservar cita" a la vista (o una invitación a
+ * reservar), lo que conviene resolver, repetir su última visita, su nivel (a un toque de
+ * Beneficios) y lo que se descubre (Muro y Tienda). Pagos y pedidos viven en Cuenta. El personal conserva el tablero con indicadores de DashboardScreen.
  */
 @Composable
 fun ClientHomeScreen(
@@ -95,7 +98,8 @@ fun ClientHomeScreen(
     onExplore: () -> Unit = {},
     onNavigate: (String) -> Unit = {},
     vm: AppointmentsViewModel = viewModel(),
-    notificationsVm: NotificationsViewModel = viewModel()
+    notificationsVm: NotificationsViewModel = viewModel(),
+    loyaltyVm: LoyaltySummaryViewModel = viewModel()
 ) {
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
@@ -103,7 +107,9 @@ fun ClientHomeScreen(
     LaunchedEffect(Unit) {
         vm.load()
         notificationsVm.load()
+        loyaltyVm.load()
     }
+    val loyalty by loyaltyVm.loyalty.collectAsState()
     val notifications by notificationsVm.data.collectAsState()
     val unread = parseNotifications(notifications).unread
 
@@ -153,7 +159,12 @@ fun ClientHomeScreen(
             failed -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus citas", error, "Reintentar") { vm.load() }
             }
-            next != null -> item { NextAppointmentCard(next, onClick = onAppointments) }
+            next != null -> {
+                item { NextAppointmentCard(next, onClick = onAppointments) }
+                item {
+                    UrbanPrimaryButton(text = "Reservar cita", onClick = onBook, icon = Icons.Default.ContentCut, modifier = Modifier.fillMaxWidth())
+                }
+            }
             else -> item { EmptyAgendaCard(onBook = onBook) }
         }
 
@@ -193,17 +204,29 @@ fun ClientHomeScreen(
             }
         }
 
-        // Mis citas y Wallet ya están en la barra inferior: aquí solo lo que no tiene pestaña propia.
-        item { UrbanSectionTitle("Descubre y administra", "Inspiración, tienda y tu historial.") }
+        // Nivel y puntos a un toque de Beneficios (ya no es pestaña; también está en Cuenta).
+        loyalty?.let { l ->
+            item {
+                UrbanAttentionRow(
+                    Icons.Default.Stars,
+                    "Nivel ${l.nivelLabel ?: l.nivel ?: ""} · ${UrbanFormat.count(l.puntos, "punto", "puntos")}",
+                    l.nextNivelLabel?.let { next -> "Te faltan ${UrbanFormat.count(l.citasFaltan, "cita", "citas")} para $next. Ver beneficios." }
+                        ?: "Estás en el nivel más alto. Ver beneficios.",
+                    UrbanColors.Gold,
+                    onClick = onWallet
+                )
+            }
+        }
+
+        // Pagos y pedidos viven en Cuenta; aquí solo lo que se descubre.
+        item { UrbanSectionTitle("Descubre", "Inspiración para tu próximo corte y productos.") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
                     Triple("Muro de Inspiración", "Cortes del equipo", Icons.Default.Groups),
                     Triple("Tienda", "Productos UrbanBlade", Icons.Default.Storefront),
-                    Triple("Mis pagos", "Historial y comprobantes", Icons.Default.ReceiptLong),
-                    Triple("Mis pedidos", "Compras de la tienda", Icons.Default.ShoppingBag),
                 ),
-                routes = listOf("social", "store", "payments", "orders"),
+                routes = listOf("social", "store"),
                 onNavigate = { route -> if (route == "store") onStore() else onNavigate(route) }
             )
         }
