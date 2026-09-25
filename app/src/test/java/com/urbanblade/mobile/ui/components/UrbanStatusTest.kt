@@ -36,4 +36,11 @@ class UrbanStatusTest {
         assertEquals(StatusTone.WARNING, statusStyle("en_revision").tone)
         assertEquals("En revision", statusStyle("en_revision").label)
     }
+
+    @Test
+    fun `los estados de pago se leen en espanol`() {
+        assertEquals("Reembolsado", statusStyle("reembolsado").label)
+        assertEquals("Por verificar", statusStyle("pendiente_verificacion").label)
+        assertEquals(StatusTone.WARNING, statusStyle("pendiente_verificacion").tone)
+    }
 }

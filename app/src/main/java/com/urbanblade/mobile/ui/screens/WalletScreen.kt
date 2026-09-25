@@ -294,7 +294,7 @@ private fun MembershipCard(membership: MyMembership, busy: Boolean, onCancel: ()
                 )
                 membership.periodoActualFin?.let {
                     Text(
-                        if (membership.cancelarAlFinalizar) "Se cancela el $it" else "Se renueva el $it",
+                        if (membership.cancelarAlFinalizar) "Se cancela el ${UrbanFormat.dateLong(it)}" else "Se renueva el ${UrbanFormat.dateLong(it)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = UrbanColors.Muted
                     )

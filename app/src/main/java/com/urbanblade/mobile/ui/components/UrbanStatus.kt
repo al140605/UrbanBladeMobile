@@ -1,11 +1,13 @@
 package com.urbanblade.mobile.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PersonOff
@@ -46,6 +48,9 @@ fun statusStyle(status: String): StatusStyle = when (status.lowercase().trim()) 
     "activo", "activa" -> StatusStyle("Activa".takeIf { status.endsWith("a") } ?: "Activo", StatusTone.SUCCESS, Icons.Default.CheckCircle)
     "expirado", "expirada", "vencido", "vencida" -> StatusStyle(status.replaceFirstChar { it.uppercase() }, StatusTone.NEUTRAL, Icons.Default.EventBusy)
     "rechazado", "rechazada" -> StatusStyle(status.replaceFirstChar { it.uppercase() }, StatusTone.DANGER, Icons.Default.Block)
+    // Pagos: el dinero se devolvió al cliente, o su comprobante espera revisión de recepción.
+    "reembolsado" -> StatusStyle("Reembolsado", StatusTone.INFO, Icons.AutoMirrored.Filled.Undo)
+    "pendiente_verificacion" -> StatusStyle("Por verificar", StatusTone.WARNING, Icons.Default.HourglassTop)
     else -> {
         // Estados que no son de cita (pedidos, pagos…): mismo criterio de color que antes, sin ícono.
         val n = status.lowercase()

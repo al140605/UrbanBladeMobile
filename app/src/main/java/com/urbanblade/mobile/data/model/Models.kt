@@ -405,8 +405,15 @@ data class PaymentRow(
     val propina: Double = 0.0,
     @SerializedName("receipt_url") val receiptUrl: String? = null,
     @SerializedName("created_at") val createdAt: String? = null,
-    val appointment: PaymentAppointment? = null
-)
+    val appointment: PaymentAppointment? = null,
+    /** verificado | pendiente_verificacion | rechazado | reembolsado (null en pagos antiguos = cobrado). */
+    val estado: String? = null,
+    /** Pagado al reservar (anticipo o pago completo por adelantado). */
+    @SerializedName("es_deposito") val esDeposito: Boolean = false
+) {
+    /** Dinero que de verdad se quedó en la barbería: solo estos llevan comprobante. */
+    val collected: Boolean get() = estado == null || estado == "verificado"
+}
 /** Estadísticas globales que el servidor calcula para el personal (no dependen de la página cargada). */
 data class PaymentsStats(
     @SerializedName("total_hoy") val totalHoy: Double = 0.0,

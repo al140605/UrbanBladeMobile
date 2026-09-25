@@ -23,6 +23,7 @@ data class InvoicesState(
     val openingId: String? = null,
     val receiptError: String? = null
 ) {
+    val collected get() = payments.filter { it.collected }
     val delivered get() = orders.filter { it.estado == "entregado" }
     val toPickUp get() = orders.filter { it.estado == "pendiente" }
     val productsPaid get() = delivered.sumOf { it.total }
@@ -45,7 +46,7 @@ class InvoicesViewModel @JvmOverloads constructor(
             // Si los pedidos fallan se siguen mostrando las citas.
             val orders = async { runCatching { repo.orders().data }.getOrDefault(emptyList()) }
             val p = payments.await()
-            _state.update { it.copy(payments = p.data, totalPaid = p.meta?.totalPagado ?: p.data.sumOf { r -> r.monto + r.propina }, orders = orders.await()) }
+            _state.update { it.copy(payments = p.data, totalPaid = p.meta?.totalPagado ?: p.data.filter { r -> r.collected }.sumOf { r -> r.monto + r.propina }, orders = orders.await()) }
         } catch (e: Exception) {
             _state.update { it.copy(error = e.toFriendlyMessage("No pudimos cargar tus facturas.")) }
         } finally {

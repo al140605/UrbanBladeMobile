@@ -118,7 +118,7 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                         Text(money(state.totalPaid + state.productsPaid), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
                         Spacer(Modifier.height(14.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            UrbanHeroStat("Citas", "${state.payments.size}", Icons.Default.ContentCut, Modifier.weight(1f))
+                            UrbanHeroStat("Citas", "${state.collected.size}", Icons.Default.ContentCut, Modifier.weight(1f))
                             UrbanHeroStat("Compras", "${state.delivered.size}", Icons.Default.ShoppingBag, Modifier.weight(1f))
                         }
                     }
@@ -171,12 +171,25 @@ private fun PaymentInvoice(payment: PaymentRow, opening: Boolean, onReceipt: () 
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text(payment.appointment?.service ?: "Cita", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        payment.appointment?.service ?: "Cita",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = UrbanColors.Ink,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    // Solo se marca lo que no es un cobro normal: reembolsado, por verificar o rechazado.
+                    if (!payment.collected) {
+                        Spacer(Modifier.width(8.dp))
+                        UrbanStatusPill(payment.estado.orEmpty())
+                    }
+                }
                 Text(
                     listOfNotNull(
                         payment.appointment?.fecha?.let { UrbanFormat.dateShort(it) },
                         payment.appointment?.barber,
-                        payment.metodoPago?.let { METODO[it.lowercase()] ?: it.replaceFirstChar { c -> c.uppercase() } }
+                        payment.metodoPago?.let { METODO[it.lowercase()] ?: it.replaceFirstChar { c -> c.uppercase() } },
+                        "Pagado al reservar".takeIf { payment.esDeposito }
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = UrbanColors.Muted,
@@ -186,10 +199,19 @@ private fun PaymentInvoice(payment: PaymentRow, opening: Boolean, onReceipt: () 
                 if (payment.propina > 0) {
                     Text("Incluye propina de ${money(payment.propina)}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 }
+                when (payment.estado) {
+                    "reembolsado" -> Text("Te devolvimos este pago a tu tarjeta o cuenta.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    "pendiente_verificacion" -> Text("Recepción está revisando tu comprobante.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    "rechazado" -> Text("Tu comprobante no se aceptó; paga en recepción o sube otro desde Mis citas.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
             }
-            Text(money(payment.monto + payment.propina), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+            Text(
+                money(payment.monto + payment.propina),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (payment.collected) UrbanColors.Gold else UrbanColors.Muted
+            )
         }
-        ReceiptButton(opening, onReceipt)
+        if (payment.collected) ReceiptButton(opening, onReceipt)
     }
 }
 

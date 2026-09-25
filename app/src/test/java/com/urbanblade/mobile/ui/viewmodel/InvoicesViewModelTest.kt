@@ -109,4 +109,25 @@ class InvoicesViewModelTest {
         assertNull(opened)
         assertNotNull(vm.state.value.receiptError)
     }
+
+    @Test
+    fun `un pago reembolsado o por verificar no cuenta como cobrado`() = runTest(dispatcher) {
+        whenever(repo.payments()).thenReturn(
+            PaymentsResponse(
+                listOf(
+                    PaymentRow(id = "p1", monto = 200.0, estado = "verificado"),
+                    PaymentRow(id = "p2", monto = 300.0, estado = "reembolsado", esDeposito = true),
+                    PaymentRow(id = "p3", monto = 150.0, estado = "pendiente_verificacion"),
+                    PaymentRow(id = "p4", monto = 100.0)
+                )
+            )
+        )
+        val vm = InvoicesViewModel(repo)
+
+        vm.load()
+        advanceUntilIdle()
+
+        assertEquals(listOf("p1", "p4"), vm.state.value.collected.map { it.id })
+        assertEquals(300.0, vm.state.value.totalPaid, 0.0)
+    }
 }
