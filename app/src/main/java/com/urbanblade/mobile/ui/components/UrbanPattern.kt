@@ -304,6 +304,14 @@ fun UrbanModuleGrid(tiles: List<Triple<String, String, ImageVector>>, routes: Li
     }
 }
 
+/** Colores de los filtros (FilterChip): el seleccionado en dorado, como las pestañas y la barra inferior. */
+@Composable
+fun urbanFilterChipColors() = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+    selectedContainerColor = UrbanColors.Gold,
+    selectedLabelColor = UrbanColors.OnGold,
+    selectedLeadingIconColor = UrbanColors.OnGold
+)
+
 /** Pestañas en píldora (2 o 3), con la seleccionada en dorado como el destino activo de la barra inferior. */
 @Composable
 fun UrbanPillTabs(tabs: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {

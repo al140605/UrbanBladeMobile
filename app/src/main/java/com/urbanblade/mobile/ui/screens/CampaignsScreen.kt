@@ -70,6 +70,11 @@ import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanStatStrip
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CampaignsViewModel
 import java.time.Instant
@@ -96,7 +101,7 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("Campañas", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } },
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { vm.clearMessages(); creating = true },
@@ -112,6 +117,7 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Campañas", subtitle = "Promociones por correo y notificación para cada segmento de clientes.", eyebrow = "Marketing") }
             if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
@@ -135,7 +141,12 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
             item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
             if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
             if (!state.loading && data.data.isEmpty() && state.error == null) {
-                item { UrbanEmptyState("Sin campañas todavía", "Crea la primera con el botón de abajo.", Icons.Default.Campaign) }
+                item {
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento.",
+                        actionLabel = "Nueva campaña", actionIcon = Icons.Default.Add, onAction = { vm.clearMessages(); creating = true }
+                    )
+                }
             }
             items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
             item { Spacer(Modifier.height(80.dp)) }

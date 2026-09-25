@@ -274,39 +274,43 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Sorteos", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item { UrbanPageHeader(title = "Sorteos", subtitle = "Ganadores del sorteo mensual y si ya reclamaron su premio.", eyebrow = "Marketing") }
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
 
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Total", raffles.stats.total.toString(), Icons.Default.CardGiftcard, Modifier.weight(1f))
-                    UrbanMetricCard("Reclamados", raffles.stats.reclamados.toString(), Icons.Default.CheckCircle, Modifier.weight(1f))
-                    UrbanMetricCard("Vigentes", raffles.stats.vigentes.toString(), Icons.Default.HourglassTop, Modifier.weight(1f))
-                }
+                // Tres números en una sola tarjeta: en tres tarjetas angostas las etiquetas se partían.
+                UrbanStatStrip(
+                    listOf(
+                        Triple("Total", raffles.stats.total.toString(), UrbanColors.Ink),
+                        Triple("Reclamados", raffles.stats.reclamados.toString(), UrbanColors.Success),
+                        Triple("Vigentes", raffles.stats.vigentes.toString(), UrbanColors.Gold)
+                    )
+                )
             }
 
             if (raffles.data.isNotEmpty()) {
                 item {
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("todos" to "Todos", "vigentes" to "Vigentes", "reclamados" to "Reclamados", "caducados" to "Caducados").forEach { (key, label) ->
-                            FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text(label) })
+                            FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text(label) }, colors = urbanFilterChipColors())
                         }
                     }
                 }
             }
             if (shown.isEmpty() && !busy) {
                 item {
-                    UrbanEmptyState(
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY,
                         if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
-                        if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado.",
-                        Icons.Default.CardGiftcard
+                        if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado."
                     )
                 }
             }

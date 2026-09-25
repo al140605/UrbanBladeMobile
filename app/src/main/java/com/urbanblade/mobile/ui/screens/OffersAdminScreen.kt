@@ -65,6 +65,11 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.urbanFilterChipColors
+import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.OffersAdminViewModel
 
@@ -88,7 +93,7 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            UrbanTopBar("Membresías y paquetes", onBack) {
+            UrbanTopBar("", onBack) {
                 IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             }
         },
@@ -110,24 +115,29 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Membresías y paquetes", subtitle = "Planes mensuales con descuento y usos pagados por adelantado.", eyebrow = "Beneficios") }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OffersTab.entries.forEach {
-                        FilterChip(selected = tab == it, onClick = { tab = it }, label = { Text(it.label) })
-                    }
-                }
+                UrbanPillTabs(
+                    listOf(OffersTab.Membresias.label to Icons.Default.CardMembership, OffersTab.Paquetes.label to Icons.Default.Inventory2),
+                    tab.ordinal
+                ) { tab = OffersTab.entries[it] }
             }
             if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (!formOpen) state.error?.let { item { UrbanErrorBanner(it) } }
+            if (!formOpen) state.error?.let { msg ->
+                item {
+                    if (state.plans.isEmpty() && state.packages.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los beneficios", msg, "Reintentar") { vm.load() }
+                    else UrbanErrorBanner(msg)
+                }
+            }
             if (state.loading && state.plans.isEmpty() && state.packages.isEmpty()) item { UrbanSkeletonList(3) }
 
             if (tab == OffersTab.Membresias) {
                 if (!state.loading && state.plans.isEmpty() && state.error == null) {
                     item {
-                        UrbanEmptyState(
-                            "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
-                            Icons.Default.CardMembership, "Nuevo plan", { creatingPlan = true }
+                        UrbanMascotState(
+                            UrbanStateKind.EMPTY, "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
+                            actionLabel = "Nuevo plan", actionIcon = Icons.Default.Add, onAction = { creatingPlan = true }
                         )
                     }
                 }
@@ -145,9 +155,9 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
             } else {
                 if (!state.loading && state.packages.isEmpty() && state.error == null) {
                     item {
-                        UrbanEmptyState(
-                            "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
-                            Icons.Default.Inventory2, "Nuevo paquete", { creatingPackage = true }
+                        UrbanMascotState(
+                            UrbanStateKind.EMPTY, "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
+                            actionLabel = "Nuevo paquete", actionIcon = Icons.Default.Add, onAction = { creatingPackage = true }
                         )
                     }
                 }

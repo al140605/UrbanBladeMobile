@@ -29,35 +29,44 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("Reseñas", onBack) { IconButton(onClick = { vm.load(rating = ratingFilter) }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load(rating = ratingFilter) }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Reseñas", subtitle = "Lo que opinan tus clientes de cada barbero.", eyebrow = "Calidad") }
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
 
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Total", reviews.stats.total.toString(), Icons.Default.Star, Modifier.weight(1f))
-                    UrbanMetricCard("Promedio", "%.1f".format(reviews.stats.promedio), Icons.Default.StarHalf, Modifier.weight(1f))
-                    UrbanMetricCard("Bajas (≤2★)", reviews.stats.bajas.toString(), Icons.Default.StarBorder, Modifier.weight(1f))
-                }
+                UrbanStatStrip(
+                    listOf(
+                        Triple("Total", reviews.stats.total.toString(), UrbanColors.Ink),
+                        Triple("Promedio", "%.1f★".format(reviews.stats.promedio), UrbanColors.Gold),
+                        Triple("Bajas (≤2★)", reviews.stats.bajas.toString(), if (reviews.stats.bajas > 0) UrbanColors.Danger else UrbanColors.Ink)
+                    )
+                )
             }
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = ratingFilter == null, onClick = { ratingFilter = null }, label = { Text("Todas") })
+                    FilterChip(selected = ratingFilter == null, onClick = { ratingFilter = null }, label = { Text("Todas") }, colors = urbanFilterChipColors())
                     (5 downTo 1).forEach { r ->
-                        FilterChip(selected = ratingFilter == r, onClick = { ratingFilter = if (ratingFilter == r) null else r }, label = { Text("$r★") })
+                        FilterChip(selected = ratingFilter == r, onClick = { ratingFilter = if (ratingFilter == r) null else r }, label = { Text("$r★") }, colors = urbanFilterChipColors())
                     }
                 }
             }
 
             if (reviews.data.isEmpty() && !busy) {
-                item { UrbanEmptyState("Sin reseñas", "No hay reseñas que coincidan con el filtro.", Icons.Default.Star) }
+                item {
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY,
+                        if (ratingFilter == null) "Aún no hay reseñas" else "Sin reseñas de ${ratingFilter}★",
+                        if (ratingFilter == null) "Se piden al cliente dos horas después de completar su cita." else "Prueba con otra calificación."
+                    )
+                }
             }
 
             items(reviews.data) { review ->

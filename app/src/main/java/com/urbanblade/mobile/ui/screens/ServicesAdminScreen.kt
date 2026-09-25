@@ -67,6 +67,10 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanTopBar
+import com.urbanblade.mobile.ui.components.UrbanMascotState
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanStateKind
+import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
 import com.urbanblade.mobile.ui.viewmodel.ServicesAdminViewModel
@@ -84,7 +88,7 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            UrbanTopBar("Servicios", onBack) {
+            UrbanTopBar("", onBack) {
                 IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             }
         },
@@ -103,6 +107,7 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item { UrbanPageHeader(title = "Servicios", subtitle = "Precio, duración y lo que ven tus clientes al reservar.", eyebrow = "Catálogo") }
             item {
                 UrbanTextField(
                     value = state.query,
@@ -117,25 +122,32 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
             item {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ServiceStatusFilter.entries.forEach { filter ->
-                        FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) })
+                        FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) }, colors = urbanFilterChipColors())
                     }
                 }
             }
             if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             // Con el formulario abierto el error se muestra dentro de la hoja, no aquí.
-            if (editing == null && !creating) state.error?.let { item { UrbanErrorBanner(it) } }
+            if (editing == null && !creating) state.error?.let { msg ->
+                item {
+                    if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los servicios", msg, "Reintentar") { vm.load() }
+                    else UrbanErrorBanner(msg)
+                }
+            }
 
             if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
 
             if (!state.loading && state.items.isEmpty() && state.error == null) {
                 item {
-                    UrbanEmptyState(
-                        title = if (state.query.isBlank() && state.status == ServiceStatusFilter.Todos) "Aún no hay servicios" else "Sin resultados",
-                        subtitle = if (state.query.isBlank() && state.status == ServiceStatusFilter.Todos) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
-                        icon = Icons.Default.ContentCut,
-                        actionLabel = if (state.query.isBlank() && state.status == ServiceStatusFilter.Todos) "Nuevo servicio" else null,
-                        onAction = if (state.query.isBlank() && state.status == ServiceStatusFilter.Todos) { { creating = true } } else null
+                    val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+                    UrbanMascotState(
+                        UrbanStateKind.EMPTY,
+                        if (firstTime) "Aún no hay servicios" else "Sin resultados",
+                        if (firstTime) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
+                        actionLabel = if (firstTime) "Nuevo servicio" else null,
+                        actionIcon = Icons.Default.Add,
+                        onAction = if (firstTime) { { creating = true } } else null
                     )
                 }
             }
