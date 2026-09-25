@@ -108,6 +108,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
     val isClient = user.roles.contains("cliente")
+    val clientOnly = isClient && user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "ingeniero") }
     val engineerOnly = user.roles.contains("ingeniero") &&
         user.roles.none { it in listOf("administrador", "recepcionista", "barbero", "cliente") }
 
@@ -196,7 +197,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     )
                 }
                 composable("appointments") {
-                    AppointmentsScreen(user = user, onBook = { nav.navigate("booking") })
+                    // El cliente tiene su propia vista (Próximas / Historial); el personal, la agenda del negocio.
+                    if (clientOnly) {
+                        ClientAppointmentsScreen(onBook = { nav.navigate("booking") }, onNavigate = { nav.navigate(it) })
+                    } else {
+                        AppointmentsScreen(user = user, onBook = { nav.navigate("booking") })
+                    }
                 }
                 composable(
                     BOOKING_ROUTE_PATTERN,

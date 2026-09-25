@@ -24,6 +24,7 @@ actual es **TT32, HT-12**).
 | `UrbanAttentionRow(icon, text, subtitle, tone, onClick)` | "Requiere tu atención": algo que revisar, con el tono de su gravedad (Danger, Warning, Success, Gold). Sin `onClick` es informativa. |
 | `UrbanStatStrip` | 3–4 números en una sola tarjeta (en vez de varias `UrbanMetricCard` angostas). |
 | `UrbanModuleTile` / `UrbanModuleGrid` | Accesos rápidos en dos columnas. |
+| `UrbanPillTabs(tabs, selected, onSelect)` | 2 o 3 pestañas en píldora dorada (Mi cuenta, Mis citas del cliente). No usar `FilterChip` sueltos para cambiar de vista. |
 | `UrbanMascotState(kind, title, subtitle, actionLabel, onAction)` | Estados vacíos y de error. |
 
 Otras piezas compartidas:
@@ -45,7 +46,7 @@ secciones en acordeón (C)**.
 
 | Archivo | Contenido |
 |---|---|
-| `AccountKit.kt` | `AccountMemberCard` (tarjeta héroe con foto que se toca para cambiarla), `AccountTabs` (píldora dorada), `AccountAccordion` (sección plegable con resumen visible cerrada), `AccountSwitchRow`, `accountRoleLabel()`. |
+| `AccountKit.kt` | `AccountMemberCard` (tarjeta héroe con foto que se toca para cambiarla), `AccountAccordion` (sección plegable con resumen visible cerrada), `AccountSwitchRow`, `accountRoleLabel()`. |
 | `AccountSections.kt` | `PersonalDataForm`, `ChangePasswordForm`, `NotificationChannels`, `ThemePicker`, `AccountNoticeBanner`. |
 | `AccountScreen.kt` | La pantalla: pestañas Datos / Seguridad / Ajustes. |
 | `ui/viewmodel/AccountViewModel.kt` | Estado único `AccountState`; avisos por sección (`AccountNotice`). |
@@ -75,7 +76,16 @@ irreversible: requiere confirmación del PO).
 Para agregar una sección nueva a Mi cuenta: un `AccountAccordion` en la pestaña que le
 corresponda, su formulario en `AccountSections.kt` y su `AccountSection` para los avisos.
 
-## 3. Mascotas y tono
+## 3. Mis citas del cliente
+
+`ClientAppointmentsScreen.kt` (solo para quien es únicamente cliente; el personal usa
+`AppointmentsScreen.kt`). Pestañas Próximas / Historial; la siguiente cita va en la
+tarjeta héroe con Pagar, Reagendar y Cancelar a la vista. Reutiliza `RescheduleSheet`,
+`CheckoutSheet`, `WaitlistCard` y `AppointmentDateRail` de `AppointmentsScreen.kt`
+(son `internal` para eso): no duplicarlas. "Nueva" va en el encabezado, nunca como botón
+flotante sobre la lista.
+
+## 4. Mascotas y tono
 
 - **Bruno**: errores y datos técnicos (`UrbanStateKind.ERROR`).
 - **Nava**: vacíos y "todavía no hay nada" (`UrbanStateKind.EMPTY`).
@@ -86,13 +96,13 @@ Textos: español de México, frases cortas, sin tecnicismos ("No pudimos abrir t
 cuenta", no "Error 500"). En un 422 mostrar el `message` del servidor
 (`HttpException.serverMessage()`), que ya explica qué falló.
 
-## 4. Eyebrow por rol
+## 5. Eyebrow por rol
 
 `Administrador`, `Recepción`, `Barbero`, `Ingeniero`, `Cliente` (usar
 `accountRoleLabel(user.roles)`; si alguien tiene varios roles gana el de más
 responsabilidad).
 
-## 5. Lecciones aprendidas (no repetirlas)
+## 6. Lecciones aprendidas (no repetirlas)
 
 1. **Leer el backend antes de escribir un texto o un dato.** Varias veces un mensaje
    prometía algo que la API no hacía (p. ej. "pagos pendientes" eran citas completadas

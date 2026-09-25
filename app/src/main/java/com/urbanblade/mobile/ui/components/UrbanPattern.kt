@@ -1,6 +1,15 @@
 package com.urbanblade.mobile.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -277,6 +286,39 @@ fun UrbanModuleGrid(tiles: List<Triple<String, String, ImageVector>>, routes: Li
                     UrbanModuleTile(tile.first, tile.second, tile.third, { onNavigate(route) }, Modifier.weight(1f))
                 }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/** Pestañas en píldora (2 o 3), con la seleccionada en dorado como el destino activo de la barra inferior. */
+@Composable
+fun UrbanPillTabs(tabs: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = UrbanColors.Card,
+        border = BorderStroke(1.dp, UrbanColors.Line),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.padding(4.dp).selectableGroup()) {
+            tabs.forEachIndexed { index, (label, icon) ->
+                val isSelected = index == selected
+                val background by animateColorAsState(if (isSelected) UrbanColors.Gold else Color.Transparent, label = "tab")
+                val content = if (isSelected) UrbanColors.OnGold else UrbanColors.Muted
+                Row(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 44.dp)
+                        .clip(CircleShape)
+                        .background(background)
+                        .selectable(selected = isSelected, onClick = { onSelect(index) }, role = Role.Tab),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(icon, null, tint = content, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(label, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, textAlign = TextAlign.Center)
+                }
             }
         }
     }

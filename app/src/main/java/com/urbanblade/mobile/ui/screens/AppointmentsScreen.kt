@@ -485,7 +485,7 @@ private fun StaffTimelineAppointment(
 }
 
 @Composable
-private fun AppointmentDateRail(appt: AppointmentRow, emphasized: Boolean) {
+internal fun AppointmentDateRail(appt: AppointmentRow, emphasized: Boolean) {
     Column(
         modifier = Modifier.width(54.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -693,7 +693,7 @@ private fun AppointmentCard(
 }
 
 @Composable
-private fun WaitlistCard(entry: WaitlistEntry, onLeave: () -> Unit) {
+internal fun WaitlistCard(entry: WaitlistEntry, onLeave: () -> Unit) {
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -713,7 +713,7 @@ private fun WaitlistCard(entry: WaitlistEntry, onLeave: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDismiss: () -> Unit) {
+internal fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDismiss: () -> Unit) {
     val barbers by vm.barbers.collectAsState()
     val slots by vm.rescheduleSlots.collectAsState()
     val busy by vm.rescheduling.collectAsState()
@@ -840,7 +840,7 @@ private enum class PaymentMethodChoice { TARJETA, TRANSFERENCIA }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDismiss: () -> Unit) {
+internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDismiss: () -> Unit) {
     val checkoutBusy by vm.checkoutBusy.collectAsState()
     val uploadingReceipt by vm.uploadingReceipt.collectAsState()
     val clientSecret by vm.stripeClientSecret.collectAsState()

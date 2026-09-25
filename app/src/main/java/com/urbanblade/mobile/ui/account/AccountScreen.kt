@@ -45,6 +45,7 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPageHeader
+import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.rememberSingleImagePicker
@@ -145,7 +146,7 @@ fun AccountScreen(
                 }
 
                 item {
-                    AccountTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
+                    UrbanPillTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
                 }
 
                 when (AccountTab.entries[tab]) {

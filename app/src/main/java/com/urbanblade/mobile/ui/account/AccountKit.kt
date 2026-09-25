@@ -154,39 +154,6 @@ fun AccountMemberCard(
 private val HeroInk = Color(0xFFF4EFE8)
 private val HeroMuted = Color(0xFFB8AFA4)
 
-/** Pestañas en píldora, con la seleccionada en dorado como el destino activo de la barra inferior. */
-@Composable
-fun AccountTabs(tabs: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
-    Surface(
-        shape = CircleShape,
-        color = UrbanColors.Card,
-        border = BorderStroke(1.dp, UrbanColors.Line),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(Modifier.padding(4.dp).selectableGroup()) {
-            tabs.forEachIndexed { index, (label, icon) ->
-                val isSelected = index == selected
-                val background by animateColorAsState(if (isSelected) UrbanColors.Gold else Color.Transparent, label = "tab")
-                val content = if (isSelected) UrbanColors.OnGold else UrbanColors.Muted
-                Row(
-                    Modifier
-                        .weight(1f)
-                        .heightIn(min = 44.dp)
-                        .clip(CircleShape)
-                        .background(background)
-                        .selectable(selected = isSelected, onClick = { onSelect(index) }, role = Role.Tab),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(icon, null, tint = content, modifier = Modifier.size(17.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(label, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, textAlign = TextAlign.Center)
-                }
-            }
-        }
-    }
-}
-
 /**
  * Sección plegable: icono en caja dorada, título, un resumen de lo que hay dentro (visible aun
  * cerrada, para no tener que abrirla para saber el estado) y el contenido al desplegarla.
