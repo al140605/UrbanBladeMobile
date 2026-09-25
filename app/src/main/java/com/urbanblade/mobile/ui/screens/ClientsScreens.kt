@@ -159,10 +159,10 @@ private fun CreateClientDialog(onDismiss: () -> Unit, onCreate: (String, String,
                 modifier = Modifier.heightIn(max = 420.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(email, { email = it }, label = { Text("Correo") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(telefono, { telefono = it }, label = { Text("Teléfono (opcional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(password, { password = it }, label = { Text("Contraseña") }, singleLine = true, visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+                UrbanTextField(name, { name = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
+                UrbanTextField(email, { email = it }, "Correo", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
+                UrbanTextField(telefono, { telefono = it }, "Teléfono (opcional)", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                UrbanTextField(password, { password = it }, "Contraseña", Modifier.fillMaxWidth(), isPassword = true)
             }
         },
         confirmButton = {
@@ -295,13 +295,13 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
                 item {
                     UrbanCard(Modifier.fillMaxWidth()) {
                         if (editing) {
-                            OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                            UrbanTextField(name, { name = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
                             Spacer(Modifier.height(10.dp))
-                            OutlinedTextField(email, { email = it }, label = { Text("Correo") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                            UrbanTextField(email, { email = it }, "Correo", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
                             Spacer(Modifier.height(10.dp))
-                            OutlinedTextField(telefono, { telefono = it }, label = { Text("Teléfono") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                            UrbanTextField(telefono, { telefono = it }, "Teléfono", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
                             Spacer(Modifier.height(10.dp))
-                            OutlinedTextField(notas, { notas = it }, label = { Text("Notas") }, modifier = Modifier.fillMaxWidth())
+                            UrbanTextField(notas, { notas = it }, "Notas", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
                             Spacer(Modifier.height(12.dp))
                             UrbanPrimaryButton(
                                 text = "Guardar cambios",

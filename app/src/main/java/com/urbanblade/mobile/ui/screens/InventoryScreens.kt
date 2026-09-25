@@ -264,8 +264,8 @@ private fun MovementDialog(
                 } else {
                     Text("Tipo: Salida (consumo)", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 }
-                OutlinedTextField(cantidad, { cantidad = it.filter(Char::isDigit) }, label = { Text("Cantidad") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(motivo, { motivo = it }, label = { Text("Motivo (opcional)") }, modifier = Modifier.fillMaxWidth())
+                UrbanTextField(cantidad, { cantidad = it.filter(Char::isDigit) }, "Cantidad", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                UrbanTextField(motivo, { motivo = it }, "Motivo (opcional)", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
             }
         },
         confirmButton = {
@@ -316,16 +316,16 @@ private fun ProductFormDialog(
                     }
                     UrbanOutlineButton(text = if (previewModel != null) "Cambiar foto" else "Agregar foto", onClick = pickImage, icon = Icons.Default.Image)
                 }
-                OutlinedTextField(nombre, { nombre = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(categoria, { categoria = it }, label = { Text("Categoría") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(descripcion, { descripcion = it }, label = { Text("Descripción (opcional)") }, modifier = Modifier.fillMaxWidth())
+                UrbanTextField(nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
+                UrbanTextField(categoria, { categoria = it }, "Categoría", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
+                UrbanTextField(descripcion, { descripcion = it }, "Descripción (opcional)", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(precioCompra, { precioCompra = it }, label = { Text("Precio compra") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(precioVenta, { precioVenta = it }, label = { Text("Precio venta") }, singleLine = true, modifier = Modifier.weight(1f))
+                    UrbanTextField(precioCompra, { precioCompra = it }, "Precio compra", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                    UrbanTextField(precioVenta, { precioVenta = it }, "Precio venta", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(stockActual, { stockActual = it.filter(Char::isDigit) }, label = { Text("Stock actual") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(stockMinimo, { stockMinimo = it.filter(Char::isDigit) }, label = { Text("Stock mínimo") }, singleLine = true, modifier = Modifier.weight(1f))
+                    UrbanTextField(stockActual, { stockActual = it.filter(Char::isDigit) }, "Stock actual", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                    UrbanTextField(stockMinimo, { stockMinimo = it.filter(Char::isDigit) }, "Stock mínimo", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TIPO_LABEL.forEach { (key, label) ->
