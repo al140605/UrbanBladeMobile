@@ -119,7 +119,7 @@ fun AccountMemberCard(
                         .size(26.dp)
                         .clip(CircleShape)
                         .background(UrbanColors.Gold)
-                        .border(2.dp, Color(0xFF161210), CircleShape),
+                        .border(2.dp, UrbanColors.Background, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.CameraAlt, null, tint = UrbanColors.OnGold, modifier = Modifier.size(14.dp))
@@ -127,8 +127,8 @@ fun AccountMemberCard(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.headlineSmall, color = HeroInk, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(email, style = MaterialTheme.typography.bodySmall, color = HeroMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(name, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     roles.take(2).forEach { UrbanRolePill(it) }
@@ -145,14 +145,10 @@ fun AccountMemberCard(
         }
         footnote?.let {
             Spacer(Modifier.height(12.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = HeroMuted)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
     }
 }
-
-// La tarjeta héroe siempre es oscura (foto + degradado), también en el tema claro "Libreta".
-private val HeroInk = Color(0xFFF4EFE8)
-private val HeroMuted = Color(0xFFB8AFA4)
 
 /**
  * Sección plegable: icono en caja dorada, título, un resumen de lo que hay dentro (visible aun

@@ -114,8 +114,10 @@ responsabilidad).
 4. **No tocar trabajo ajeno sin commit.** Antes de editar, `git status`; si el archivo
    tiene cambios de otra persona, poner lo nuevo en un archivo aparte (así nació
    `AccountModels.kt`).
-5. **La tarjeta héroe siempre es oscura**, también en el tema claro "Libreta": sobre ella
-   usar colores fijos claros, no `UrbanColors.Ink`.
+5. **La tarjeta héroe sigue el tema**: su velo usa `UrbanColors.Background` (crema en
+   "Libreta"), así que dentro de ella se usan `UrbanColors.Ink` / `Muted` como en cualquier
+   tarjeta. Nunca colores fijos claros ni un velo negro fijo: en el tema claro el texto se
+   perdía.
 6. **Un botón flotante no debe tapar acciones** de la última tarjeta: dejar
    `contentPadding` inferior suficiente.
 7. **Validar** con `gradle :app:testDebugUnitTest` e instalar con `:app:installDebug`.

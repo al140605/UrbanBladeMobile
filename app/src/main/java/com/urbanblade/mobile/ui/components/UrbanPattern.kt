@@ -102,7 +102,12 @@ fun UrbanModuleScreen(
     }
 }
 
-/** Tarjeta principal del módulo: foto de la barbería con degradado oscuro y borde dorado. */
+/**
+ * Tarjeta principal del módulo: foto de la barbería con un velo del color de fondo del tema y
+ * borde dorado. El velo usa UrbanColors.Background (oscuro en tres temas, crema en "Libreta"),
+ * así UrbanColors.Ink se lee siempre; antes era un negro fijo y en el tema claro el texto oscuro
+ * desaparecía sobre la foto.
+ */
 @Composable
 fun UrbanHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val shape = MaterialTheme.shapes.large
@@ -121,7 +126,15 @@ fun UrbanHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScop
         Box(
             Modifier
                 .matchParentSize()
-                .background(Brush.horizontalGradient(listOf(Color(0xF2161210), Color(0xD9110F0E), Color(0x74110F0E))))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            UrbanColors.Background.copy(alpha = 0.95f),
+                            UrbanColors.Background.copy(alpha = 0.85f),
+                            UrbanColors.Background.copy(alpha = 0.45f)
+                        )
+                    )
+                )
         )
         Column(Modifier.padding(18.dp), content = content)
     }

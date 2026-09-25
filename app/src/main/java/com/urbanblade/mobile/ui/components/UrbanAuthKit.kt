@@ -155,7 +155,9 @@ fun UrbanTextField(
     imeAction: ImeAction = ImeAction.Next,
     onImeAction: (() -> Unit)? = null,
     isPassword: Boolean = false,
-    onBlur: () -> Unit = {}
+    onBlur: () -> Unit = {},
+    /** Más de 1 = campo de varias líneas (p. ej. notas); el teclado conserva la tecla Enter. */
+    minLines: Int = 1
 ) {
     var focused by remember { mutableStateOf(false) }
     var reveal by remember { mutableStateOf(false) }
@@ -215,7 +217,8 @@ fun UrbanTextField(
             placeholder = placeholder?.let { text -> { Text(text) } },
             leadingIcon = leadingIcon?.let { icon -> { Icon(icon, null) } },
             trailingIcon = trailing,
-            singleLine = true,
+            singleLine = minLines == 1,
+            minLines = minLines,
             isError = error != null,
             visualTransformation = if (isPassword && !reveal) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(

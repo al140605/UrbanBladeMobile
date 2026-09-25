@@ -109,17 +109,24 @@ fun BookingPaymentSection(
             "15%" to BookingPaymentState.TIP_15,
             "Otro monto" to BookingPaymentState.TIP_OTHER
         ).forEach { (label, value) ->
-            FilterChip(selected = state.tipOption == value, onClick = { state.tipOption = value }, label = { Text(label) })
+            FilterChip(
+                selected = state.tipOption == value,
+                onClick = { state.tipOption = value },
+                label = { Text(label) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = UrbanColors.Gold, selectedLabelColor = UrbanColors.OnGold)
+            )
         }
     }
     if (state.tipOption == BookingPaymentState.TIP_OTHER) {
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            state.customTip, { state.customTip = it.filter { c -> c.isDigit() || c == '.' } },
-            placeholder = { Text("Monto en pesos") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium
+        UrbanTextField(
+            value = state.customTip,
+            onValueChange = { state.customTip = it.filter { c -> c.isDigit() || c == '.' }.take(7) },
+            label = "Monto de la propina",
+            placeholder = "Monto en pesos",
+            leadingIcon = Icons.Default.AttachMoney,
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+            imeAction = androidx.compose.ui.text.input.ImeAction.Done
         )
     }
 
@@ -192,7 +199,7 @@ private fun PayMethodOption(selected: Boolean, title: String, subtitle: String, 
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
-            RadioButton(selected = selected, onClick = onClick)
+            RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = UrbanColors.Gold))
         }
     }
 }
@@ -322,7 +329,11 @@ private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>,
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Checkbox(checked = state.saveCard, onCheckedChange = { state.saveCard = it })
+            Checkbox(
+                checked = state.saveCard,
+                onCheckedChange = { state.saveCard = it },
+                colors = CheckboxDefaults.colors(checkedColor = UrbanColors.Gold, checkmarkColor = UrbanColors.OnGold)
+            )
             Text("Guardar esta tarjeta para mis próximos pagos", style = MaterialTheme.typography.bodyMedium)
         }
     }
@@ -363,7 +374,7 @@ private fun SavedCardRow(title: String, subtitle: String, icon: ImageVector, sel
                 Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
-            RadioButton(selected = selected, onClick = onClick)
+            RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = UrbanColors.Gold))
         }
     }
 }
