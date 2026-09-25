@@ -84,17 +84,19 @@ fun BookingScreen(
     val waitlistJoined by vm.waitlistJoined.collectAsState()
     val products by vm.products.collectAsState()
     val productsNote by vm.productsNote.collectAsState()
+    // rememberSaveable: si Android recrea la pantalla (volver del navegador o de Stripe, rotar,
+    // cambiar tema o tamaño de letra) el cliente sigue en el mismo paso con lo que ya eligió.
     // Productos de la visita: id -> cantidad (se pagan en el salón, como en la web).
-    var cart by remember { mutableStateOf(mapOf<String, Int>()) }
+    var cart by rememberSaveable { mutableStateOf(mapOf<String, Int>()) }
 
-    var step by remember { mutableStateOf(BookingStep.SERVICE) }
-    var serviceId by remember { mutableStateOf(initialServiceId.orEmpty()) }
-    var barberId by remember { mutableStateOf(initialBarberId.orEmpty()) }
-    var date by remember { mutableStateOf(vm.defaultDate()) }
-    var time by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var slotsRequested by remember { mutableStateOf(false) }
-    var confirmed by remember { mutableStateOf(false) }
+    var step by rememberSaveable { mutableStateOf(BookingStep.SERVICE) }
+    var serviceId by rememberSaveable { mutableStateOf(initialServiceId.orEmpty()) }
+    var barberId by rememberSaveable { mutableStateOf(initialBarberId.orEmpty()) }
+    var date by rememberSaveable { mutableStateOf(vm.defaultDate()) }
+    var time by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
+    var slotsRequested by rememberSaveable { mutableStateOf(false) }
+    var confirmed by rememberSaveable { mutableStateOf(false) }
     val pay = rememberBookingPaymentState()
     var localError by remember { mutableStateOf<String?>(null) }
     val paymentNote by vm.paymentNote.collectAsState()
@@ -130,8 +132,14 @@ fun BookingScreen(
 
     LaunchedEffect(Unit) { vm.loadPaymentOptions() }
     LaunchedEffect(Unit) { vm.loadCatalog() }
+    // Combinación para la que se eligió la hora: si la pantalla se recrea con la misma, la hora se conserva.
+    var slotsKey by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(barberId, serviceId, date) {
-        time = ""
+        val key = "$barberId|$serviceId|$date"
+        if (key != slotsKey) {
+            time = ""
+            slotsKey = key
+        }
         slotsRequested = false
         if (barberId.isNotBlank() && serviceId.isNotBlank() && date.isNotBlank()) {
             vm.loadSlots(barberId, serviceId, date)
@@ -152,7 +160,8 @@ fun BookingScreen(
     val cartLines = products.mapNotNull { p -> cart[p.id]?.takeIf { it > 0 }?.let { p to it } }
     val productsTotal = cartLines.sumOf { (p, qty) -> p.precioVenta * qty }
     val servicePrice = selectedService?.precio ?: 0.0
-    val visitTotal = servicePrice + productsTotal + if (step == BookingStep.PAY) pay.tipFor(servicePrice) else 0.0
+    val tip = if (step == BookingStep.PAY) pay.tipFor(servicePrice) else 0.0
+    val visitTotal = servicePrice + productsTotal + tip
 
     val canAdvance = when (step) {
         BookingStep.SERVICE -> serviceId.isNotBlank()
@@ -190,8 +199,9 @@ fun BookingScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             BookingHeader(
                 step = step,
-                // Lo que ya eligió, visible en los pasos siguientes para no perder el hilo.
-                summary = listOfNotNull(
+                // Lo que ya eligió, visible en los pasos siguientes para no perder el hilo. En Pago no
+                // hace falta: la tarjeta "Tu cita" ya lo muestra completo.
+                summary = if (step == BookingStep.PAY) null else listOfNotNull(
                     selectedService?.takeIf { step != BookingStep.SERVICE }?.nombre,
                     selectedBarber?.takeIf { step.ordinal > BookingStep.SCHEDULE.ordinal }?.user?.name,
                     time.takeIf { it.isNotBlank() && step.ordinal > BookingStep.SCHEDULE.ordinal }?.let { "${UrbanFormat.dateShort(date)} · ${UrbanFormat.time(it)}" }
@@ -269,9 +279,13 @@ fun BookingScreen(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text("Total de tu visita", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
-                        if (productsTotal > 0) {
+                        if (productsTotal > 0 || tip > 0) {
                             Text(
-                                "Servicio \$${"%.0f".format(servicePrice)} · productos \$${"%.0f".format(productsTotal)}",
+                                listOfNotNull(
+                                    "Servicio \$${"%.0f".format(servicePrice)}",
+                                    productsTotal.takeIf { it > 0 }?.let { "productos \$${"%.0f".format(it)}" },
+                                    tip.takeIf { it > 0 }?.let { "propina \$${"%.0f".format(it)}" }
+                                ).joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = UrbanColors.Muted
                             )

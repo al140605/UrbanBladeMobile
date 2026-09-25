@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -202,8 +203,9 @@ private fun OrderInvoice(order: OrderRow, opening: Boolean, onReceipt: (() -> Un
 
 @Composable
 private fun ReceiptButton(opening: Boolean, onClick: () -> Unit) {
-    Spacer(Modifier.height(6.dp))
-    TextButton(onClick = onClick, enabled = !opening) {
+    Spacer(Modifier.height(4.dp))
+    // Sin el margen interno del botón para que el ícono quede alineado con el texto de la tarjeta.
+    TextButton(onClick = onClick, enabled = !opening, contentPadding = PaddingValues(vertical = 4.dp)) {
         if (opening) {
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
         } else {

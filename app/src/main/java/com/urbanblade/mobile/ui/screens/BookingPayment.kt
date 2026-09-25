@@ -139,7 +139,7 @@ fun BookingPaymentSection(
         }
         HorizontalDivider(Modifier.padding(vertical = 10.dp), color = UrbanColors.Muted.copy(alpha = 0.2f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Total estimado", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Total de la cita", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(money(servicePrice + tip), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Gold)
         }
         Spacer(Modifier.height(4.dp))
