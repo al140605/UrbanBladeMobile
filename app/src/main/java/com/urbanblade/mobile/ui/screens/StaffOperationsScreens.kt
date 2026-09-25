@@ -248,7 +248,12 @@ private fun WaitlistCard(entry: WaitlistEntry) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(entry.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                Text(entry.client?.name ?: "Cliente", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
+                // Sin nombre = la entrada apunta a un cliente que ya no existe; se dice claro en vez de un "Cliente" genérico.
+                Text(
+                    entry.client?.name ?: "Cliente ya no registrado",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (entry.client?.name != null) UrbanColors.Ink else UrbanColors.Muted
+                )
                 Text(
                     "Con ${entry.barber?.name ?: "cualquier barbero"} · para el ${entry.fecha?.let { UrbanFormat.dateShort(it) } ?: "—"}",
                     style = MaterialTheme.typography.bodySmall,
