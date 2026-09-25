@@ -63,4 +63,16 @@ class BookingPaymentStateTest {
         assertEquals("Vence 12/32", cardExpiryLabel(visa))
         assertEquals("Vence 03/30", cardExpiryLabel(master))
     }
+
+    @Test
+    fun `con el metodo en tarjeta se puede elegir la tarjeta guardada (membresia)`() {
+        // La hoja de membresía arranca en TARJETA; en efectivo la tarjeta guardada nunca se usa.
+        val state = BookingPaymentState()
+        assertEquals(null, state.savedCardToUse(listOf(visa, master)))
+        state.method = com.urbanblade.mobile.ui.viewmodel.BookingPayMethod.TARJETA
+        assertEquals("pm_visa", state.savedCardToUse(listOf(visa, master)))
+        state.useNewCard = false
+        state.selectedCardId = "pm_master"
+        assertEquals("pm_master", state.savedCardToUse(listOf(visa, master)))
+    }
 }

@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.*
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import com.urbanblade.mobile.ui.viewmodel.WalletViewModel
 
 /**
@@ -54,7 +55,9 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     // Plan que se está contratando (o cuyo primer pago se reintenta): abre la hoja de pago.
     var checkoutPlan by remember { mutableStateOf<MembershipPlan?>(null) }
     val checkout by vm.checkout.collectAsState()
-    val payState = rememberBookingPaymentState()
+    // La membresía siempre se paga con tarjeta: sin fijar el método, el estado de la reserva arranca en
+    // efectivo y la tarjeta guardada no se podía elegir (solo servía una tarjeta nueva).
+    val payState = remember { BookingPaymentState().apply { method = BookingPayMethod.TARJETA } }
     var sheetError by remember { mutableStateOf<String?>(null) }
     val cardAvailable = remember { isStripeConfigured() }
     remember { if (cardAvailable) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
