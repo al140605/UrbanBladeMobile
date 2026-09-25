@@ -131,7 +131,7 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                     UrbanPillTabs(
                         listOf(
                             "Citas (${state.payments.size})" to Icons.Default.ContentCut,
-                            "Productos (${state.orders.size})" to Icons.Default.ShoppingBag,
+                            "Productos (${state.toPickUp.size + state.delivered.size})" to Icons.Default.ShoppingBag,
                             "Membresía (${state.memberships.size})" to Icons.Default.CardMembership
                         ),
                         tab
@@ -157,7 +157,7 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                         }
                     }
                 } else {
-                    if (state.orders.isEmpty()) item {
+                    if (state.toPickUp.isEmpty() && state.delivered.isEmpty()) item {
                         UrbanMascotState(UrbanStateKind.EMPTY, "Aún no tienes compras", "Los productos que agregues al reservar o compres en la tienda aparecerán aquí.")
                     }
                     if (state.toPickUp.isNotEmpty()) {
