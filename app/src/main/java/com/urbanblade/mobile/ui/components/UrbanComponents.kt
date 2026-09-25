@@ -418,30 +418,8 @@ fun UrbanEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            Modifier
-                .size(62.dp)
-                .clip(CircleShape)
-                .background(UrbanColors.Gold.copy(alpha = 0.09f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(28.dp))
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-        subtitle?.let {
-            Spacer(Modifier.height(5.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-        }
-        if (actionLabel != null && onAction != null) {
-            Spacer(Modifier.height(14.dp))
-            TextButton(onClick = onAction) { Text(actionLabel) }
-        }
-    }
+    // Todo vacío lleva a Nava, igual que UrbanMascotState; el ícono queda para el botón de acción.
+    UrbanMascotState(UrbanStateKind.EMPTY, title, subtitle, actionLabel = actionLabel, actionIcon = icon, onAction = onAction)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
