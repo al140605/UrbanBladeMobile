@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.urbanblade.mobile.data.model.BarberItem
+import com.urbanblade.mobile.data.model.ServiceItem
 
 /** Tipo de servicio según su nombre, para darle un ícono propio en el catálogo y la reserva. */
 enum class ServiceKind { COMBO, BARBA, AFEITADO, INFANTIL, TRATAMIENTO, CORTE }
@@ -20,8 +21,32 @@ fun serviceKind(name: String): ServiceKind {
         "infantil" in n || "niño" in n || "nino" in n -> ServiceKind.INFANTIL
         "afeitado" in n || "rasurado" in n -> ServiceKind.AFEITADO
         "barba" in n || "bigote" in n -> ServiceKind.BARBA
-        "tratamiento" in n || "facial" in n || "mascarilla" in n || "masaje" in n -> ServiceKind.TRATAMIENTO
+        "tratamiento" in n || "facial" in n || "mascarilla" in n || "masaje" in n ||
+            "keratina" in n || "spa" in n || "tinte" in n || "color" in n || "capilar" in n || "ceja" in n -> ServiceKind.TRATAMIENTO
         else -> ServiceKind.CORTE
+    }
+}
+
+/** Filtros del catálogo: agrupan los tipos de servicio como los buscaría un cliente. */
+enum class ServiceFilter(val label: String, val kinds: Set<ServiceKind>) {
+    CORTES("Cortes", setOf(ServiceKind.CORTE, ServiceKind.INFANTIL)),
+    BARBA("Barba y afeitado", setOf(ServiceKind.BARBA, ServiceKind.AFEITADO)),
+    COMBOS("Combos", setOf(ServiceKind.COMBO)),
+    CUIDADO("Cuidado y color", setOf(ServiceKind.TRATAMIENTO))
+}
+
+private fun String.plain(): String =
+    java.text.Normalizer.normalize(lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+
+/**
+ * Servicios que coinciden con la búsqueda (nombre o descripción, sin importar acentos ni
+ * mayúsculas: "diseno" encuentra "Diseño de Barba") y con el filtro elegido (null = todos).
+ */
+fun filterServices(services: List<ServiceItem>, query: String, filter: ServiceFilter?): List<ServiceItem> {
+    val q = query.trim().plain()
+    return services.filter { s ->
+        (filter == null || serviceKind(s.nombre) in filter.kinds) &&
+            (q.isEmpty() || s.nombre.plain().contains(q) || s.descripcion.orEmpty().plain().contains(q))
     }
 }
 

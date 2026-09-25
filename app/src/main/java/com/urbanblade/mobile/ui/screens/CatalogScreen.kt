@@ -1,6 +1,12 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +31,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CatalogViewModel
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CatalogScreen(
     isGuest: Boolean = false,
@@ -39,6 +46,12 @@ fun CatalogScreen(
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf<ServiceFilter?>(null) }
+    // Solo se ofrecen los filtros que tienen algún servicio real en el catálogo.
+    val filters = remember(services) { ServiceFilter.entries.filter { f -> services.any { serviceKind(it.nombre) in f.kinds } } }
+    val visible = remember(services, query, filter) { filterServices(services, query, filter) }
+    val filtering = query.isNotBlank() || filter != null
 
     LazyColumn(
         // Como invitado no hay Scaffold que reserve la barra de estado (AuthenticatedNav sí),
@@ -91,6 +104,69 @@ fun CatalogScreen(
                 )
             }
         }
+        if (loading && services.isEmpty()) item { UrbanSkeletonList(3) }
+        if (error != null && services.isEmpty() && !loading) {
+            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el catálogo", error, "Reintentar") { vm.load() } }
+        } else {
+            error?.let { item { UrbanErrorBanner(it) } }
+        }
+
+        if (services.isNotEmpty()) {
+            // Buscador y filtros se quedan arriba al bajar: son 20 servicios en una sola lista.
+            stickyHeader(key = "buscador") {
+                Column(
+                    Modifier.fillMaxWidth().background(UrbanColors.Background).padding(vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    UrbanTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        label = "Buscar servicio",
+                        placeholder = "Fade, barba, keratina…",
+                        leadingIcon = Icons.Default.Search,
+                        imeAction = ImeAction.Done
+                    )
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = filter == null,
+                            onClick = { filter = null },
+                            label = { Text("Todos") },
+                            colors = catalogChipColors()
+                        )
+                        filters.forEach { f ->
+                            FilterChip(
+                                selected = filter == f,
+                                onClick = { filter = if (filter == f) null else f },
+                                label = { Text(f.label) },
+                                colors = catalogChipColors()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            UrbanSectionTitle(
+                "Servicios",
+                if (filtering) UrbanFormat.count(visible.size, "resultado", "resultados") else "Precio y duración reales; toca uno para reservar."
+            )
+        }
+        items(visible, key = { it.id }) { service -> ServiceCard(service) { onBook(service.id, null) } }
+        if (filtering && visible.isEmpty()) item {
+            UrbanMascotState(
+                UrbanStateKind.EMPTY,
+                "No encontramos ese servicio",
+                "Prueba con otra palabra o quita el filtro.",
+                actionLabel = "Limpiar búsqueda",
+                actionIcon = Icons.Default.Close,
+                onAction = { query = ""; filter = null }
+            )
+        }
+        if (!loading && error == null && services.isEmpty()) item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin servicios disponibles", "Vuelve a intentarlo más tarde.") }
+
+        item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
+        items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
+        if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
         if (!isGuest && onOpenInspiration != null) {
             item {
                 UrbanAttentionRow(
@@ -112,23 +188,15 @@ fun CatalogScreen(
                 )
             }
         }
-        if (loading && services.isEmpty()) item { UrbanSkeletonList(3) }
-        if (error != null && services.isEmpty() && !loading) {
-            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el catálogo", error, "Reintentar") { vm.load() } }
-        } else {
-            error?.let { item { UrbanErrorBanner(it) } }
-        }
-
-        item { UrbanSectionTitle("Servicios", "Elige el acabado que va contigo") }
-        items(services, key = { it.id }) { service -> ServiceCard(service) { onBook(service.id, null) } }
-        if (!loading && error == null && services.isEmpty()) item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin servicios disponibles", "Vuelve a intentarlo más tarde.") }
-
-        item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
-        items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
-        if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
         item { Spacer(Modifier.height(8.dp)) }
     }
 }
+
+@Composable
+private fun catalogChipColors() = FilterChipDefaults.filterChipColors(
+    selectedContainerColor = UrbanColors.Gold,
+    selectedLabelColor = UrbanColors.OnGold
+)
 
 @Composable
 private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {

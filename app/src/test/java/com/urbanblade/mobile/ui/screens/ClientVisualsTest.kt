@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.screens
 
 import com.urbanblade.mobile.data.model.BarberItem
 import com.urbanblade.mobile.data.model.BarberUser
+import com.urbanblade.mobile.data.model.ServiceItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -31,6 +32,31 @@ class ClientVisualsTest {
         assertEquals("perfil-1", resolveBarberId(barbers, "luis-gonzalez"))
         assertNull(resolveBarberId(barbers, "desconocido"))
         assertNull(resolveBarberId(barbers, ""))
+    }
+
+    @Test
+    fun `keratina, spa, tinte y cejas son cuidado, no corte`() {
+        listOf("Keratina Express", "Spa Capilar", "Tinte / Color", "Perfilado de Cejas", "Tratamiento Capilar").forEach {
+            assertEquals(it, ServiceKind.TRATAMIENTO, serviceKind(it))
+        }
+        assertEquals(ServiceKind.CORTE, serviceKind("Skin Fade"))
+        assertEquals(ServiceKind.CORTE, serviceKind("Pompadour"))
+    }
+
+    @Test
+    fun `el catalogo se filtra por tipo y por busqueda sin acentos`() {
+        val services = listOf(
+            ServiceItem("1", "Diseño de Barba", 150.0, 25, "Perfilado con navaja"),
+            ServiceItem("2", "Corte Clásico", 180.0, 30, "Tijera y máquina"),
+            ServiceItem("3", "Combo Corte + Barba", 320.0, 60),
+            ServiceItem("4", "Spa Capilar", 280.0, 40)
+        )
+        assertEquals(listOf("1"), filterServices(services, "diseno", null).map { it.id })
+        assertEquals(listOf("1", "2"), filterServices(services, "NAVAJA", null).map { it.id } + filterServices(services, "maquina", null).map { it.id })
+        assertEquals(listOf("2"), filterServices(services, "", ServiceFilter.CORTES).map { it.id })
+        assertEquals(listOf("4"), filterServices(services, "", ServiceFilter.CUIDADO).map { it.id })
+        assertEquals(listOf("3"), filterServices(services, "barba", ServiceFilter.COMBOS).map { it.id })
+        assertEquals(4, filterServices(services, "  ", null).size)
     }
 
     @Test
