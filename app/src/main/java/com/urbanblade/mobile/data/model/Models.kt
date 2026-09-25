@@ -1122,5 +1122,15 @@ data class ClientLoyalty(
     val nextNivelLabel: String? = null,
     val citasFaltan: Int = 0,
     val progressPct: Double = 0.0,
-    val recentTransactions: List<LoyaltyTransaction> = emptyList()
+    val recentTransactions: List<LoyaltyTransaction> = emptyList(),
+    // Aditivos (barber, DashboardController::clientPayload): null o vacíos hasta que el backend
+    // desplegado los mande; la Wallet oculta lo que no llegue.
+    val nextDiscountPct: Int? = null,
+    val levels: List<LoyaltyLevel> = emptyList(),
+    val earnRules: List<LoyaltyEarnRule> = emptyList(),
+    val maxRedeemPct: Int? = null,
+    val wonRaffle: WonRaffle? = null
 )
+data class LoyaltyLevel(val nivel: String, val label: String, val citas: Int = 0, val discountPct: Int = 0)
+data class LoyaltyEarnRule(val descripcion: String, val puntos: Int = 0)
+data class WonRaffle(val mes: String? = null, val premio: String? = null, val isExpired: Boolean = false, val venceEn: String? = null)

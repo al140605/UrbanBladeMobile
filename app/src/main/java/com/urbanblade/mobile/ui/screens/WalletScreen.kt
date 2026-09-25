@@ -11,7 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +42,8 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    var copied by remember { mutableStateOf(false) }
     var confirmCancelMembership by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.load() }
@@ -66,7 +73,25 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
             loading && data.loyalty == null -> item { UrbanSkeletonList(2) }
             else -> {
                 error?.let { item { UrbanErrorBanner(it) } }
-                data.loyalty?.let { loyalty -> item { LoyaltyCard(loyalty) } }
+                data.loyalty?.let { loyalty ->
+                    item { LoyaltyCard(loyalty) }
+                    loyalty.wonRaffle?.takeIf { !it.isExpired && it.premio != null }?.let { raffle ->
+                        item {
+                            UrbanAttentionRow(
+                                Icons.Default.EmojiEvents,
+                                "Ganaste el sorteo${raffle.mes?.let { " de $it" } ?: ""}: ${raffle.premio}",
+                                raffle.venceEn?.let { "Reclámalo en recepción antes del $it." } ?: "Reclámalo en recepción.",
+                                UrbanColors.Success
+                            )
+                        }
+                    }
+                    if (loyalty.levels.size > 1) {
+                        item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
+                        item { LevelLadder(loyalty) }
+                    }
+                    item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
+                    item { PointsCard(loyalty) }
+                }
 
                 if (nothingYet) {
                     item {
@@ -99,7 +124,18 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
 
                 data.referrals?.let { referrals ->
                     item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
-                    item { ReferralCard(referrals) { clipboard.setText(AnnotatedString(it)) } }
+                    item {
+                        ReferralCard(
+                            referrals,
+                            copied = copied,
+                            onCopyCode = { clipboard.setText(AnnotatedString(it)); copied = true },
+                            onShare = { code ->
+                                val text = "Te invito a UrbanBlade: regístrate con mi código $code y agenda tu primera cita."
+                                val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
+                                context.startActivity(Intent.createChooser(send, "Compartir mi código"))
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -140,7 +176,12 @@ private fun LoyaltyCard(loyalty: ClientLoyalty) {
         }
         Spacer(Modifier.height(6.dp))
         Text(loyalty.nivelLabel ?: loyalty.nivel ?: "Nivel", style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        Text(UrbanFormat.count(loyalty.puntos, "punto", "puntos"), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+        Text(
+            UrbanFormat.count(loyalty.puntos, "punto", "puntos") +
+                if (loyalty.puntos > 0 && loyalty.maxRedeemPct != null) " · valen \$${loyalty.puntos} al pagar" else "",
+            style = MaterialTheme.typography.titleMedium,
+            color = UrbanColors.Gold
+        )
         if (loyalty.nextNivelLabel != null) {
             Spacer(Modifier.height(16.dp))
             LinearProgressIndicator(
@@ -151,10 +192,90 @@ private fun LoyaltyCard(loyalty: ClientLoyalty) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Te faltan ${UrbanFormat.count(loyalty.citasFaltan, "cita", "citas")} para ${loyalty.nextNivelLabel}",
+                "Te faltan ${UrbanFormat.count(loyalty.citasFaltan, "cita", "citas")} para ${loyalty.nextNivelLabel}" +
+                    (loyalty.nextDiscountPct?.takeIf { it > 0 }?.let { ": $it % de descuento en cada servicio." } ?: "."),
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Muted
             )
+        } else {
+            Spacer(Modifier.height(10.dp))
+            Text("Estás en el nivel más alto. Gracias por tu lealtad.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+    }
+}
+
+/** Escalera de niveles: los alcanzados en dorado y el actual resaltado. */
+@Composable
+private fun LevelLadder(loyalty: ClientLoyalty) {
+    val currentIndex = loyalty.levels.indexOfFirst { it.nivel == loyalty.nivel }.coerceAtLeast(0)
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth()) {
+            loyalty.levels.forEachIndexed { index, level ->
+                val reached = index <= currentIndex
+                val current = index == currentIndex
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(Modifier.fillMaxWidth().height(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val left = when { index == 0 -> Color.Transparent; reached -> UrbanColors.Gold; else -> UrbanColors.Line }
+                        val right = when { index == loyalty.levels.lastIndex -> Color.Transparent; index < currentIndex -> UrbanColors.Gold; else -> UrbanColors.Line }
+                        Box(Modifier.weight(1f).height(2.dp).background(left))
+                        Box(Modifier.size(if (current) 18.dp else 12.dp).clip(CircleShape).background(if (reached) UrbanColors.Gold else UrbanColors.Line))
+                        Box(Modifier.weight(1f).height(2.dp).background(right))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        level.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (current) UrbanColors.Gold else if (reached) UrbanColors.Ink else UrbanColors.Muted,
+                        maxLines = 1
+                    )
+                    Text(if (level.discountPct > 0) "${level.discountPct} %" else "Base", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    Text(if (level.citas > 0) "${level.citas} citas" else "Inicio", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
+            }
+        }
+    }
+}
+
+/** Cómo se ganan los puntos, cómo se canjean y los últimos movimientos. */
+@Composable
+private fun PointsCard(loyalty: ClientLoyalty) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        if (loyalty.earnRules.isNotEmpty()) {
+            Text("Cómo ganarlos", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+            Spacer(Modifier.height(6.dp))
+            loyalty.earnRules.forEach { rule ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(rule.descripcion, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted, modifier = Modifier.weight(1f))
+                    Text("+${rule.puntos}", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Gold)
+                }
+            }
+            loyalty.maxRedeemPct?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Canjéalos al pagar: cada punto vale \$1, hasta el $it % de tu cita.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Gold
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = UrbanColors.Line)
+            Spacer(Modifier.height(12.dp))
+        }
+        Text("Movimientos recientes", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+        Spacer(Modifier.height(6.dp))
+        if (loyalty.recentTransactions.isEmpty()) {
+            Text("Aún no tienes movimientos. Tu primera cita completada suma puntos.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        } else {
+            loyalty.recentTransactions.forEach { tx ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tx.descripcion ?: "Movimiento", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink, modifier = Modifier.weight(1f))
+                    Text(
+                        (if (tx.puntos > 0) "+" else "") + tx.puntos,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (tx.puntos >= 0) UrbanColors.Success else UrbanColors.Danger
+                    )
+                }
+            }
         }
     }
 }
@@ -219,7 +340,7 @@ private fun GiftCardRow(card: GiftCard) {
 }
 
 @Composable
-private fun ReferralCard(referrals: ReferralInfo, onCopyCode: (String) -> Unit) {
+private fun ReferralCard(referrals: ReferralInfo, copied: Boolean, onCopyCode: (String) -> Unit, onShare: (String) -> Unit) {
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -227,8 +348,16 @@ private fun ReferralCard(referrals: ReferralInfo, onCopyCode: (String) -> Unit) 
                 Text(referrals.codigoReferido ?: "—", style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Gold, fontWeight = FontWeight.Bold)
             }
             IconButton(onClick = { referrals.codigoReferido?.let(onCopyCode) }) {
-                Icon(Icons.Default.ContentCopy, "Copiar código", tint = UrbanColors.Gold)
+                Icon(
+                    if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
+                    if (copied) "Código copiado" else "Copiar código",
+                    tint = UrbanColors.Gold
+                )
             }
+        }
+        referrals.codigoReferido?.let { code ->
+            Spacer(Modifier.height(10.dp))
+            UrbanPrimaryButton(text = "Compartir mi código", onClick = { onShare(code) }, icon = Icons.Default.Share, modifier = Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(8.dp))
         Text(
