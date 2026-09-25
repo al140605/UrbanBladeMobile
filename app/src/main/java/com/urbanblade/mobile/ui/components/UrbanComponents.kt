@@ -396,8 +396,9 @@ fun UrbanErrorBanner(text: String, modifier: Modifier = Modifier.fillMaxWidth())
 }
 
 @Composable
-fun UrbanInfoBanner(text: String, icon: ImageVector = Icons.Default.Info) {
+fun UrbanInfoBanner(text: String, icon: ImageVector = Icons.Default.Info, modifier: Modifier = Modifier) {
     Surface(
+        modifier = modifier,
         shape = MaterialTheme.shapes.medium,
         color = UrbanColors.Gold.copy(alpha = 0.09f),
         border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.25f))

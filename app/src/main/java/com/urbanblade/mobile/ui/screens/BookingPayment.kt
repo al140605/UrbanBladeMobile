@@ -1,9 +1,15 @@
 package com.urbanblade.mobile.ui.screens
 
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.view.ContextThemeWrapper
+import android.widget.EditText
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,13 +19,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.stripe.android.view.CardMultilineWidget
@@ -153,16 +164,20 @@ fun BookingPaymentSection(
     Spacer(Modifier.height(24.dp))
     UrbanFieldLabel("Método de pago")
     Spacer(Modifier.height(10.dp))
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PayMethodOption(
-            state.method == BookingPayMethod.EFECTIVO, "Efectivo en el salón", "Pagas el día de tu cita.", Icons.Default.Payments
+    // Propuesta A (25-sep): tres mosaicos lado a lado; debajo solo el detalle del método elegido.
+    Row(
+        Modifier.fillMaxWidth().height(IntrinsicSize.Max).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        PayMethodTile(
+            state.method == BookingPayMethod.EFECTIVO, "Efectivo", "En el salón", Icons.Default.Payments, Modifier.weight(1f)
         ) { state.method = BookingPayMethod.EFECTIVO }
-        PayMethodOption(
-            state.method == BookingPayMethod.TRANSFERENCIA, "Transferencia", "Te damos la CLABE para transferir.", Icons.Default.AccountBalance
+        PayMethodTile(
+            state.method == BookingPayMethod.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance, Modifier.weight(1f)
         ) { state.method = BookingPayMethod.TRANSFERENCIA }
         if (cardAvailable) {
-            PayMethodOption(
-                state.method == BookingPayMethod.TARJETA, "Tarjeta de crédito o débito", "Pagas ahora de forma segura.", Icons.Default.CreditCard
+            PayMethodTile(
+                state.method == BookingPayMethod.TARJETA, "Tarjeta", "Paga ahora", Icons.Default.CreditCard, Modifier.weight(1f)
             ) { state.method = BookingPayMethod.TARJETA }
         }
     }
@@ -178,28 +193,58 @@ fun BookingPaymentSection(
         }
         BookingPayMethod.EFECTIVO -> {
             Spacer(Modifier.height(12.dp))
-            UrbanInfoBanner("Reservas ahora y pagas en recepción al llegar. No se hace ningún cargo.", Icons.Default.Storefront)
+            UrbanInfoBanner("Pagas ${money(servicePrice + tip)} al llegar a recepción. Hoy no se hace ningún cargo.", Icons.Default.Storefront, Modifier.fillMaxWidth())
         }
     }
 }
 
 @Composable
-private fun PayMethodOption(selected: Boolean, title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
+private fun PayMethodTile(
+    selected: Boolean,
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Surface(
-        onClick = onClick,
         shape = MaterialTheme.shapes.medium,
-        color = if (selected) UrbanColors.Gold.copy(alpha = 0.12f) else UrbanColors.Card,
-        border = BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Muted.copy(alpha = 0.3f)),
-        modifier = Modifier.fillMaxWidth()
+        color = if (selected) UrbanColors.Gold.copy(alpha = 0.14f) else UrbanColors.Card,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) UrbanColors.Gold else UrbanColors.Muted.copy(alpha = 0.3f)),
+        modifier = modifier
+            .fillMaxHeight()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
     ) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        Column(
+            Modifier.padding(horizontal = 8.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (selected) UrbanColors.Gold else UrbanColors.Gold.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = if (selected) UrbanColors.OnGold else UrbanColors.Gold, modifier = Modifier.size(22.dp))
             }
-            RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = UrbanColors.Gold))
+            Spacer(Modifier.height(10.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selected) UrbanColors.Gold else UrbanColors.Ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted,
+                maxLines = 1,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -319,6 +364,7 @@ private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>,
                     val themed = ContextThemeWrapper(ctx, com.google.android.material.R.style.Theme_MaterialComponents_Light_NoActionBar)
                     CardMultilineWidget(themed).also { widget ->
                         widget.setShouldShowPostalCode(false)
+                        styleCardWidget(widget, UrbanColors.Gold.toArgb())
                         state.cardWidget = widget
                     }
                 }
@@ -355,6 +401,30 @@ private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>,
             style = MaterialTheme.typography.bodySmall,
             color = UrbanColors.Gold
         )
+    }
+}
+
+/**
+ * El formulario de Stripe hereda los colores claros del tema oscuro de la app: sin esto los textos
+ * ("Número de tarjeta", "Fecha de vencimiento", "CVC") salen blancos sobre el recuadro blanco.
+ */
+private fun styleCardWidget(widget: CardMultilineWidget, accent: Int) {
+    val ink = android.graphics.Color.rgb(0x1F, 0x1F, 0x1F)
+    val hint = android.graphics.Color.rgb(0x6B, 0x6B, 0x6B)
+    fun id(name: String) = widget.resources.getIdentifier(name, "id", widget.context.packageName)
+    // Los contenedores son TextInputLayout de Material, que la app no compila directamente (llega con
+    // Stripe): se ajustan sus colores por nombre de método y, si algún día cambian, se ignora sin romper.
+    listOf("tl_card_number", "tl_expiry", "tl_cvc").forEach { name ->
+        val layout = widget.findViewById<android.view.View>(id(name)) ?: return@forEach
+        runCatching { layout.javaClass.getMethod("setDefaultHintTextColor", ColorStateList::class.java).invoke(layout, ColorStateList.valueOf(hint)) }
+        runCatching { layout.javaClass.getMethod("setHintTextColor", ColorStateList::class.java).invoke(layout, ColorStateList.valueOf(accent)) }
+        runCatching { layout.javaClass.getMethod("setBoxStrokeColor", Int::class.javaPrimitiveType).invoke(layout, accent) }
+    }
+    listOf("et_card_number", "et_expiry", "et_cvc").forEach { name ->
+        widget.findViewById<EditText>(id(name))?.apply {
+            setTextColor(ink)
+            setHintTextColor(hint)
+        }
     }
 }
 

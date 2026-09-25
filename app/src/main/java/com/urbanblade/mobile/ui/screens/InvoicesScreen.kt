@@ -1,7 +1,5 @@
 package com.urbanblade.mobile.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,7 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,10 +21,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.core.media.ReceiptDownloads
 import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.data.model.PaymentRow
 import com.urbanblade.mobile.ui.components.UrbanCard
@@ -68,9 +70,32 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val open: (String) -> Unit = { url -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
+    // Descargas en curso: id de DownloadManager -> id del pago o pedido (para el indicador del botón).
+    var downloading by remember { mutableStateOf(mapOf<Long, String>()) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    // El PDF se descarga al teléfono (Descargas/UrbanBlade) y se abre en el visor; nunca se muestra la liga de S3.
+    fun download(itemId: String, label: String): (String) -> Unit = { url ->
+        val name = ReceiptDownloads.fileName(label)
+        val id = ReceiptDownloads.enqueue(context, url, name)
+        if (id == null) {
+            notice = "No se pudo descargar el comprobante. Intenta de nuevo."
+        } else {
+            downloading = downloading + (id to itemId)
+            notice = "Descargando $name…"
+        }
+    }
 
     LaunchedEffect(Unit) { vm.load() }
+    DisposableEffect(Unit) {
+        val stop = ReceiptDownloads.listen(context) { id, ok ->
+            if (id in downloading) {
+                downloading = downloading - id
+                notice = if (ok) "Guardado en Descargas/UrbanBlade." else "No se pudo descargar el comprobante. Intenta de nuevo."
+                if (ok) ReceiptDownloads.open(context, id)
+            }
+        }
+        onDispose { stop() }
+    }
 
     UrbanModuleScreen(
         eyebrow = "Cuenta",
@@ -99,6 +124,7 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                     }
                 }
                 state.receiptError?.let { item { UrbanErrorBanner(it) } }
+                notice?.let { item { UrbanInfoBanner(it, Icons.Default.Download, Modifier.fillMaxWidth()) } }
                 item {
                     UrbanPillTabs(
                         listOf("Citas (${state.payments.size})" to Icons.Default.ContentCut, "Productos (${state.orders.size})" to Icons.Default.ShoppingBag),
@@ -111,7 +137,9 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                         UrbanMascotState(UrbanStateKind.EMPTY, "Aún no tienes citas pagadas", "Cuando pagues una cita, aquí tendrás su comprobante.")
                     }
                     items(state.payments, key = { "pay-${it.id}" }) { payment ->
-                        PaymentInvoice(payment, opening = state.openingId == payment.id) { vm.openPaymentReceipt(payment.id, open) }
+                        PaymentInvoice(payment, opening = state.openingId == payment.id || payment.id in downloading.values) {
+                            vm.openPaymentReceipt(payment.id, download(payment.id, "Comprobante ${payment.appointment?.service ?: "cita"} ${payment.appointment?.fecha?.take(10).orEmpty()}"))
+                        }
                     }
                 } else {
                     if (state.orders.isEmpty()) item {
@@ -124,7 +152,9 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                     if (state.delivered.isNotEmpty()) {
                         item { UrbanSectionTitle("Pagadas", UrbanFormat.count(state.delivered.size, "compra", "compras")) }
                         items(state.delivered, key = { "ord-${it.id}" }) { order ->
-                            OrderInvoice(order, opening = state.openingId == order.id) { vm.openOrderReceipt(order.id, open) }
+                            OrderInvoice(order, opening = state.openingId == order.id || order.id in downloading.values) {
+                                vm.openOrderReceipt(order.id, download(order.id, "Comprobante ${order.folio ?: "pedido"}"))
+                            }
                         }
                     }
                     if (state.orders.any { it.tipo == "cita" }) item {
@@ -209,9 +239,9 @@ private fun ReceiptButton(opening: Boolean, onClick: () -> Unit) {
         if (opening) {
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
         } else {
-            Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
+            Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
         }
         Spacer(Modifier.width(6.dp))
-        Text(if (opening) "Generando comprobante…" else "Ver comprobante", color = UrbanColors.Gold)
+        Text(if (opening) "Descargando…" else "Descargar comprobante", color = UrbanColors.Gold)
     }
 }

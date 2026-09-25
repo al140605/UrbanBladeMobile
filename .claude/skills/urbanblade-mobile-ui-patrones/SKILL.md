@@ -92,9 +92,16 @@ Cuatro pestañas: **Inicio · Reservar · Mis citas · Cuenta**. Reglas que la s
 - El título de cada pantalla es el nombre de su pestaña (Reservar, Mis citas, Cuenta).
 - Un solo verbo para reservar: «Reservar» / «Reservar cita» / «Reservar de nuevo». Nada de
   «Nueva», «Agendar» ni «Explorar».
-- Cada cosa en un solo lugar: Beneficios (antes Wallet), Mis pagos y Mis pedidos en Cuenta
+- Cada cosa en un solo lugar: Beneficios (antes Wallet), Mis facturas y Mis pedidos en Cuenta
   → «Tu actividad»; Muro y Tienda en Inicio → «Descubre»; Bladebot en Inicio.
 - Pantallas que no son pestaña llevan `UrbanTopBar("", onBack)`.
+- Reservar son cuatro pasos (Servicio · Horario · Extras · Pago) con el total de la visita fijo
+  abajo. Los productos de Extras se pagan aparte en el salón (pedido ligado a la cita). El
+  método de pago se elige con tres mosaicos (efectivo, transferencia, tarjeta) y debajo solo
+  el detalle del elegido. El estado del asistente va en `rememberSaveable`.
+- Comprobantes (Mis facturas): se **descargan** con `core/media/ReceiptDownloads` a
+  Descargas/UrbanBlade y se abren en el visor de PDF. Nunca abrir la liga firmada de S3 en
+  el navegador.
 
 ## 5. Mascotas y tono
 
@@ -131,6 +138,10 @@ responsabilidad).
    perdía.
 6. **Un botón flotante no debe tapar acciones** de la última tarjeta: dejar
    `contentPadding` inferior suficiente.
-7. **Validar** con `gradle :app:testDebugUnitTest` e instalar con `:app:installDebug`.
+7. **Un botón que cambia de función en el mismo lugar** («Continuar» → «Reservar») se
+   activa un momento después de cambiar, para que un doble toque no confirme nada.
+8. **Formularios de Stripe** (`CardMultilineWidget`) heredan colores del tema oscuro: fijar
+   texto, pista y acento (`styleCardWidget`) o salen blancos sobre blanco.
+9. **Validar** con `gradle :app:testDebugUnitTest` e instalar con `:app:installDebug`.
    La IA no hace commit ni push; entrega el mensaje en español con el ID de la tarea y
    sin línea `Co-Authored-By`.

@@ -161,6 +161,16 @@ fun BookingScreen(
     val productsTotal = cartLines.sumOf { (p, qty) -> p.precioVenta * qty }
     val servicePrice = selectedService?.precio ?: 0.0
     val tip = if (step == BookingStep.PAY) pay.tipFor(servicePrice) else 0.0
+    // "Reservar" queda donde estaba "Continuar": se activa un momento después de llegar a Pago para
+    // que un doble toque en "Continuar" no confirme la reserva sin que el cliente la haya revisado.
+    var reserveArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(step) {
+        reserveArmed = false
+        if (step == BookingStep.PAY) {
+            kotlinx.coroutines.delay(700)
+            reserveArmed = true
+        }
+    }
     val visitTotal = servicePrice + productsTotal + tip
 
     val canAdvance = when (step) {
@@ -331,7 +341,7 @@ fun BookingScreen(
                             step = BookingStep.entries[step.ordinal + 1]
                         }
                     },
-                    enabled = canAdvance,
+                    enabled = canAdvance && (step != BookingStep.PAY || reserveArmed),
                     loading = busy && step == BookingStep.PAY,
                     icon = if (step == BookingStep.PAY) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
                     modifier = Modifier.weight(1f)
