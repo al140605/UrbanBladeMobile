@@ -77,11 +77,13 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Replay
+import androidx.compose.ui.text.style.TextOverflow
 import java.time.LocalTime
 
 /**
- * Inicio del cliente: lo único que necesita al abrir la app es su próxima cita (o una invitación
- * a reservar) y cuatro atajos. El personal conserva el tablero con indicadores de DashboardScreen.
+ * Inicio del cliente: su próxima cita (o una invitación a reservar), lo que conviene resolver,
+ * repetir su última visita y lo que no tiene pestaña propia (Muro, Tienda, pagos y pedidos). El personal conserva el tablero con indicadores de DashboardScreen.
  */
 @Composable
 fun ClientHomeScreen(
@@ -117,6 +119,9 @@ fun ClientHomeScreen(
     val failed = error != null && next == null
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
     val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }
+    val lastVisit = response.data
+        .filter { it.estado == "completada" && it.service?.id != null }
+        .maxByOrNull { it.fecha.take(10) + it.horaInicio }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -174,75 +179,41 @@ fun ClientHomeScreen(
             }
         }
 
-        item { UrbanSectionTitle("Atajos", "Lo que más usas, a un toque.") }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Sin cita, la tarjeta de arriba ya invita a reservar: el atajo destacado es otro.
-                    if (next == null) {
-                        HomeTile(
-                            title = "Explorar",
-                            subtitle = "Servicios y barberos",
-                            icon = Icons.Default.Explore,
-                            onClick = onExplore,
-                            highlighted = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        HomeTile(
-                            title = "Reservar cita",
-                            subtitle = "Horarios reales",
-                            icon = Icons.Default.ContentCut,
-                            onClick = onBook,
-                            highlighted = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    HomeTile(
-                        title = "Mis citas",
-                        subtitle = UrbanFormat.count(response.stats.proximas, "próxima", "próximas"),
-                        icon = Icons.Default.CalendarMonth,
-                        onClick = onAppointments,
-                        modifier = Modifier.weight(1f)
+        // Repetir la última visita es lo que más hace un cliente frecuente: servicio y barbero ya elegidos.
+        lastVisit?.let { visit ->
+            item { UrbanSectionTitle("Vuelve a reservar", "Lo mismo de tu última visita.") }
+            item {
+                RebookCard(visit) {
+                    val params = listOfNotNull(
+                        visit.service?.id?.let { "serviceId=$it" },
+                        visit.barber?.id?.let { "barberId=$it" }
                     )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HomeTile(
-                        title = "Wallet",
-                        subtitle = "Puntos y membresía",
-                        icon = Icons.Default.AccountBalanceWallet,
-                        onClick = onWallet,
-                        modifier = Modifier.weight(1f)
-                    )
-                    HomeTile(
-                        title = "Tienda",
-                        subtitle = "Productos UrbanBlade",
-                        icon = Icons.Default.Storefront,
-                        onClick = onStore,
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (params.isEmpty()) onBook() else onNavigate("booking?" + params.joinToString("&"))
                 }
             }
         }
-        item {
-            UrbanAttentionRow(
-                Icons.Default.Groups,
-                "Muro de Inspiración",
-                "Mira los últimos cortes del equipo y reserva con quien te guste.",
-                UrbanColors.Gold,
-                onClick = { onNavigate("social") }
-            )
-        }
-        item { UrbanSectionTitle("Tu cuenta", "Pagos, pedidos y ayuda.") }
+
+        // Mis citas y Wallet ya están en la barra inferior: aquí solo lo que no tiene pestaña propia.
+        item { UrbanSectionTitle("Descubre y administra", "Inspiración, tienda y tu historial.") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
+                    Triple("Muro de Inspiración", "Cortes del equipo", Icons.Default.Groups),
+                    Triple("Tienda", "Productos UrbanBlade", Icons.Default.Storefront),
                     Triple("Mis pagos", "Historial y comprobantes", Icons.Default.ReceiptLong),
                     Triple("Mis pedidos", "Compras de la tienda", Icons.Default.ShoppingBag),
-                    Triple("Bladebot", "Resuelve dudas al momento", Icons.Default.SmartToy),
                 ),
-                routes = listOf("payments", "orders", "chatbot"),
-                onNavigate = onNavigate
+                routes = listOf("social", "store", "payments", "orders"),
+                onNavigate = { route -> if (route == "store") onStore() else onNavigate(route) }
+            )
+        }
+        item {
+            UrbanAttentionRow(
+                Icons.Default.SmartToy,
+                "¿Dudas? Pregúntale a Bladebot",
+                "Horarios, servicios o tus citas, al momento.",
+                UrbanColors.Gold,
+                onClick = { onNavigate("chatbot") }
             )
         }
         item { Spacer(Modifier.height(4.dp)) }
@@ -281,6 +252,42 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
                 Text("\$${"%.0f".format(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
             }
         }
+    }
+}
+
+@Composable
+private fun RebookCard(visit: AppointmentRow, onRebook: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onRebook) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(UrbanColors.Gold.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(serviceIcon(visit.service?.nombre.orEmpty()), null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(visit.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                Text(
+                    listOfNotNull(visit.barber?.user?.name?.let { "Con $it" }, UrbanFormat.dateShort(visit.fecha)).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            visit.service?.precio?.let {
+                Spacer(Modifier.width(8.dp))
+                Text("\$${"%.0f".format(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        UrbanOutlineButton(
+            text = "Reservar de nuevo",
+            onClick = onRebook,
+            icon = Icons.Default.Replay,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
