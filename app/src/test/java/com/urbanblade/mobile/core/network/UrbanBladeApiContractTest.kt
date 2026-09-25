@@ -121,7 +121,7 @@ class UrbanBladeApiContractTest {
         assertEquals("secret123", sent["password"])
     }
 
-    // T142: el token FCM se registra en barber con POST /profile/push-token {"token": "..."}.
+    // T142: el token FCM se registra indicando el proveedor para no mezclarlo con Expo.
     @Test
     fun `savePushToken envia el token al endpoint de perfil`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody("""{"message":"Token registrado"}"""))
@@ -131,7 +131,7 @@ class UrbanBladeApiContractTest {
         val request = server.takeRequest()
         assertEquals("POST", request.method)
         assertEquals("/api/v1/profile/push-token", request.path)
-        assertEquals("""{"token":"fcm-token-123"}""", request.body.readUtf8())
+        assertEquals("""{"token":"fcm-token-123","provider":"fcm"}""", request.body.readUtf8())
         assertEquals("Token registrado", response.message)
     }
 }

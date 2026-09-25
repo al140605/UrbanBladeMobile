@@ -1,8 +1,10 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -44,8 +46,16 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
     LaunchedEffect(Unit) { vm.load() }
 
     val visibleProducts = remember(response, categoryFilter) {
-        response.data.filter { categoryFilter == null || it.categoria == categoryFilter }
+        response.data
+            .filter { categoryFilter == null || it.categoria == categoryFilter }
+            .sortedWith(
+                compareByDescending<InventoryProductRow> { it.lowStock }
+                    .thenByDescending { it.pendingRestock }
+                    .thenBy { it.nombre.lowercase() }
+            )
     }
+    val attentionProducts = remember(visibleProducts) { visibleProducts.filter { it.lowStock || it.pendingRestock } }
+    val regularProducts = remember(visibleProducts, attentionProducts) { visibleProducts.filterNot { it in attentionProducts } }
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -64,22 +74,35 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { UrbanPageHeader(title = "Inventario", subtitle = "Existencias de la tienda y alertas de stock.", eyebrow = "OPERACIÓN") }
+            item {
+                val subtitle = when {
+                    response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
+                    else -> "Existencias de la tienda al día."
+                }
+                UrbanPageHeader(title = "Inventario", subtitle = subtitle, eyebrow = "OPERACIÓN")
+            }
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Productos", response.meta.stats.total.toString(), Icons.Default.Inventory2, Modifier.weight(1f))
-                    UrbanMetricCard("Stock bajo", response.meta.stats.bajoStock.toString(), Icons.Default.WarningAmber, Modifier.weight(1f))
-                    UrbanMetricCard("Valor total", "\$${"%.0f".format(response.meta.stats.valorTotal)}", Icons.Default.AttachMoney, Modifier.weight(1f))
+                UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                    Text("RESUMEN DE EXISTENCIAS", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        InventorySummaryValue("Productos", response.meta.stats.total.toString(), Modifier.weight(1f))
+                        InventorySummaryValue("Por reponer", response.meta.stats.bajoStock.toString(), Modifier.weight(1f), response.meta.stats.bajoStock > 0)
+                        InventorySummaryValue("Valor venta", "\$${"%.0f".format(response.meta.stats.valorTotal)}", Modifier.weight(1f))
+                    }
                 }
             }
 
             if (response.meta.categorias.isNotEmpty()) {
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(selected = categoryFilter == null, onClick = { categoryFilter = null }, label = { Text("Todas") })
                         response.meta.categorias.forEach { cat ->
                             FilterChip(selected = categoryFilter == cat, onClick = { categoryFilter = if (categoryFilter == cat) null else cat }, label = { Text(cat) })
@@ -92,37 +115,22 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
                 item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
             }
 
-            items(visibleProducts) { product ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                        product.imagenUrl?.let { url ->
-                            AsyncImage(
-                                model = url,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp))
-                            )
-                            Spacer(Modifier.width(10.dp))
-                        }
-                        Column(Modifier.weight(1f)) {
-                            product.categoria?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
-                            Text(product.nombre, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("Stock: ${product.stockActual} (mín. ${product.stockMinimo})", style = MaterialTheme.typography.bodySmall, color = if (product.lowStock) UrbanColors.Danger else UrbanColors.Muted)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("\$${"%.2f".format(product.precioVenta)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
-                            if (product.lowStock) SimpleStatusPill("down")
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    UrbanStockBar(product.stockActual, product.stockMinimo)
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        UrbanOutlineButton(text = "Movimiento", onClick = { showMovement = product }, icon = Icons.Default.SwapVert, modifier = Modifier.weight(1f))
-                        if (isAdmin) {
-                            IconButton(onClick = { showEdit = product }) { Icon(Icons.Default.Edit, "Editar") }
-                            IconButton(onClick = { showDeleteConfirm = product }) { Icon(Icons.Default.Delete, "Eliminar", tint = UrbanColors.Danger) }
-                        }
-                    }
+            if (attentionProducts.isNotEmpty()) {
+                item {
+                    UrbanSectionTitle(
+                        "Requiere atención",
+                        UrbanFormat.count(attentionProducts.size, "producto necesita revisión", "productos necesitan revisión")
+                    )
+                }
+                items(attentionProducts, key = { it.id }) { product ->
+                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
+                }
+            }
+
+            if (regularProducts.isNotEmpty()) {
+                item { UrbanSectionTitle("Existencias", UrbanFormat.count(regularProducts.size, "producto disponible", "productos disponibles")) }
+                items(regularProducts, key = { it.id }) { product ->
+                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
                 }
             }
         }
@@ -170,6 +178,58 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("Cancelar") } }
         )
+    }
+}
+
+@Composable
+private fun InventorySummaryValue(label: String, value: String, modifier: Modifier = Modifier, alert: Boolean = false) {
+    Column(modifier) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, style = MaterialTheme.typography.titleMedium, color = if (alert) UrbanColors.Warning else UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun InventoryProductCard(
+    product: InventoryProductRow,
+    isAdmin: Boolean,
+    onMovement: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            product.imagenUrl?.let { url ->
+                AsyncImage(model = url, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)))
+                Spacer(Modifier.width(10.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                product.categoria?.let { Text(it.uppercase(), style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold) }
+                Text(product.nombre, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${product.stockActual} disponibles · mínimo ${product.stockMinimo}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (product.lowStock) UrbanColors.Danger else UrbanColors.Muted
+                )
+            }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("\$${"%.2f".format(product.precioVenta)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+                when {
+                    product.lowStock -> SimpleStatusPill("stock bajo", UrbanColors.Danger)
+                    product.pendingRestock -> SimpleStatusPill("reposición pendiente", UrbanColors.Warning)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        UrbanStockBar(product.stockActual, product.stockMinimo)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            UrbanOutlineButton(text = "Registrar movimiento", onClick = onMovement, icon = Icons.Default.SwapVert, modifier = Modifier.weight(1f))
+            if (isAdmin) {
+                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar ${product.nombre}") }
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar ${product.nombre}", tint = UrbanColors.Danger) }
+            }
+        }
     }
 }
 

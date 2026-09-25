@@ -55,7 +55,6 @@ import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanKeyValue
-import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
@@ -79,6 +78,12 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
     val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
     var delivering by remember { mutableStateOf<OrderRow?>(null) }
     var cancelling by remember { mutableStateOf<OrderRow?>(null) }
+    val priorityOrders = remember(state.items, state.filter, state.query, staff) {
+        if (staff && state.filter == OrderFilter.Todos && state.query.isBlank()) {
+            state.items.filter { it.estado.equals("pendiente", ignoreCase = true) }
+        } else emptyList()
+    }
+    val historyOrders = remember(state.items, priorityOrders) { state.items.filterNot { it in priorityOrders } }
 
     LaunchedEffect(Unit) { vm.load() }
 
@@ -94,7 +99,9 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
             item {
                 UrbanPageHeader(
                     title = if (staff) "Pedidos" else "Mis pedidos",
-                    subtitle = if (staff) "Entrega, cobra o cancela los pedidos de la tienda." else "Sigue tus compras de la tienda.",
+                    subtitle = if (staff && priorityOrders.isNotEmpty()) {
+                        UrbanFormat.count(priorityOrders.size, "pedido listo para entregar", "pedidos listos para entregar")
+                    } else if (staff) "Entrega, cobra o cancela los pedidos de la tienda." else "Sigue tus compras de la tienda.",
                     eyebrow = if (staff) "OPERACIÓN" else "CUENTA"
                 )
             }
@@ -110,15 +117,14 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
                 state.stats?.let { stats ->
                     item {
                         UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                            Text("Por cobrar", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                            Text("POR COBRAR", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
                             Text(moneyShort(stats.porCobrar), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
                             Text("en pedidos pendientes de entregar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
-                    }
-                    item {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            UrbanMetricCard("Pendientes", stats.pendientes.toString(), Icons.Default.ShoppingBag, Modifier.weight(1f))
-                            UrbanMetricCard("Entregados", stats.entregados.toString(), Icons.Default.CheckCircle, Modifier.weight(1f))
+                            HorizontalDivider(Modifier.padding(vertical = 10.dp), color = UrbanColors.Line)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OrderSummaryValue("Pendientes", stats.pendientes.toString(), Modifier.weight(1f), stats.pendientes > 0)
+                                OrderSummaryValue("Entregados", stats.entregados.toString(), Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -152,17 +158,22 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
                     )
                 }
             }
-            if (state.items.isNotEmpty()) {
-                item { UrbanSectionTitle(if (staff) "Bandeja" else "Tus pedidos", UrbanFormat.count(state.total, "pedido", "pedidos")) }
+            if (priorityOrders.isNotEmpty()) {
+                item { UrbanSectionTitle("Por entregar ahora", UrbanFormat.count(priorityOrders.size, "pedido pendiente", "pedidos pendientes")) }
+                items(priorityOrders, key = { it.id }) { order ->
+                    OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
+                }
             }
-            items(state.items, key = { it.id }) { order ->
-                OrderCard(
-                    order = order,
-                    staff = staff,
-                    busy = state.busyOrderId == order.id,
-                    onCancel = { vm.clearMessages(); cancelling = order },
-                    onDeliver = { vm.clearMessages(); delivering = order }
-                )
+            if (historyOrders.isNotEmpty()) {
+                item {
+                    UrbanSectionTitle(
+                        if (priorityOrders.isNotEmpty()) "Historial reciente" else if (staff) "Bandeja" else "Tus pedidos",
+                        UrbanFormat.count(if (priorityOrders.isNotEmpty()) historyOrders.size else state.total, "pedido", "pedidos")
+                    )
+                }
+                items(historyOrders, key = { it.id }) { order ->
+                    OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
+                }
             }
             if (state.hasMore) {
                 item {
@@ -232,10 +243,18 @@ private fun OrderCard(order: OrderRow, staff: Boolean, busy: Boolean, onCancel: 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UrbanOutlineButton("Cancelar", onCancel, Modifier.weight(1f))
                 if (staff) {
-                    UrbanPrimaryButton("Entregar", onDeliver, Modifier.weight(1f), enabled = !busy, loading = busy)
+                    UrbanPrimaryButton("Entregar y cobrar", onDeliver, Modifier.weight(1f), enabled = !busy, loading = busy)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OrderSummaryValue(label: String, value: String, modifier: Modifier = Modifier, attention: Boolean = false) {
+    Column(modifier) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = if (attention) UrbanColors.Warning else UrbanColors.Ink)
     }
 }
 

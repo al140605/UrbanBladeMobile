@@ -1,6 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,8 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stripe.android.paymentsheet.PaymentSheetResult
@@ -33,6 +37,8 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -62,7 +68,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
 
     // El personal ve las citas de todo el negocio: las estadísticas del servidor son las del propio
     // usuario (0 para un administrador), así que se calculan aquí sobre la lista.
-    var staffFilter by remember { mutableStateOf("proximas") }
+    var staffFilter by remember { mutableStateOf("atencion") }
     val today = remember { LocalDate.now().toString() }
     val active = listOf("pendiente", "confirmada", "en_proceso")
     val stats = if (staff) {
@@ -81,14 +87,18 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
         response.data
     } else {
         when (staffFilter) {
-            "pendientes" -> response.data.filter { it.estado == "pendiente" }
-                .sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
             "hoy" -> response.data.filter { it.fecha == today }.sortedBy { it.horaInicio }
-            "proximas" -> response.data.filter { it.fecha >= today && it.estado in active }
+            "atencion", "proximas" -> response.data.filter { it.fecha >= today && it.estado in active }
                 .sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
-            else -> response.data
+            else -> response.data.sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
         }
     }
+    val pendingCount = if (staff && !calendarMode) visible.count { it.estado == "pendiente" } else 0
+    // Solo la siguiente decisión ocupa la tarjeta destacada. Las demás citas,
+    // incluso si siguen pendientes, permanecen en la lista compacta.
+    val attention = if (staff && !calendarMode) visible.filter { it.estado == "pendiente" }.take(1) else emptyList()
+    val attentionIds = attention.map { it.id }.toSet()
+    val later = if (staff && !calendarMode) visible.filterNot { it.id in attentionIds } else emptyList()
 
     LaunchedEffect(calendarMode, shownMonth) {
         if (calendarMode) vm.loadMonth(shownMonth)
@@ -115,8 +125,8 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
                 UrbanPageHeader(
@@ -130,19 +140,12 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             // "agenda libre": sería afirmar algo que no sabemos. Solo el error y "Reintentar".
             val failed = error != null && response.data.isEmpty()
 
-            if (!failed) item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard(
-                        label = "Próximas",
-                        value = stats.proximas.toString(),
-                        icon = Icons.Default.Upcoming,
-                        modifier = Modifier.weight(1f)
-                    )
-                    UrbanMetricCard(
-                        label = "Completadas",
-                        value = stats.completadas.toString(),
-                        icon = Icons.Default.TaskAlt,
-                        modifier = Modifier.weight(1f)
+            if (!failed && staff) item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Text(
+                        text = "${stats.proximas} próximas · ${stats.completadas} completadas",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = UrbanColors.Muted
                     )
                 }
             }
@@ -211,17 +214,14 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                     }
                 } else if (staff) {
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            UrbanSectionTitle("Agenda del negocio", UrbanFormat.count(visible.size, "cita", "citas"))
-                            Row(
-                                Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf("proximas" to "Próximas", "hoy" to "Hoy", "pendientes" to "Pendientes", "todas" to "Todas")
-                                    .forEach { (key, label) ->
-                                        FilterChip(selected = staffFilter == key, onClick = { staffFilter = key }, label = { Text(label) })
-                                    }
-                            }
+                        Row(
+                            Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("atencion" to "Requieren atención", "hoy" to "Hoy", "proximas" to "Próximas", "todas" to "Todas")
+                                .forEach { (key, label) ->
+                                    FilterChip(selected = staffFilter == key, onClick = { staffFilter = key }, label = { Text(label) })
+                                }
                         }
                     }
                     if (visible.isEmpty()) {
@@ -232,7 +232,51 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 }
             }
 
-            items(visible, key = { it.id }) { appt ->
+            if (staff && !calendarMode && visible.isNotEmpty()) {
+                item {
+                    PrioritySectionHeader(
+                        title = "Requieren atención",
+                        subtitle = "Citas que necesitan una decisión tuya.",
+                        count = pendingCount,
+                        icon = Icons.Default.PriorityHigh
+                    )
+                }
+                items(attention, key = { "priority-${it.id}" }) { appt ->
+                    StaffPriorityAppointment(
+                        appt = appt,
+                        onConfirm = { vm.changeStatus(appt, "confirmada") },
+                        onCancel = if (appt.code != null) { { confirmCancel = appt } } else null,
+                        onCharge = if (appt.isChargeable && !appt.hasPayment) { { charging = appt } } else null
+                    )
+                }
+                if (attention.isEmpty()) {
+                    item { UrbanInfoBanner("No hay citas pendientes de confirmación.", Icons.Default.TaskAlt) }
+                }
+                if (later.isNotEmpty()) {
+                    item {
+                        PrioritySectionHeader(
+                            title = "Después",
+                            subtitle = "Próximas citas en tu agenda.",
+                            count = later.size,
+                            icon = Icons.Default.Schedule
+                        )
+                    }
+                    items(later, key = { "later-${it.id}" }) { appt ->
+                        StaffTimelineAppointment(
+                            appt = appt,
+                            onStatus = if (appt.code != null && appt.estado in listOf("confirmada", "en_proceso")) {
+                                { estado -> vm.changeStatus(appt, estado) }
+                            } else null,
+                            onCancel = if (appt.code != null && appt.estado in listOf("pendiente", "confirmada")) {
+                                { { confirmCancel = appt } }
+                            } else null,
+                            onCharge = if (appt.isChargeable && !appt.hasPayment) { { charging = appt } } else null
+                        )
+                    }
+                }
+            }
+
+            if (!staff || calendarMode) items(visible, key = { it.id }) { appt ->
                 val manageable = appt.estado in listOf("pendiente", "confirmada") && appt.code != null
                 val payable = isClient && appt.isChargeable && !appt.hasPayment && appt.code != null
                 AppointmentCard(
@@ -307,6 +351,231 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             },
             dismissButton = { TextButton(onClick = { confirmCancel = null }) { Text("Volver") } }
         )
+    }
+}
+
+@Composable
+private fun PrioritySectionHeader(title: String, subtitle: String, count: Int, icon: ImageVector) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = CircleShape,
+            color = UrbanColors.Gold.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.5f))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = UrbanColors.Gold, modifier = Modifier.size(19.dp))
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(count.toString(), style = MaterialTheme.typography.labelLarge, color = UrbanColors.Muted)
+            }
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+    }
+}
+
+@Composable
+private fun StaffPriorityAppointment(
+    appt: AppointmentRow,
+    onConfirm: () -> Unit,
+    onCancel: (() -> Unit)?,
+    onCharge: (() -> Unit)?
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = UrbanColors.Card.copy(alpha = 0.86f),
+        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.72f))
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            AppointmentDateRail(appt, emphasized = true)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        appt.service?.nombre ?: "Servicio",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    UrbanStatusPill(appt.estado)
+                    StaffAppointmentMenu(onCancel = onCancel, onCharge = onCharge)
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PersonLine(
+                            label = appt.client?.user?.name ?: "Cliente por confirmar",
+                            name = appt.client?.user?.name ?: "Cliente",
+                            imageUrl = appt.client?.user?.avatarUrl,
+                            color = UrbanColors.Ink
+                        )
+                        PersonLine(
+                            label = appt.barber?.user?.name ?: "Barbero por confirmar",
+                            name = appt.barber?.user?.name ?: "Barbero",
+                            imageUrl = appt.barber?.fotoUrl,
+                            color = UrbanColors.Muted
+                        )
+                        ReminderLine(appt)
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = UrbanColors.Gold,
+                            contentColor = UrbanColors.OnGold
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Confirmar", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffTimelineAppointment(
+    appt: AppointmentRow,
+    onStatus: ((String) -> Unit)?,
+    onCancel: (() -> Unit)?,
+    onCharge: (() -> Unit)?
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            AppointmentDateRail(appt, emphasized = false)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        appt.service?.nombre ?: "Servicio",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    UrbanStatusPill(appt.estado)
+                    StaffAppointmentMenu(
+                        onStatus = onStatus,
+                        currentStatus = appt.estado,
+                        onCancel = onCancel,
+                        onCharge = onCharge
+                    )
+                }
+                Text(appt.client?.user?.name ?: "Cliente por confirmar", style = MaterialTheme.typography.bodyMedium)
+                Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                ReminderLine(appt)
+            }
+        }
+        HorizontalDivider(color = UrbanColors.Line.copy(alpha = 0.65f))
+    }
+}
+
+@Composable
+private fun AppointmentDateRail(appt: AppointmentRow, emphasized: Boolean) {
+    Column(
+        modifier = Modifier.width(54.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        if (emphasized) {
+            Text(appt.fecha.takeLast(2), style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Gold, fontWeight = FontWeight.Bold)
+            Text(UrbanFormat.date(appt.fecha).take(3).uppercase(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
+            HorizontalDivider(Modifier.padding(vertical = 3.dp), color = UrbanColors.Line)
+        }
+        Text(
+            appt.horaInicio.take(5),
+            style = if (emphasized) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (emphasized) UrbanColors.Ink else UrbanColors.Gold
+        )
+        if (!emphasized) {
+            Text(
+                "${appt.fecha.takeLast(2)} ${UrbanFormat.date(appt.fecha).take(3).uppercase()}",
+                style = MaterialTheme.typography.labelSmall,
+                color = UrbanColors.Muted
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReminderLine(appt: AppointmentRow) {
+    val (label, color, icon) = remember(appt.reminder24hSent, appt.reminder2hSent, appt.fecha, appt.horaInicio) {
+        when {
+            appt.reminder2hSent -> Triple("Recordatorio 2 h enviado", UrbanColors.Muted, Icons.Default.NotificationsActive)
+            appt.reminder24hSent -> Triple("Recordatorio 24 h enviado", UrbanColors.Muted, Icons.Default.NotificationsActive)
+            appointmentIsFuture(appt) -> Triple("Recordatorio por enviar", UrbanColors.Muted, Icons.Default.Schedule)
+            else -> Triple("Sin recordatorio enviado", UrbanColors.Danger, Icons.Default.NotificationsOff)
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = color)
+    }
+}
+
+private fun appointmentIsFuture(appt: AppointmentRow): Boolean = runCatching {
+    val date = LocalDate.parse(appt.fecha.take(10))
+    val time = LocalTime.parse(appt.horaInicio.take(5))
+    LocalDateTime.of(date, time).isAfter(LocalDateTime.now())
+}.getOrDefault(false)
+
+@Composable
+private fun StaffAppointmentMenu(
+    onStatus: ((String) -> Unit)? = null,
+    currentStatus: String? = null,
+    onCancel: (() -> Unit)?,
+    onCharge: (() -> Unit)?
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val next = when (currentStatus) {
+        "confirmada" -> "en_proceso" to "Iniciar servicio"
+        "en_proceso" -> "completada" to "Completar servicio"
+        else -> null
+    }
+    if (next != null || onCancel != null || onCharge != null) {
+        Box {
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Default.MoreVert, contentDescription = "Más acciones")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                if (next != null && onStatus != null) {
+                    DropdownMenuItem(
+                        text = { Text(next.second) },
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                        onClick = { expanded = false; onStatus(next.first) }
+                    )
+                }
+                if (onCharge != null) {
+                    DropdownMenuItem(
+                        text = { Text("Cobrar") },
+                        leadingIcon = { Icon(Icons.Default.Payments, null) },
+                        onClick = { expanded = false; onCharge() }
+                    )
+                }
+                if (onCancel != null) {
+                    DropdownMenuItem(
+                        text = { Text("Cancelar cita", color = UrbanColors.Danger) },
+                        leadingIcon = { Icon(Icons.Default.Close, null, tint = UrbanColors.Danger) },
+                        onClick = { expanded = false; onCancel() }
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -763,6 +1032,12 @@ private fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDis
 private fun PersonLine(label: String, name: String, imageUrl: String?, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         UrbanAvatar(name, Modifier.size(26.dp), imageUrl = imageUrl)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = color)
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

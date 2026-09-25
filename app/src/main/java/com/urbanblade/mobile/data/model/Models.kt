@@ -56,7 +56,7 @@ data class CreatedAppointmentData(val id: String? = null, val code: String? = nu
 data class CreateAppointmentResponse(val message: String? = null, val data: CreatedAppointmentData? = null)
 
 /** POST /profile/push-token: token de Firebase Cloud Messaging del dispositivo (T142). */
-data class PushTokenRequest(val token: String)
+data class PushTokenRequest(val token: String, val provider: String = "fcm")
 
 data class ApiList<T>(val data: List<T> = emptyList())
 
@@ -118,6 +118,8 @@ data class AppointmentRow(
     @SerializedName("precio_cobrado") val precioCobrado: Double? = null,
     @SerializedName("has_payment") val hasPayment: Boolean = false,
     @SerializedName("is_chargeable") val isChargeable: Boolean = false,
+    @SerializedName("reminder_24h_sent") val reminder24hSent: Boolean = false,
+    @SerializedName("reminder_2h_sent") val reminder2hSent: Boolean = false,
     val client: AppointmentClientRef? = null,
     val barber: AppointmentBarber? = null,
     val service: AppointmentService? = null

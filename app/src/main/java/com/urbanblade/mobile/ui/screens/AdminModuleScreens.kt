@@ -519,25 +519,27 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
 
             item {
                 UrbanPageHeader(
-                    title = preview.fecha ?: "Hoy",
-                    subtitle = "Ingresos esperados según lo registrado en el sistema.",
+                    title = "Cierre de hoy",
+                    subtitle = "${preview.fecha?.let { UrbanFormat.date(it) } ?: "Hoy"} · Revisa y concilia la caja.",
                     eyebrow = "Corte de caja"
                 )
             }
 
             item {
                 UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Text("Total esperado", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                    Text("TOTAL REGISTRADO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
                     Text(
                         "$" + "%,.2f".format(preview.esperadoTotal),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = UrbanColors.Ink
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = UrbanColors.Line)
+                    Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("Efectivo en caja", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                            Text("Efectivo esperado", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
                             Text("$" + "%,.2f".format(preview.efectivoEsperado), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
                         }
                         Column(Modifier.weight(1f)) {
@@ -552,28 +554,22 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                 item {
                     val byMethod = preview.esperado.entries.filter { it.value > 0.0 }.sortedByDescending { it.value }
                     UrbanCard(Modifier.fillMaxWidth()) {
-                        UrbanSectionTitle("Por método de pago")
-                        Spacer(Modifier.height(12.dp))
-                        UrbanHBars(
-                            labels = byMethod.map { METODO_LABEL[it.key] ?: it.key.replaceFirstChar { c -> c.uppercase() } },
-                            values = byMethod.map { it.value },
-                            format = { "$" + "%,.2f".format(it) }
+                        Text("Cobros registrados", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                        byMethod.forEachIndexed { index, (method, amount) ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(METODO_LABEL[method] ?: method.replaceFirstChar { c -> c.uppercase() }, color = UrbanColors.Muted)
+                                Text("$" + "%,.2f".format(amount), fontWeight = FontWeight.SemiBold)
+                            }
+                            if (index < byMethod.lastIndex) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = UrbanColors.Line)
+                        }
+                        Text(
+                            "${preview.pagos} pagos · ${preview.pedidos} pedidos · ${preview.paquetes} paquetes",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = UrbanColors.Muted,
+                            modifier = Modifier.padding(top = 10.dp)
                         )
                     }
-                }
-            }
-
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Pagos", preview.pagos.toString(), Icons.Default.Receipt, Modifier.weight(1f))
-                    UrbanMetricCard("Pedidos", preview.pedidos.toString(), Icons.Default.ShoppingBag, Modifier.weight(1f))
-                }
-            }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    UrbanMetricCard("Paquetes", preview.paquetes.toString(), Icons.Default.Inventory2, Modifier.weight(1f))
-                    UrbanMetricCard("Gift cards", preview.giftCards.toString(), Icons.Default.CardGiftcard, Modifier.weight(1f))
-                    UrbanMetricCard("Membresías", preview.membresias.toString(), Icons.Default.Star, Modifier.weight(1f))
                 }
             }
 
@@ -602,10 +598,10 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                     }
                 }
             } else {
-                item { UrbanSectionTitle("Registrar corte") }
+                item { UrbanSectionTitle("1. Cuenta el efectivo", "Compara el monto físico contra lo registrado.") }
                 item {
                     UrbanCard(Modifier.fillMaxWidth()) {
-                        UrbanFieldLabel("Efectivo contado físicamente")
+                        UrbanFieldLabel("Efectivo contado")
                         Spacer(Modifier.height(6.dp))
                         OutlinedTextField(
                             value = efectivoContado,
@@ -615,6 +611,12 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "Esperado en efectivo: $" + "%,.2f".format(preview.efectivoEsperado),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = UrbanColors.Muted,
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                         Spacer(Modifier.height(12.dp))
                         UrbanFieldLabel("Notas (opcional)")
@@ -630,7 +632,7 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                 item {
                     val contado = efectivoContado.toDoubleOrNull()
                     UrbanPrimaryButton(
-                        text = "Cerrar caja",
+                        text = "Revisar y cerrar caja",
                         onClick = { showConfirm = true },
                         enabled = contado != null && contado >= 0,
                         loading = closing,

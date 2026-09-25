@@ -62,6 +62,8 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
+import com.urbanblade.mobile.ui.components.UrbanPremiumCard
+import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanRolePill
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
@@ -89,7 +91,7 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            UrbanTopBar("Usuarios", onBack) {
+            UrbanTopBar("", onBack) {
                 IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
                 IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
             }
@@ -100,6 +102,13 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
             contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                UrbanPageHeader(
+                    title = "Usuarios y personal",
+                    subtitle = "Administra accesos y roles del equipo.",
+                    eyebrow = "ADMINISTRACIÓN"
+                )
+            }
             item {
                 UrbanTextField(
                     value = state.query,
@@ -129,6 +138,25 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
             state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (!creating && editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
             if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
+
+            if (state.items.isNotEmpty()) {
+                item {
+                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                        Text("EQUIPO CON ACCESO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Gold)
+                        Text(
+                            UrbanFormat.count(state.total, "cuenta registrada", "cuentas registradas"),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = UrbanColors.Ink
+                        )
+                        Text(
+                            UrbanFormat.count(state.roles.size, "rol disponible", "roles disponibles"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = UrbanColors.Muted
+                        )
+                    }
+                }
+            }
 
             if (!state.loading && state.items.isEmpty() && state.error == null) {
                 item { UrbanEmptyState("Sin usuarios", "No hay cuentas que coincidan con la búsqueda.", Icons.Default.ManageAccounts) }
