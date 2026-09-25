@@ -279,8 +279,17 @@ class AppointmentsViewModel @JvmOverloads constructor(
         } finally { _actionBusy.value = false }
     }
 
-    fun cancel(item: AppointmentRow) = viewModelScope.launch {
+    /**
+     * El cliente cancela su propia cita (DELETE, con la política de horas); el personal la cancela
+     * cambiando el estado (PATCH status), que es lo que el servidor le permite a recepción y además
+     * avisa al cliente, devuelve lo pagado al reservar y libera el horario para la lista de espera.
+     */
+    fun cancel(item: AppointmentRow, asStaff: Boolean = false) = viewModelScope.launch {
         val code = item.code ?: return@launch
+        if (asStaff) {
+            changeStatus(item, "cancelada")
+            return@launch
+        }
         try { repo.cancelAppointment(code); load() }
         catch (e: HttpException) {
             // El 422 aquí es la política de cancelación (N horas de

@@ -76,6 +76,9 @@ class AuthViewModel @JvmOverloads constructor(
                 // "Revisa los datos capturados" no dice qué revisar.
                 _error.value = if (e is HttpException && e.code() == 422) {
                     "Revisa tu correo y tu contraseña e inténtalo de nuevo."
+                } else if (e is HttpException && e.code() == 403) {
+                    // En el acceso, el único 403 es el correo sin verificar (AuthController::login).
+                    e.serverMessage() ?: "Debes verificar tu correo para iniciar sesión."
                 } else {
                     e.toFriendlyMessage("No se pudo iniciar sesión.")
                 }
@@ -173,7 +176,10 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
     return when (this) {
         is HttpException -> when (code()) {
             401 -> "Credenciales incorrectas o sesión vencida."
-            403 -> "Debes verificar tu correo para iniciar sesión."
+            // Fuera del acceso, un 403 es falta de permiso (no sesión vencida: eso es 401). Se muestra el
+            // motivo del servidor cuando lo manda, para no confundir con "inicia sesión".
+            403 -> serverMessage()?.takeIf { it.isNotBlank() && it != "This action is unauthorized." }
+                ?: "Tu cuenta no tiene permiso para hacer esto."
             422 -> "Revisa los datos capturados."
             429 -> "Demasiados intentos. Intenta de nuevo más tarde."
             503 -> "UrbanBlade está en mantenimiento."

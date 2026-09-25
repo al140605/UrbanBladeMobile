@@ -18,6 +18,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.urbanblade.mobile.core.booking.PendingBooking
 import com.urbanblade.mobile.core.push.PushRegistrationEffect
+import kotlinx.coroutines.launch
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanBladeBackground
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
@@ -58,7 +59,8 @@ fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
         AuthState.Guest -> GuestNav(authViewModel)
         is AuthState.Authenticated -> {
             PushRegistrationEffect(state.user.id)
-            AuthenticatedNav(state.user, authViewModel)
+            // key: si cambia la cuenta, toda la navegación y sus pantallas se crean de cero.
+            key(state.user.id) { AuthenticatedNav(state.user, authViewModel) }
         }
     }
 }
@@ -105,6 +107,8 @@ private fun GuestNav(authViewModel: AuthViewModel) {
 @Composable
 private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val nav = rememberNavController()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
     val isClient = user.roles.contains("cliente")
@@ -238,7 +242,14 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
                         user = user,
-                        onLogout = { authViewModel.logout() },
+                        onLogout = {
+                            // Antes de cerrar sesión el cel olvida su token de push: la siguiente cuenta
+                            // que entre en este equipo no hereda los avisos de esta.
+                            scope.launch {
+                                com.urbanblade.mobile.core.push.PushNotifications.forgetDeviceToken(context)
+                                authViewModel.logout()
+                            }
+                        },
                         onNavigate = { nav.navigate(it) },
                         onUserChanged = { authViewModel.refreshUser() }
                     )

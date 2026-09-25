@@ -340,12 +340,17 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             title = { Text("Cancelar cita") },
             text = {
                 Text(
-                    "¿Quieres cancelar tu cita del ${UrbanFormat.date(appt.fecha)} a las ${UrbanFormat.time(appt.horaInicio)}?",
+                    if (staff) {
+                        "¿Cancelar la cita de ${appt.client?.user?.name ?: "este cliente"} del ${UrbanFormat.date(appt.fecha)} a las " +
+                            "${UrbanFormat.time(appt.horaInicio)}? Se le avisará y, si pagó al reservar, se le devolverá."
+                    } else {
+                        "¿Quieres cancelar tu cita del ${UrbanFormat.date(appt.fecha)} a las ${UrbanFormat.time(appt.horaInicio)}?"
+                    },
                     color = UrbanColors.Muted
                 )
             },
             confirmButton = {
-                TextButton(onClick = { vm.cancel(appt); confirmCancel = null }) {
+                TextButton(onClick = { vm.cancel(appt, asStaff = staff); confirmCancel = null }) {
                     Text("Sí, cancelar", color = UrbanColors.Danger)
                 }
             },

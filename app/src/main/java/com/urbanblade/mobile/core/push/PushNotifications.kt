@@ -56,6 +56,18 @@ object PushNotifications {
         }
     }
 
+    /**
+     * Al cerrar sesión, el teléfono borra su token de Firebase: la cuenta anterior deja de recibir
+     * avisos en este equipo y la siguiente que entre registra uno nuevo. Si Firebase no está
+     * configurado o falla, no bloquea el cierre de sesión.
+     */
+    suspend fun forgetDeviceToken(context: Context) {
+        if (!isAvailable(context)) return
+        suspendCancellableCoroutine { cont ->
+            FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener { cont.resume(Unit) }
+        }
+    }
+
     private suspend fun currentToken(): String? = suspendCancellableCoroutine { cont ->
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             cont.resume(if (task.isSuccessful) task.result else null)

@@ -319,4 +319,40 @@ class AppointmentsViewModelTest {
         assertNull(vm.paymentNotice.value)
         assertEquals("pi_test_secret", vm.stripeClientSecret.value)
     }
+
+    private val citaRecepcion = AppointmentRow(id = "r1", code = "rcp1", fecha = "2026-09-26", horaInicio = "10:00:00", estado = "confirmada")
+
+    @Test
+    fun `recepcion cancela cambiando el estado, no con la ruta del cliente`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.cancel(citaRecepcion, asStaff = true)
+        advanceUntilIdle()
+
+        verify(repo).updateAppointmentStatus("rcp1", "cancelada")
+        verify(repo, never()).cancelAppointment(any())
+    }
+
+    @Test
+    fun `el cliente sigue cancelando con su propia ruta`() = runTest(dispatcher) {
+        val vm = AppointmentsViewModel(repo)
+
+        vm.cancel(citaRecepcion)
+        advanceUntilIdle()
+
+        verify(repo).cancelAppointment("rcp1")
+        verify(repo, never()).updateAppointmentStatus(any(), any())
+    }
+
+    @Test
+    fun `un 403 dice que falta permiso, no que hay que iniciar sesion`() = runTest(dispatcher) {
+        val forbidden = HttpException(Response.error<Any>(403, """{"message":""}""".toResponseBody("application/json".toMediaType())))
+        whenever(repo.cancelAppointment("rcp1")).thenThrow(forbidden)
+        val vm = AppointmentsViewModel(repo)
+
+        vm.cancel(citaRecepcion)
+        advanceUntilIdle()
+
+        assertEquals("Tu cuenta no tiene permiso para hacer esto.", vm.error.value)
+    }
 }
