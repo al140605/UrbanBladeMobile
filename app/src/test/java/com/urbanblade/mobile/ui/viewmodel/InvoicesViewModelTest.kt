@@ -1,5 +1,8 @@
 package com.urbanblade.mobile.ui.viewmodel
 
+import com.urbanblade.mobile.data.model.MembershipInvoiceRow
+import com.urbanblade.mobile.data.model.MembershipInvoicesMeta
+import com.urbanblade.mobile.data.model.MembershipInvoicesResponse
 import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.data.model.OrdersResponse
 import com.urbanblade.mobile.data.model.PaymentRow
@@ -129,5 +132,20 @@ class InvoicesViewModelTest {
 
         assertEquals(listOf("p1", "p4"), vm.state.value.collected.map { it.id })
         assertEquals(300.0, vm.state.value.totalPaid, 0.0)
+    }
+
+    @Test
+    fun `los cobros de membresia se suman aparte y fallar no rompe la pantalla`() = runTest(dispatcher) {
+        whenever(repo.membershipInvoices()).thenReturn(
+            MembershipInvoicesResponse(listOf(MembershipInvoiceRow(id = "m1", plan = "Oro", monto = 299.0)), MembershipInvoicesMeta(299.0))
+        )
+        val vm = InvoicesViewModel(repo)
+
+        vm.load()
+        advanceUntilIdle()
+
+        assertEquals(listOf("m1"), vm.state.value.memberships.map { it.id })
+        assertEquals(299.0, vm.state.value.membershipPaid, 0.0)
+        assertEquals(275.0, vm.state.value.totalPaid, 0.0)
     }
 }

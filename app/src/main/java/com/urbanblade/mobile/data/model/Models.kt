@@ -1068,6 +1068,21 @@ data class MyMembership(
     val plan: MembershipPlan? = null
 )
 data class MyMembershipResponse(val data: MyMembership? = null)
+/** POST memberships/subscribe: el client_secret confirma el primer cobro con Stripe. */
+data class SubscribeMembershipRequest(@SerializedName("membership_plan_id") val membershipPlanId: String)
+data class SubscribeMembershipData(@SerializedName("client_secret") val clientSecret: String? = null, val membership: MyMembership? = null)
+data class SubscribeMembershipResponse(val data: SubscribeMembershipData? = null)
+/** GET memberships/invoices: cobros mensuales de la membresía, para Mis facturas. */
+data class MembershipInvoiceRow(
+    val id: String,
+    val plan: String? = null,
+    val monto: Double = 0.0,
+    @SerializedName("pagado_en") val pagadoEn: String? = null
+)
+data class MembershipInvoicesMeta(@SerializedName("total_pagado") val totalPagado: Double = 0.0)
+data class MembershipInvoicesResponse(val data: List<MembershipInvoiceRow> = emptyList(), val meta: MembershipInvoicesMeta? = null)
+data class MembershipReceiptData(@SerializedName("receipt_url") val receiptUrl: String? = null)
+data class MembershipReceiptResponse(val data: MembershipReceiptData? = null)
 
 // ── Wallet: paquetes (packages, packages/catalog) ─────────────────────────
 data class PackageServiceRef(val id: String? = null, val nombre: String? = null)

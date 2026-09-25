@@ -558,8 +558,14 @@ data class WalletData(
     val membership: MyMembership? = null,
     val packages: List<MyPackage> = emptyList(),
     val giftCards: List<GiftCard> = emptyList(),
-    val referrals: ReferralInfo? = null
+    val referrals: ReferralInfo? = null,
+    /** Planes para contratar desde la app (solo se muestran si no tiene membresía). */
+    val plans: List<MembershipPlan> = emptyList(),
+    val savedCards: List<SavedCard> = emptyList()
 )
+
+/** Primer cobro de la membresía por confirmar con Stripe: tarjeta guardada o la que escribió. */
+data class MembershipCheckout(val clientSecret: String, val savedCardId: String?)
 
 /**
  * Solo lectura esta ronda: carga las cinco fuentes de autoservicio en
@@ -589,11 +595,51 @@ class WalletViewModel @JvmOverloads constructor(
                 membership = runCatching { repo.myMembership() }.getOrNull(),
                 packages = runCatching { repo.myPackages() }.getOrDefault(emptyList()),
                 giftCards = runCatching { repo.myGiftCards() }.getOrDefault(emptyList()),
-                referrals = runCatching { repo.myReferrals() }.getOrNull()
+                referrals = runCatching { repo.myReferrals() }.getOrNull(),
+                plans = runCatching { repo.membershipPlans() }.getOrNull().orEmpty(),
+                savedCards = runCatching { repo.savedCards() }.getOrNull().orEmpty()
             )
         } catch (e: Exception) {
             _error.value = e.toFriendlyMessage("No se pudo cargar tu wallet.")
         } finally { _loading.value = false }
+    }
+
+    private val _checkout = MutableStateFlow<MembershipCheckout?>(null)
+    val checkout = _checkout.asStateFlow()
+
+    /**
+     * Contrata (o reintenta pagar) un plan: barber crea la suscripción y devuelve el client_secret
+     * del primer cobro; la pantalla lo confirma con Stripe y avisa con [onCheckoutResult].
+     */
+    fun subscribe(planId: String, savedCardId: String?) = viewModelScope.launch {
+        _busy.value = true; _error.value = null; _message.value = null
+        try {
+            val secret = repo.subscribeMembership(planId)?.clientSecret
+            if (secret.isNullOrBlank()) {
+                _error.value = "No se pudo iniciar el pago de la membresía. Intenta de nuevo."
+                _busy.value = false
+            } else {
+                _checkout.value = MembershipCheckout(secret, savedCardId)
+            }
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudo iniciar el pago de la membresía.")
+            _busy.value = false
+        }
+    }
+
+    fun onCheckoutResult(ok: Boolean, canceled: Boolean, detail: String?) = viewModelScope.launch {
+        _checkout.value = null
+        when {
+            ok -> {
+                _message.value = "¡Listo! Tu membresía se está activando; en unos segundos verás tu descuento."
+                // Stripe confirma el cobro por webhook: se da un momento antes de recargar.
+                kotlinx.coroutines.delay(2500)
+                load()
+            }
+            canceled -> _message.value = "Cancelaste el pago. Puedes intentarlo de nuevo cuando quieras."
+            else -> _error.value = "No se pudo cobrar tu tarjeta" + (detail?.let { ": $it" } ?: ".")
+        }
+        _busy.value = false
     }
 
     fun cancelMembership() = viewModelScope.launch {

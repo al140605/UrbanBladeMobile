@@ -47,6 +47,9 @@ interface UrbanBladeApi {
     @GET("memberships/plans") suspend fun membershipPlans(): MembershipPlansResponse
     @GET("memberships/mine") suspend fun myMembership(): MyMembershipResponse
     @POST("memberships/cancel") suspend fun cancelMembership(): MessageResponse
+    @POST("memberships/subscribe") suspend fun subscribeMembership(@Body body: SubscribeMembershipRequest): SubscribeMembershipResponse
+    @GET("memberships/invoices") suspend fun membershipInvoices(): MembershipInvoicesResponse
+    @GET("memberships/invoices/{id}/receipt-link") suspend fun membershipReceiptLink(@Path("id") id: String): MembershipReceiptResponse
     @GET("packages") suspend fun myPackages(): MyPackagesResponse
     @GET("packages/catalog") suspend fun packageCatalog(): PackageCatalogResponse
     @GET("gift-cards/mine") suspend fun myGiftCards(): GiftCardsResponse

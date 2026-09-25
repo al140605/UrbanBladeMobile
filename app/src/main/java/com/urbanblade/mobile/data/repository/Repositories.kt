@@ -123,6 +123,9 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun membershipPlans() = api.membershipPlans().data
     suspend fun myMembership() = api.myMembership().data
     suspend fun cancelMembership() = api.cancelMembership()
+    suspend fun subscribeMembership(planId: String) = api.subscribeMembership(SubscribeMembershipRequest(planId)).data
+    suspend fun membershipInvoices() = api.membershipInvoices()
+    suspend fun membershipReceiptUrl(id: String) = api.membershipReceiptLink(id).data?.receiptUrl
     suspend fun myPackages() = api.myPackages().data
     suspend fun packageCatalog() = api.packageCatalog().data
     suspend fun myGiftCards() = api.myGiftCards().data

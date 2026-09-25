@@ -1,6 +1,14 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.model.ConfirmPaymentIntentParams
+import com.stripe.android.payments.paymentlauncher.PaymentResult
+import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
+import com.urbanblade.mobile.BuildConfig
+import com.urbanblade.mobile.core.payment.isStripeConfigured
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,13 +35,11 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.WalletViewModel
 
 /**
- * Wallet del cliente: puntos/nivel, membresía, paquetes, gift cards y
- * referidos -- todo desde endpoints de autoservicio ya existentes en
- * barber (memberships/mine, packages, gift-cards/mine, referrals/mine,
- * lealtad embebida en dashboard). Solo lectura esta ronda: comprar
- * paquetes/membresías/gift cards queda para la ronda de checkout con
- * Stripe -- no hay botones de compra a medias.
+ * Beneficios del cliente: puntos/nivel, membresía, paquetes, gift cards y referidos (endpoints
+ * de autoservicio de barber). La membresía se contrata aquí con tarjeta (Stripe confirma el
+ * primer cobro y el webhook la activa); paquetes y gift cards siguen siendo de recepción.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     val data by vm.data.collectAsState()
@@ -45,11 +51,36 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     val context = LocalContext.current
     var copied by remember { mutableStateOf(false) }
     var confirmCancelMembership by remember { mutableStateOf(false) }
+    // Plan que se está contratando (o cuyo primer pago se reintenta): abre la hoja de pago.
+    var checkoutPlan by remember { mutableStateOf<MembershipPlan?>(null) }
+    val checkout by vm.checkout.collectAsState()
+    val payState = rememberBookingPaymentState()
+    var sheetError by remember { mutableStateOf<String?>(null) }
+    val cardAvailable = remember { isStripeConfigured() }
+    remember { if (cardAvailable) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    val paymentLauncher = rememberPaymentLauncher(BuildConfig.STRIPE_PUBLISHABLE_KEY) { result ->
+        when (result) {
+            is PaymentResult.Completed -> { vm.onCheckoutResult(true, false, null); checkoutPlan = null }
+            is PaymentResult.Canceled -> vm.onCheckoutResult(false, true, null)
+            is PaymentResult.Failed -> vm.onCheckoutResult(false, false, result.throwable.localizedMessage)
+        }
+    }
+    // Con la suscripción creada en barber, confirma el primer cobro con la tarjeta elegida.
+    LaunchedEffect(checkout) {
+        val confirm = checkout ?: return@LaunchedEffect
+        val savedId = confirm.savedCardId
+        val params = payState.cardWidget?.paymentMethodCreateParams
+        when {
+            savedId != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
+            params != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+            else -> vm.onCheckoutResult(false, false, "no se pudieron leer los datos de la tarjeta")
+        }
+    }
 
     LaunchedEffect(Unit) { vm.load() }
 
     // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
-    val nothingYet = data.membership == null && data.packages.isEmpty() && data.giftCards.isEmpty()
+    val nothingYet = data.packages.isEmpty() && data.giftCards.isEmpty()
 
     Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
     LazyColumn(
@@ -93,25 +124,37 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
                     item { PointsCard(loyalty) }
                 }
 
+                val membership = data.membership
+                item { UrbanSectionTitle(if (membership != null) "Mi membresía" else "Membresías", if (membership == null) "Un descuento fijo en cada servicio, pagado mes a mes." else null) }
+                when {
+                    membership != null -> item {
+                        MembershipCard(
+                            membership,
+                            busy,
+                            onCancel = { confirmCancelMembership = true },
+                            // El primer cobro no se completó: se puede pagar de nuevo la misma suscripción.
+                            onCompletePayment = membership.plan?.takeIf { cardAvailable && membership.estado == "pendiente" }
+                                ?.let { plan -> { sheetError = null; checkoutPlan = plan } }
+                        )
+                    }
+                    cardAvailable && data.plans.isNotEmpty() -> items(data.plans, key = { "plan-${it.id}" }) { plan ->
+                        MembershipPlanCard(plan, busy) { sheetError = null; checkoutPlan = plan }
+                    }
+                    else -> item {
+                        UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
+                    }
+                }
+
                 if (nothingYet) {
                     item {
                         UrbanAttentionRow(
                             Icons.Default.Redeem,
-                            "Aún no tienes membresía, paquetes ni gift cards",
-                            "Cuando contrates uno aparecerá aquí. Pregunta en recepción por los planes.",
+                            "Aún no tienes paquetes ni gift cards",
+                            "Pregunta en recepción por los paquetes de servicios y las gift cards.",
                             UrbanColors.Gold
                         )
                     }
                 } else {
-                    item { UrbanSectionTitle("Mi membresía", null) }
-                    item {
-                        val membership = data.membership
-                        if (membership != null) {
-                            MembershipCard(membership, busy) { confirmCancelMembership = true }
-                        } else {
-                            UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
-                        }
-                    }
                     if (data.packages.isNotEmpty()) {
                         item { UrbanSectionTitle("Mis paquetes", null) }
                         items(data.packages, key = { it.id }) { PackageCard(it) }
@@ -141,6 +184,31 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
         }
         item { Spacer(Modifier.height(8.dp)) }
     }
+    }
+
+    checkoutPlan?.let { plan ->
+        ModalBottomSheet(
+            onDismissRequest = { if (!busy) checkoutPlan = null },
+            containerColor = UrbanColors.Background
+        ) {
+            MembershipCheckoutSheet(
+                plan = plan,
+                payState = payState,
+                savedCards = data.savedCards,
+                busy = busy,
+                error = sheetError ?: error,
+                testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
+                onPay = {
+                    val savedId = payState.savedCardToUse(data.savedCards)
+                    if (savedId == null && payState.cardWidget?.paymentMethodCreateParams == null) {
+                        sheetError = "Revisa los datos de tu tarjeta: número, vencimiento y CVC."
+                    } else {
+                        sheetError = null
+                        vm.subscribe(plan.id, savedId)
+                    }
+                }
+            )
+        }
     }
 
     if (confirmCancelMembership) {
@@ -282,7 +350,84 @@ private fun PointsCard(loyalty: ClientLoyalty) {
 }
 
 @Composable
-private fun MembershipCard(membership: MyMembership, busy: Boolean, onCancel: () -> Unit) {
+private fun MembershipPlanCard(plan: MembershipPlan, busy: Boolean, onSubscribe: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(UrbanColors.Gold.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.CardMembership, null, tint = UrbanColors.Gold) }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(plan.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "${plan.descuentoPct.toInt()}% de descuento en cada servicio",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Gold
+                )
+            }
+            Text("\$${"%.0f".format(plan.precioMensual)}/mes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        plan.descripcion?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+        Spacer(Modifier.height(12.dp))
+        UrbanPrimaryButton(text = "Contratar", onClick = onSubscribe, enabled = !busy, icon = Icons.Default.CardMembership, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/** Hoja de pago del primer mes: tarjeta guardada o nueva (Stripe), con el cobro y la renovación claros. */
+@Composable
+private fun MembershipCheckoutSheet(
+    plan: MembershipPlan,
+    payState: BookingPaymentState,
+    savedCards: List<SavedCard>,
+    busy: Boolean,
+    error: String?,
+    testMode: Boolean,
+    onPay: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp)
+            .padding(bottom = 24.dp)
+    ) {
+        Text("Contratar ${plan.nombre}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "${plan.descuentoPct.toInt()}% de descuento en cada servicio. Se cobra hoy y se renueva cada mes; puedes cancelarla cuando quieras y conservas el mes pagado.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = UrbanColors.Muted
+        )
+        Spacer(Modifier.height(16.dp))
+        UrbanPremiumCard(Modifier.fillMaxWidth()) {
+            UrbanKeyValue("Primer mes", "\$${"%.2f".format(plan.precioMensual)}")
+            Spacer(Modifier.height(4.dp))
+            UrbanKeyValue("Después", "\$${"%.0f".format(plan.precioMensual)} cada mes")
+        }
+        Spacer(Modifier.height(16.dp))
+        CardDetails(payState, savedCards, testMode, showSaveOption = false)
+        error?.let {
+            Spacer(Modifier.height(12.dp))
+            UrbanErrorBanner(it)
+        }
+        Spacer(Modifier.height(16.dp))
+        UrbanPrimaryButton(
+            text = "Pagar \$${"%.0f".format(plan.precioMensual)} y activar",
+            onClick = onPay,
+            enabled = !busy,
+            loading = busy,
+            icon = Icons.Default.Lock,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun MembershipCard(membership: MyMembership, busy: Boolean, onCancel: () -> Unit, onCompletePayment: (() -> Unit)? = null) {
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -302,7 +447,12 @@ private fun MembershipCard(membership: MyMembership, busy: Boolean, onCancel: ()
             }
             UrbanStatusPill(membership.estado)
         }
-        if (!membership.cancelarAlFinalizar) {
+        if (onCompletePayment != null) {
+            Spacer(Modifier.height(10.dp))
+            Text("Tu primer pago no se completó. Termínalo para activar tu descuento.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            Spacer(Modifier.height(8.dp))
+            UrbanPrimaryButton(text = "Completar pago", onClick = onCompletePayment, enabled = !busy, icon = Icons.Default.Lock, modifier = Modifier.fillMaxWidth())
+        } else if (!membership.cancelarAlFinalizar) {
             Spacer(Modifier.height(10.dp))
             TextButton(onClick = onCancel, enabled = !busy) {
                 Text(if (busy) "Cancelando…" else "Cancelar membresía", color = UrbanColors.Danger)

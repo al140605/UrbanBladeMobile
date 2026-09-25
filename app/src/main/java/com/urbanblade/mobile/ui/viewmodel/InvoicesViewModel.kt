@@ -3,6 +3,7 @@ package com.urbanblade.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
+import com.urbanblade.mobile.data.model.MembershipInvoiceRow
 import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.data.model.PaymentRow
 import com.urbanblade.mobile.data.repository.UrbanRepository
@@ -19,6 +20,9 @@ data class InvoicesState(
     val payments: List<PaymentRow> = emptyList(),
     val totalPaid: Double = 0.0,
     val orders: List<OrderRow> = emptyList(),
+    /** Cobros mensuales de la membresía (Stripe). */
+    val memberships: List<MembershipInvoiceRow> = emptyList(),
+    val membershipPaid: Double = 0.0,
     /** Id del comprobante que se está generando (pago u orden), para el indicador del botón. */
     val openingId: String? = null,
     val receiptError: String? = null
@@ -45,8 +49,18 @@ class InvoicesViewModel @JvmOverloads constructor(
             val payments = async { repo.payments() }
             // Si los pedidos fallan se siguen mostrando las citas.
             val orders = async { runCatching { repo.orders().data }.getOrDefault(emptyList()) }
+            val memberships = async { runCatching { repo.membershipInvoices() }.getOrNull() }
             val p = payments.await()
-            _state.update { it.copy(payments = p.data, totalPaid = p.meta?.totalPagado ?: p.data.filter { r -> r.collected }.sumOf { r -> r.monto + r.propina }, orders = orders.await()) }
+            val m = memberships.await()
+            _state.update {
+                it.copy(
+                    payments = p.data,
+                    totalPaid = p.meta?.totalPagado ?: p.data.filter { r -> r.collected }.sumOf { r -> r.monto + r.propina },
+                    orders = orders.await(),
+                    memberships = m?.data.orEmpty(),
+                    membershipPaid = m?.meta?.totalPagado ?: m?.data.orEmpty().sumOf { r -> r.monto }
+                )
+            }
         } catch (e: Exception) {
             _state.update { it.copy(error = e.toFriendlyMessage("No pudimos cargar tus facturas.")) }
         } finally {
@@ -57,6 +71,8 @@ class InvoicesViewModel @JvmOverloads constructor(
     fun openPaymentReceipt(id: String, onUrl: (String) -> Unit) = open(id, onUrl) { repo.paymentReceiptUrl(id) }
 
     fun openOrderReceipt(id: String, onUrl: (String) -> Unit) = open(id, onUrl) { repo.orderReceiptUrl(id) }
+
+    fun openMembershipReceipt(id: String, onUrl: (String) -> Unit) = open(id, onUrl) { repo.membershipReceiptUrl(id) }
 
     private fun open(id: String, onUrl: (String) -> Unit, fetch: suspend () -> String?) = viewModelScope.launch {
         if (_state.value.openingId != null) return@launch

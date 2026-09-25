@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CardMembership
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ShoppingBag
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.core.media.ReceiptDownloads
+import com.urbanblade.mobile.data.model.MembershipInvoiceRow
 import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.data.model.PaymentRow
 import com.urbanblade.mobile.ui.components.UrbanCard
@@ -115,7 +117,7 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                     UrbanHeroCard {
                         UrbanHeroLabel("Total pagado")
                         Spacer(Modifier.height(6.dp))
-                        Text(money(state.totalPaid + state.productsPaid), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                        Text(money(state.totalPaid + state.productsPaid + state.membershipPaid), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
                         Spacer(Modifier.height(14.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             UrbanHeroStat("Citas", "${state.collected.size}", Icons.Default.ContentCut, Modifier.weight(1f))
@@ -127,7 +129,11 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                 notice?.let { item { UrbanInfoBanner(it, Icons.Default.Download, Modifier.fillMaxWidth()) } }
                 item {
                     UrbanPillTabs(
-                        listOf("Citas (${state.payments.size})" to Icons.Default.ContentCut, "Productos (${state.orders.size})" to Icons.Default.ShoppingBag),
+                        listOf(
+                            "Citas (${state.payments.size})" to Icons.Default.ContentCut,
+                            "Productos (${state.orders.size})" to Icons.Default.ShoppingBag,
+                            "Membresía (${state.memberships.size})" to Icons.Default.CardMembership
+                        ),
                         tab
                     ) { tab = it }
                 }
@@ -139,6 +145,15 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                     items(state.payments, key = { "pay-${it.id}" }) { payment ->
                         PaymentInvoice(payment, opening = state.openingId == payment.id || payment.id in downloading.values) {
                             vm.openPaymentReceipt(payment.id, download(payment.id, "Comprobante ${payment.appointment?.service ?: "cita"} ${payment.appointment?.fecha?.take(10).orEmpty()}"))
+                        }
+                    }
+                } else if (tab == 2) {
+                    if (state.memberships.isEmpty()) item {
+                        UrbanMascotState(UrbanStateKind.EMPTY, "Sin cobros de membresía", "Cuando contrates una membresía, aquí tendrás la factura de cada mes.")
+                    }
+                    items(state.memberships, key = { "mem-${it.id}" }) { invoice ->
+                        MembershipInvoice(invoice, opening = state.openingId == invoice.id || invoice.id in downloading.values) {
+                            vm.openMembershipReceipt(invoice.id, download(invoice.id, "Factura membresía ${invoice.pagadoEn?.take(10).orEmpty()}"))
                         }
                     }
                 } else {
@@ -250,6 +265,24 @@ private fun OrderInvoice(order: OrderRow, opening: Boolean, onReceipt: (() -> Un
             Text(money(order.total), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
         }
         onReceipt?.let { ReceiptButton(opening, it) }
+    }
+}
+
+@Composable
+private fun MembershipInvoice(invoice: MembershipInvoiceRow, opening: Boolean, onReceipt: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(invoice.plan?.let { "Membresía $it" } ?: "Membresía", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                Text(
+                    listOfNotNull(invoice.pagadoEn?.let { UrbanFormat.dateShort(it) }, "Cobro mensual · Tarjeta").joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted
+                )
+            }
+            Text(money(invoice.monto), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+        }
+        ReceiptButton(opening, onReceipt)
     }
 }
 

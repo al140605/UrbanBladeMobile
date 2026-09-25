@@ -322,9 +322,13 @@ private fun BankRow(
     }
 }
 
-/** Tarjetas guardadas (como Spotify o Netflix) o una tarjeta nueva, con opción de guardarla. */
+/**
+ * Tarjetas guardadas (como Spotify o Netflix) o una tarjeta nueva, con opción de guardarla.
+ * También lo usa la contratación de membresía (Beneficios), donde Stripe ya guarda la tarjeta de
+ * la suscripción: ahí va con [showSaveOption] en false.
+ */
 @Composable
-private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>, testMode: Boolean) {
+internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>, testMode: Boolean, showSaveOption: Boolean = true) {
     val usingSaved = state.savedCardToUse(savedCards)
 
     if (savedCards.isNotEmpty()) {
@@ -370,6 +374,7 @@ private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>,
                 }
             )
         }
+        if (showSaveOption) {
         Spacer(Modifier.height(10.dp))
         Row(
             Modifier.fillMaxWidth(),
@@ -381,6 +386,7 @@ private fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>,
                 colors = CheckboxDefaults.colors(checkedColor = UrbanColors.Gold, checkmarkColor = UrbanColors.OnGold)
             )
             Text("Guardar esta tarjeta para mis próximos pagos", style = MaterialTheme.typography.bodyMedium)
+        }
         }
     }
 
