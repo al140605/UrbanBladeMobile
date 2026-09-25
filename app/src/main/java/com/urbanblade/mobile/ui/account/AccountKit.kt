@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -127,7 +128,7 @@ fun AccountMemberCard(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(name, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -139,8 +140,18 @@ fun AccountMemberCard(
             Spacer(Modifier.height(16.dp))
             Box(Modifier.fillMaxWidth().height(1.dp).background(UrbanColors.Gold.copy(alpha = 0.22f)))
             Spacer(Modifier.height(14.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                stats.forEach { (label, value, icon) -> UrbanHeroStat(label, value, icon, Modifier.weight(1f)) }
+            // En pantallas angostas (menos de ~340 dp de tarjeta) los datos van uno debajo del otro:
+            // lado a lado, "Caballero" se cortaba en "Caball…" (checklist CN-095).
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth < 300.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        stats.forEach { (label, value, icon) -> UrbanHeroStat(label, value, icon) }
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        stats.forEach { (label, value, icon) -> UrbanHeroStat(label, value, icon, Modifier.weight(1f)) }
+                    }
+                }
             }
         }
         footnote?.let {

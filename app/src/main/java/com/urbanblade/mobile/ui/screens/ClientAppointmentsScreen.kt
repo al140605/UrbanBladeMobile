@@ -319,7 +319,7 @@ private fun ClientAppointmentRow(
                         appt.service?.nombre ?: "Servicio",
                         style = MaterialTheme.typography.titleMedium,
                         color = if (appt.estado == "cancelada") UrbanColors.Muted else UrbanColors.Ink,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
