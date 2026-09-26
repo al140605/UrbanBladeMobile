@@ -127,6 +127,10 @@ fun ReceptionHomeScreen(
             }
         }
 
+        response?.data.chartSeries("flowChart")?.let { flow ->
+            item { UrbanDashboardChart("Citas por hora", "Cómo se reparte el día", flow) }
+        }
+
         item { UrbanSectionTitle("Acciones rápidas", "Lo esencial del mostrador.") }
         item {
             UrbanModuleGrid(

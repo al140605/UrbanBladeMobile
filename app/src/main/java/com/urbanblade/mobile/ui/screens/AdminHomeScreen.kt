@@ -58,6 +58,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.R
 import com.google.gson.JsonObject
 import com.urbanblade.mobile.data.model.AuthUser
+import com.urbanblade.mobile.ui.components.UrbanDashboardChart
+import com.urbanblade.mobile.ui.components.chartSeries
 import com.urbanblade.mobile.ui.components.UrbanAvatar
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
@@ -162,6 +164,14 @@ fun AdminHomeScreen(
             }
         }
 
+        // Las mismas gráficas principales que el dashboard web (mismos datos de /dashboard).
+        state.data.chartSeries("incomeChart")?.let { income ->
+            item { UrbanDashboardChart("Ingresos por semana", "Últimas 8 semanas", income, format = ::money) }
+        }
+        state.data.chartSeries("servicesChart")?.let { services ->
+            item { UrbanDashboardChart("Servicios más pedidos", "Citas por servicio", services, categories = true) }
+        }
+
         item { UrbanSectionTitle("Acciones rápidas", "Lo esencial, siempre a la mano.") }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -213,7 +223,7 @@ private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
             Text(money(incomeToday), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
             kpis.number("income_growth")?.let { growth ->
                 Spacer(Modifier.height(4.dp))
-                TrendPill("vs. periodo anterior", growth)
+                TrendPill("vs. mes pasado", growth)
             }
             Spacer(Modifier.height(18.dp))
             HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))

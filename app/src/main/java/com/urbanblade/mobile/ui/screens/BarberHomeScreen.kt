@@ -33,6 +33,7 @@ import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarberAgendaViewModel
+import com.urbanblade.mobile.ui.viewmodel.DashboardViewModel
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -45,12 +46,16 @@ import java.time.format.DateTimeFormatter
 fun BarberHomeScreen(
     user: AuthUser,
     onNavigate: (String) -> Unit,
-    vm: BarberAgendaViewModel = viewModel()
+    vm: BarberAgendaViewModel = viewModel(),
+    dashboardVm: DashboardViewModel = viewModel()
 ) {
     val agenda by vm.agenda.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load("day", null, 0) }
+    // Gráficas de su semana: GET /dashboard (rol barbero). Si falla, simplemente no aparecen.
+    val dashboard by dashboardVm.data.collectAsState()
+    LaunchedEffect(Unit) { dashboardVm.load() }
 
     val now = remember { LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) }
     val day = barberDay(agenda.data, now)
@@ -114,6 +119,13 @@ fun BarberHomeScreen(
                     }
                 }
             }
+        }
+
+        dashboard?.data.chartSeries("performanceChart")?.let { week ->
+            item { UrbanDashboardChart("Tu semana", "Citas de los últimos 7 días", week) }
+        }
+        dashboard?.data.chartSeries("servicesChart")?.let { services ->
+            item { UrbanDashboardChart("Tus servicios más pedidos", "Último año", services, categories = true) }
         }
 
         item { UrbanSectionTitle("Tu trabajo", "Agenda, portafolio y horario.") }

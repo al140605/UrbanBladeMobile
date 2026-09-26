@@ -12,6 +12,8 @@ import kotlinx.coroutines.launch
 
 data class AdminHomeState(
     val kpis: JsonObject? = null,
+    /** `data` completo de GET /dashboard (series de las gráficas). */
+    val data: JsonObject? = null,
     val pendingPayments: Int = 0,
     val occupancyRate: Int? = null,
     val loading: Boolean = false,
@@ -41,6 +43,7 @@ class AdminHomeViewModel @JvmOverloads constructor(
                 }.getOrNull()
                 _state.value = AdminHomeState(
                     kpis = kpis,
+                    data = dashboard.data,
                     pendingPayments = pending,
                     occupancyRate = occupancy
                 )

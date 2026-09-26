@@ -55,13 +55,7 @@ import java.util.Locale
  * Gráficos propios de analítica, dibujados con Canvas (sin dependencias extra) y con los colores
  * del tema activo. Se animan al aparecer; con "Quitar animaciones" del sistema salen completos.
  */
-private fun chartPalette(): List<Color> = listOf(
-    UrbanColors.Gold,
-    UrbanColors.Info,
-    UrbanColors.Success,
-    UrbanColors.Warning,
-    UrbanColors.Danger
-)
+private fun chartPalette(): List<Color> = listOf(1f, 0.75f, 0.55f, 0.38f, 0.24f).map { UrbanColors.Gold.copy(alpha = it) }
 
 private fun formatNumber(value: Double): String =
     if (value >= 1000 || value == value.toLong().toDouble()) {

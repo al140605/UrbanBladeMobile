@@ -161,7 +161,7 @@ request de Retrofit quedan idénticos.
 | `UrbanSwitch` / `UrbanSwitchRow(title, subtitle, checked, onCheckedChange)` | Hecho (26-sep) | Los 9 `Switch` sueltos: `AccountKit`, `AdminModuleScreens`, `BarbersAdminScreen` (2), `OffersAdminScreen` (2), `ServicesAdminScreen` (2), `SettingsScreen`. Fila completa tocable, pista dorada encendida, `Role.Switch` para TalkBack. |
 | `UrbanChoiceTiles(options, selected, onSelect)` con `UrbanChoice(value, title, subtitle, icon)` | Hecho (26-sep) | Los mosaicos de la "Propuesta A" (25-sep) de `BookingPayment` pasaron al kit sin cambiar su aspecto, y ahora también se usan al pagar una cita en `AppointmentsScreen` (antes eran dos botones sin estado seleccionado). Los `FilterChip` de propina y filtros se quedan (son filtros, no métodos). |
 | `UrbanStatCard` con variación | 2 | KPI de los inicios por rol (valor + "+12 % vs mes pasado"). |
-| `UrbanCharts` pulido | 2 | Mismo archivo: menos cuadrícula, barras redondeadas, colores del tema, estado vacío. Nada de datos inventados. |
+| `UrbanDashboardChart` + `chartSeries()` (`DashboardCharts.kt`) | Hecho (26-sep) | Gráfica principal en cada inicio con los mismos datos de GET /dashboard que la web: admin (ingresos por semana, servicios), recepción (citas por hora), barbero (su semana, sus servicios). `spanishChartLabel()` traduce "Mon"/"03 Aug" que barber manda en inglés. La dona de `UrbanCharts` ahora usa tonos del oro. El cliente no lleva gráfica: su inicio es para reservar. |
 | Tabla/lista compacta | 3 | Listas de pagos, inventario y clientes: fila con badge de estado y acción al final. |
 
 Validar igual que siempre (sección 7, punto 9) y revisar cada pantalla tocada en el S25
