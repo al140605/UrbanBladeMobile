@@ -145,3 +145,24 @@ responsabilidad).
 9. **Validar** con `gradle :app:testDebugUnitTest` e instalar con `:app:installDebug`.
    La IA no hace commit ni push; entrega el mensaje en español con el ID de la tarea y
    sin línea `Co-Authored-By`.
+
+## 8. Kit de controles, dashboards y gráficas (plan del 26-sep-2026)
+
+Decisión del usuario: **kit propio** inspirado en shadcn/ui, Untitled UI y Tremor, igual
+que en la web (`frontend-urban/.claude/skills/urbanblade-ui-kit`, mismo catálogo y mismas
+fases). Sin librerías de UI nuevas; todo con `UrbanColors` y Material 3.
+
+**Regla de oro:** el kit cambia cómo se ve, nunca lo que se manda. `BookingPayMethod`
+(`EFECTIVO`, `TRANSFERENCIA`, `TARJETA`), los `Boolean` de activo/inactivo y los
+request de Retrofit quedan idénticos.
+
+| Pieza (`ui/components/UrbanControls.kt`) | Fase | Reemplaza |
+|---|---|---|
+| `UrbanSwitch` / `UrbanSwitchRow(title, subtitle, checked, onCheckedChange)` | Hecho (26-sep) | Los 9 `Switch` sueltos: `AccountKit`, `AdminModuleScreens`, `BarbersAdminScreen` (2), `OffersAdminScreen` (2), `ServicesAdminScreen` (2), `SettingsScreen`. Fila completa tocable, pista dorada encendida, `Role.Switch` para TalkBack. |
+| `UrbanChoiceTiles(options, selected, onSelect)` con `UrbanChoice(value, title, subtitle, icon)` | Hecho (26-sep) | Los mosaicos de la "Propuesta A" (25-sep) de `BookingPayment` pasaron al kit sin cambiar su aspecto, y ahora también se usan al pagar una cita en `AppointmentsScreen` (antes eran dos botones sin estado seleccionado). Los `FilterChip` de propina y filtros se quedan (son filtros, no métodos). |
+| `UrbanStatCard` con variación | 2 | KPI de los inicios por rol (valor + "+12 % vs mes pasado"). |
+| `UrbanCharts` pulido | 2 | Mismo archivo: menos cuadrícula, barras redondeadas, colores del tema, estado vacío. Nada de datos inventados. |
+| Tabla/lista compacta | 3 | Listas de pagos, inventario y clientes: fila con badge de estado y acción al final. |
+
+Validar igual que siempre (sección 7, punto 9) y revisar cada pantalla tocada en el S25
+en al menos un tema oscuro y en "Libreta".

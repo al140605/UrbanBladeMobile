@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.account
 
+import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -215,34 +216,7 @@ fun AccountAccordion(
     }
 }
 
-/** Fila con interruptor: toda la fila se puede tocar, no solo el switch. */
+/** Fila con interruptor: toda la fila se puede tocar, no solo el switch. Usa el kit ([UrbanSwitchRow]). */
 @Composable
-fun AccountSwitchRow(title: String, subtitle: String?, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .semantics { contentDescription = title }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Ink)
-            subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = UrbanColors.OnGold,
-                checkedTrackColor = UrbanColors.Gold,
-                uncheckedThumbColor = UrbanColors.Muted,
-                uncheckedTrackColor = UrbanColors.CardAlt,
-                uncheckedBorderColor = UrbanColors.Line
-            )
-        )
-    }
-}
+fun AccountSwitchRow(title: String, subtitle: String?, checked: Boolean, enabled: Boolean = true, onCheckedChange: (Boolean) -> Unit) =
+    UrbanSwitchRow(title = title, subtitle = subtitle, checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)

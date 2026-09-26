@@ -963,20 +963,15 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
             Spacer(Modifier.height(20.dp))
             UrbanFieldLabel("Método de pago")
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                UrbanOutlineButton(
-                    text = "Tarjeta",
-                    onClick = { method = PaymentMethodChoice.TARJETA },
-                    icon = Icons.Default.CreditCard,
-                    modifier = Modifier.weight(1f)
-                )
-                UrbanOutlineButton(
-                    text = "Transferencia",
-                    onClick = { method = PaymentMethodChoice.TRANSFERENCIA },
-                    icon = Icons.Default.AccountBalance,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // Mismos mosaicos que al reservar (kit): antes eran dos botones sin estado seleccionado.
+            UrbanChoiceTiles(
+                options = listOf(
+                    UrbanChoice(PaymentMethodChoice.TARJETA, "Tarjeta", "Paga ahora", Icons.Default.CreditCard),
+                    UrbanChoice(PaymentMethodChoice.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance)
+                ),
+                selected = method,
+                onSelect = { method = it }
+            )
             Text(
                 "¿Prefieres pagar en efectivo? Puedes hacerlo directamente en la barbería.",
                 style = MaterialTheme.typography.bodySmall,

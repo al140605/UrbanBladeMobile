@@ -1,5 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.ui.components.UrbanSwitch
+import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,8 +32,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -210,9 +210,8 @@ private fun OfferCard(title: String, subtitle: String, price: String, active: Bo
                     color = if (active) UrbanColors.Gold else UrbanColors.Muted
                 )
             }
-            Switch(
-                checked = active, onCheckedChange = { onToggle() },
-                colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold, checkedThumbColor = UrbanColors.OnGold)
+            UrbanSwitch(
+                checked = active, onCheckedChange = { onToggle() }
             )
         }
     }
@@ -350,15 +349,5 @@ private fun PackageFormSheet(
 }
 
 @Composable
-private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Ink)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-        }
-        Switch(
-            checked = checked, onCheckedChange = onChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold, checkedThumbColor = UrbanColors.OnGold)
-        )
-    }
-}
+private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) =
+    UrbanSwitchRow(title, subtitle, checked = checked, onCheckedChange = onChange)

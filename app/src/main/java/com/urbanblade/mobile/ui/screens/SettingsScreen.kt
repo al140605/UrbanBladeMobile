@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.ui.components.UrbanSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,8 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -111,10 +110,10 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
                                 color = if (setting.maintenanceMode) UrbanColors.Danger else UrbanColors.Muted
                             )
                         }
-                        Switch(
+                        UrbanSwitch(
                             checked = setting.maintenanceMode,
                             onCheckedChange = { confirmMaintenance = true },
-                            colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Danger)
+                            tone = UrbanColors.Danger
                         )
                     }
                 }

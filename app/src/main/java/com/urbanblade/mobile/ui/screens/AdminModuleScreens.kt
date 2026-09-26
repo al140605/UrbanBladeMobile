@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.ui.components.UrbanSwitch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -427,10 +428,9 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
                             color = if (day.isActive) UrbanColors.Gold else UrbanColors.Muted
                         )
                     }
-                    Switch(
+                    UrbanSwitch(
                         checked = day.isActive,
-                        onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } },
-                        colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold)
+                        onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } }
                     )
                 }
                 if (day.isActive) {

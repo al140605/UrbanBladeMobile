@@ -1,5 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.ui.components.UrbanSwitch
+import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,8 +36,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -233,10 +233,9 @@ private fun ServiceAdminCard(service: ServiceAdminItem, onOpen: () -> Unit, onTo
                     fontWeight = FontWeight.Bold,
                     color = if (service.activo) UrbanColors.Gold else UrbanColors.Muted
                 )
-                Switch(
+                UrbanSwitch(
                     checked = service.activo,
-                    onCheckedChange = { onToggle() },
-                    colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold, checkedThumbColor = UrbanColors.OnGold)
+                    onCheckedChange = { onToggle() }
                 )
             }
         }
@@ -317,16 +316,7 @@ private fun ServiceFormSheet(
                 capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done,
                 modifier = Modifier.fillMaxWidth()
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Disponible para reservar", style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Ink)
-                    Text("Si lo apagas, los clientes ya no lo ven.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                }
-                Switch(
-                    checked = activo, onCheckedChange = { activo = it },
-                    colors = SwitchDefaults.colors(checkedTrackColor = UrbanColors.Gold, checkedThumbColor = UrbanColors.OnGold)
-                )
-            }
+            UrbanSwitchRow("Disponible para reservar", "Si lo apagas, los clientes ya no lo ven.", checked = activo, onCheckedChange = { activo = it })
             error?.let { UrbanErrorBanner(it) }
             UrbanPrimaryButton(
                 text = if (service == null) "Crear servicio" else "Guardar cambios",

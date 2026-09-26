@@ -166,22 +166,15 @@ fun BookingPaymentSection(
     UrbanFieldLabel("Método de pago")
     Spacer(Modifier.height(10.dp))
     // Propuesta A (25-sep): tres mosaicos lado a lado; debajo solo el detalle del método elegido.
-    Row(
-        Modifier.fillMaxWidth().height(IntrinsicSize.Max).selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        PayMethodTile(
-            state.method == BookingPayMethod.EFECTIVO, "Efectivo", "En el salón", Icons.Default.Payments, Modifier.weight(1f)
-        ) { state.method = BookingPayMethod.EFECTIVO }
-        PayMethodTile(
-            state.method == BookingPayMethod.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance, Modifier.weight(1f)
-        ) { state.method = BookingPayMethod.TRANSFERENCIA }
-        if (cardAvailable) {
-            PayMethodTile(
-                state.method == BookingPayMethod.TARJETA, "Tarjeta", "Paga ahora", Icons.Default.CreditCard, Modifier.weight(1f)
-            ) { state.method = BookingPayMethod.TARJETA }
-        }
-    }
+    UrbanChoiceTiles(
+        options = buildList {
+            add(UrbanChoice(BookingPayMethod.EFECTIVO, "Efectivo", "En el salón", Icons.Default.Payments))
+            add(UrbanChoice(BookingPayMethod.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance))
+            if (cardAvailable) add(UrbanChoice(BookingPayMethod.TARJETA, "Tarjeta", "Paga ahora", Icons.Default.CreditCard))
+        },
+        selected = state.method,
+        onSelect = { state.method = it }
+    )
 
     when (state.method) {
         BookingPayMethod.TRANSFERENCIA -> {
@@ -195,57 +188,6 @@ fun BookingPaymentSection(
         BookingPayMethod.EFECTIVO -> {
             Spacer(Modifier.height(12.dp))
             UrbanInfoBanner("Pagas ${money(servicePrice + tip)} al llegar a recepción. Hoy no se hace ningún cargo.", Icons.Default.Storefront, Modifier.fillMaxWidth())
-        }
-    }
-}
-
-@Composable
-private fun PayMethodTile(
-    selected: Boolean,
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) UrbanColors.Gold.copy(alpha = 0.14f) else UrbanColors.Card,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) UrbanColors.Gold else UrbanColors.Muted.copy(alpha = 0.3f)),
-        modifier = modifier
-            .fillMaxHeight()
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-    ) {
-        Column(
-            Modifier.padding(horizontal = 8.dp, vertical = 14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(if (selected) UrbanColors.Gold else UrbanColors.Gold.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = if (selected) UrbanColors.OnGold else UrbanColors.Gold, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = if (selected) UrbanColors.Gold else UrbanColors.Ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = UrbanColors.Muted,
-                maxLines = 1,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
