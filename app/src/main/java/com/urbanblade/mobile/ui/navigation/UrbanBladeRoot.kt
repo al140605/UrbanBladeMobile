@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -37,6 +38,14 @@ private fun bookingRoute(serviceId: String?, barberId: String?): String {
         barberId?.let { add("barberId=$it") }
     }
     return if (params.isEmpty()) "booking" else "booking?" + params.joinToString("&")
+}
+
+/**
+ * Abre la reserva reemplazando la que ya estuviera abierta. Antes cada «Reservar» (Bladebot, muro,
+ * catálogo) apilaba otra reserva encima y había que salir de una en una.
+ */
+private fun NavController.openBooking(route: String) = navigate(route) {
+    popUpTo(BOOKING_ROUTE_PATTERN) { inclusive = true }
 }
 
 @Composable
@@ -142,7 +151,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     LaunchedEffect(Unit) {
         val (pendingService, pendingBarber) = PendingBooking.consume()
         if (pendingService != null || pendingBarber != null) {
-            nav.navigate(bookingRoute(pendingService, pendingBarber))
+            nav.openBooking(bookingRoute(pendingService, pendingBarber))
         }
     }
 
@@ -192,7 +201,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     DashboardScreen(
                         user = user,
                         onAppointments = { nav.navigate("appointments") },
-                        onBook = { nav.navigate("booking") },
+                        onBook = { nav.openBooking("booking") },
                         onWallet = { nav.navigate("wallet") },
                         onStore = { nav.navigate("store") },
                         onExplore = { nav.navigate("catalog") },
@@ -202,9 +211,9 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("appointments") {
                     // El cliente tiene su propia vista (Próximas / Historial); el personal, la agenda del negocio.
                     if (clientOnly) {
-                        ClientAppointmentsScreen(onBook = { nav.navigate("booking") }, onNavigate = { nav.navigate(it) })
+                        ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { nav.navigate(it) })
                     } else {
-                        AppointmentsScreen(user = user, onBook = { nav.navigate("booking") })
+                        AppointmentsScreen(user = user, onBook = { nav.openBooking("booking") })
                     }
                 }
                 composable(
@@ -227,7 +236,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 }
                 composable("catalog") {
                     CatalogScreen(
-                        onBook = { serviceId, barberId -> nav.navigate(bookingRoute(serviceId, barberId)) },
+                        onBook = { serviceId, barberId -> nav.openBooking(bookingRoute(serviceId, barberId)) },
                         onOpenStore = { nav.navigate("store") },
                         onOpenInspiration = { nav.navigate("social") }
                     )
@@ -237,7 +246,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("notifications") { NotificationsScreen(onBack = { nav.popBackStack() }) }
-                composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId -> nav.navigate(bookingRoute(serviceId, null)) }) }
+                composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId -> nav.openBooking(bookingRoute(serviceId, null)) }) }
                 composable("more") { MoreScreen(user = user, onNavigate = { nav.navigate(it) }) }
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
@@ -260,7 +269,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     SocialFeedScreen(
                         onBack = { nav.popBackStack() },
                         // Solo el cliente reserva desde el muro; el personal lo ve como galería.
-                        onBookBarber = if (isClient) { barberId -> nav.navigate(bookingRoute(null, barberId)) } else null
+                        onBookBarber = if (isClient) { barberId -> nav.openBooking(bookingRoute(null, barberId)) } else null
                     )
                 }
                 composable("clients") {
