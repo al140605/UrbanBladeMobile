@@ -140,6 +140,11 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil-video:2.7.0")                              // miniatura (primer cuadro) de los videos del muro
+
+    // Reproductor de los videos del muro de los barberos. 1.5.x es la última línea con compileSdk 35.
+    implementation("androidx.media3:media3-exoplayer:1.5.1")
+    implementation("androidx.media3:media3-ui:1.5.1")
 
     // Pulido visual (2026-09-18). Versiones fijadas a las compatibles con Kotlin 2.1.10,
     // compileSdk 35 y AGP 8.8.2; subirlas exige subir esos tres a la vez.

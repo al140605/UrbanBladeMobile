@@ -234,9 +234,12 @@ class UrbanRepository(private val api: UrbanBladeApi) {
         imageUri?.let { MediaUploadHelper.uriToPart(context, it, "imagen") }
     )
 
+    // Va como POST con _method=PUT: PHP no lee los campos ni el archivo de un PUT multipart, así
+    // que un PUT llegaba vacío al backend y la edición (con o sin foto) no guardaba nada.
     suspend fun updateProduct(context: Context, id: String, req: CreateProductRequest, imageUri: Uri?) = api.updateProduct(
         id,
-        productFields(req.nombre, req.categoria, req.descripcion, req.precioCompra, req.precioVenta, req.stockActual, req.stockMinimo, req.tipo, req.activo),
+        productFields(req.nombre, req.categoria, req.descripcion, req.precioCompra, req.precioVenta, req.stockActual, req.stockMinimo, req.tipo, req.activo) +
+            ("_method" to MediaUploadHelper.textPart("PUT")),
         imageUri?.let { MediaUploadHelper.uriToPart(context, it, "imagen") }
     )
 

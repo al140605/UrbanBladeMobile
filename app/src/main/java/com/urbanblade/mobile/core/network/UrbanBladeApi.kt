@@ -176,7 +176,7 @@ interface UrbanBladeApi {
     @POST("inventory/products")
     suspend fun createProduct(@PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>, @Part imagen: MultipartBody.Part?): JsonObject
     @Multipart
-    @PUT("inventory/products/{id}")
+    @POST("inventory/products/{id}") // con el campo _method=PUT (ver UrbanRepository.updateProduct)
     suspend fun updateProduct(@Path("id") id: String, @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>, @Part imagen: MultipartBody.Part?): JsonObject
     @DELETE("inventory/products/{id}") suspend fun deleteProduct(@Path("id") id: String): MessageResponse
     @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject

@@ -1,6 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.urbanblade.mobile.ui.components.WorkMediaThumb
+import com.urbanblade.mobile.ui.components.VideoPlayerDialog
 import com.urbanblade.mobile.data.model.SocialMedia
 import com.urbanblade.mobile.data.model.SocialWork
 import com.urbanblade.mobile.ui.components.*
@@ -87,7 +90,9 @@ private fun WorkPost(
     var commentText by remember { mutableStateOf("") }
     // El campo de comentario se abre al tocar el ícono: abierto en cada publicación alargaba mucho el muro.
     var commenting by remember { mutableStateOf(false) }
+    var playingUrl by remember { mutableStateOf<String?>(null) }
     val barberName = work.barber?.name ?: "Barbero"
+    playingUrl?.let { VideoPlayerDialog(it, onDismiss = { playingUrl = null }) }
 
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -115,19 +120,29 @@ private fun WorkPost(
             }
 
             // Foto grande y cuadrada, como en la web: es lo que inspira. Las demás, en miniatura debajo.
-            MainMedia(work.media.firstOrNull(), work.title, onDoubleTap = { if (!work.isReacted) onReact() })
+            MainMedia(
+                work.media.firstOrNull(),
+                work.title,
+                onPlay = { playingUrl = it },
+                onDoubleTap = { if (!work.isReacted) onReact() }
+            )
             if (work.media.size > 1) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(work.media.drop(1)) { media ->
-                        Box(Modifier.size(64.dp).clip(RoundedCornerShape(10.dp))) {
-                            AsyncImage(model = media.url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            if (media.type == "video") {
-                                Icon(Icons.Default.PlayCircle, null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.align(Alignment.Center))
-                            }
-                        }
+                        val isVideo = media.type == "video"
+                        WorkMediaThumb(
+                            url = media.url,
+                            isVideo = isVideo,
+                            contentDescription = null,
+                            playIconSize = 24.dp,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .then(if (isVideo && media.url != null) Modifier.clickable { playingUrl = media.url } else Modifier)
+                        )
                     }
                 }
             }
@@ -212,24 +227,24 @@ private fun WorkPost(
 }
 
 @Composable
-private fun MainMedia(media: SocialMedia?, title: String?, onDoubleTap: () -> Unit) {
+private fun MainMedia(media: SocialMedia?, title: String?, onPlay: (String) -> Unit, onDoubleTap: () -> Unit) {
     // El detector de gestos vive mientras la foto esté en pantalla: debe llamar a la versión vigente
     // del callback (que sabe si ya tiene like), no a la del primer render.
     val latestDoubleTap by rememberUpdatedState(onDoubleTap)
+    val isVideo = media?.type == "video"
+    val latestTap by rememberUpdatedState<() -> Unit>({ if (isVideo) media?.url?.let(onPlay) })
     Box(
         Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .background(UrbanColors.CardAlt)
             // Doble toque a la foto = me gusta, como en cualquier app de fotos (solo da like, no lo quita).
-            .pointerInput(Unit) { detectTapGestures(onDoubleTap = { latestDoubleTap() }) },
+            // Un toque a un video lo reproduce.
+            .pointerInput(Unit) { detectTapGestures(onTap = { latestTap() }, onDoubleTap = { latestDoubleTap() }) },
         contentAlignment = Alignment.Center
     ) {
         if (media?.url != null) {
-            AsyncImage(model = media.url, contentDescription = title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-            if (media.type == "video") {
-                Icon(Icons.Default.PlayCircle, "Video", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(56.dp))
-            }
+            WorkMediaThumb(media.url, isVideo, title, Modifier.fillMaxSize(), playIconSize = 56.dp)
         } else {
             Icon(Icons.Default.Image, "Sin imagen", tint = UrbanColors.Muted, modifier = Modifier.size(40.dp))
         }

@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.screens
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,6 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.urbanblade.mobile.ui.components.WorkMediaThumb
+import com.urbanblade.mobile.ui.components.VideoPlayerDialog
 import com.urbanblade.mobile.data.model.WorkRow
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -129,19 +132,26 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
 
 @Composable
 private fun WorkTile(work: WorkRow, onDelete: () -> Unit) {
+    // Un toque al trabajo reproduce su primer video (si tiene).
+    val videoUrl = work.media.firstOrNull { it.type == "video" }?.url
+    var playing by remember { mutableStateOf(false) }
+    if (playing && videoUrl != null) VideoPlayerDialog(videoUrl, onDismiss = { playing = false })
+
     Column {
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(160.dp)
                 .clip(RoundedCornerShape(14.dp))
+                .then(if (videoUrl != null) Modifier.clickable { playing = true } else Modifier)
         ) {
             val first = work.media.firstOrNull()
             if (first != null) {
-                AsyncImage(
-                    model = first.url,
+                WorkMediaThumb(
+                    url = first.url,
+                    isVideo = first.type == "video",
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    playIconSize = 36.dp,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
@@ -149,10 +159,10 @@ private fun WorkTile(work: WorkRow, onDelete: () -> Unit) {
                     Icon(Icons.Default.Image, null, tint = UrbanColors.Muted)
                 }
             }
-            if (work.media.any { it.type == "video" }) {
+            if (first?.type != "video" && videoUrl != null) {
                 Icon(
                     Icons.Default.PlayCircle,
-                    null,
+                    "Tiene video",
                     tint = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.align(Alignment.Center).size(36.dp)
                 )
