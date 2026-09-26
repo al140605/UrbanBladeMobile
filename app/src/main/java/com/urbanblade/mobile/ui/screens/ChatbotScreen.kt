@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
@@ -96,7 +97,7 @@ private val SUGGESTIONS = listOf(
  * guardado al volver, "¿te sirvió?" en cada respuesta y "Nueva conversación".
  */
 @Composable
-fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
+fun ChatbotScreen(onBack: () -> Unit, onBook: (serviceId: String) -> Unit = {}, vm: ChatbotViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     var text by rememberSaveable { mutableStateOf("") }
     var confirmNew by remember { mutableStateOf(false) }
@@ -179,7 +180,7 @@ fun ChatbotScreen(onBack: () -> Unit, vm: ChatbotViewModel = viewModel()) {
                 state.messages.isEmpty() -> item { WelcomeCard(enabled = !state.typing) { vm.send(it) } }
             }
             items(state.messages, key = { it.id }) { bubble ->
-                ChatBubbleRow(bubble, onRate = { helpful -> vm.rate(bubble, helpful) })
+                ChatBubbleRow(bubble, onRate = { helpful -> vm.rate(bubble, helpful) }, onBook = onBook)
             }
             if (state.typing) item { TypingBubble() }
             state.error?.let { item { UrbanErrorBanner(it) } }
@@ -239,7 +240,7 @@ private fun SuggestionRow(enabled: Boolean, onAsk: (String) -> Unit) {
 }
 
 @Composable
-private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit) {
+private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit, onBook: (String) -> Unit) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = if (bubble.fromUser) Alignment.End else Alignment.Start) {
         Surface(
             modifier = Modifier.widthIn(max = 300.dp),
@@ -253,6 +254,27 @@ private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit) {
             border = if (bubble.fromUser) null else BorderStroke(1.dp, UrbanColors.Line)
         ) {
             Text(bubble.text, Modifier.padding(horizontal = 14.dp, vertical = 11.dp), style = MaterialTheme.typography.bodyMedium)
+        }
+        bubble.suggestion?.let { service ->
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                onClick = { onBook(service.id) },
+                shape = RoundedCornerShape(50),
+                color = UrbanColors.Gold,
+                contentColor = UrbanColors.OnGold,
+                modifier = Modifier.widthIn(max = 300.dp)
+            ) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.ContentCut, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Reservar ${service.nombre} · $${"%.0f".format(service.precio)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
         if (!bubble.fromUser && bubble.question != null) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {

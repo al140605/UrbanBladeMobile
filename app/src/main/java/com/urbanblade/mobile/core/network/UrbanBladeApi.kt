@@ -147,6 +147,7 @@ interface UrbanBladeApi {
     @POST("social/work/{id}/comment") suspend fun commentWork(@Path("id") id: String, @Body body: PostCommentRequest): PostCommentResponse
 
     @POST("chatbot/query") suspend fun chatbot(@Body body: JsonObject): JsonObject
+    @GET("ai/briefing") suspend fun aiBriefing(): AiBriefingResponse
     @GET("chatbot/history") suspend fun chatbotHistory(): ChatHistoryResponse
     @POST("chatbot/feedback") suspend fun chatbotFeedback(@Body body: ChatFeedbackRequest): MessageResponse
     @POST("chatbot/clear-history") suspend fun clearChatbot(): MessageResponse

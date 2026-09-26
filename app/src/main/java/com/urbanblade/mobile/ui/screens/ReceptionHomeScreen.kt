@@ -87,6 +87,9 @@ fun ReceptionHomeScreen(
                     }
                 }
 
+                // Resumen del día con IA local: carga aparte, no frena el inicio.
+                item { com.urbanblade.mobile.ui.components.AiBriefingCard() }
+
                 val attention = board.pendingPayments > 0 || board.pendingOrders > 0 || board.lowStock > 0
                 item { UrbanSectionTitle("Requiere tu atención", if (attention) "Lo que conviene resolver primero." else null) }
                 item {

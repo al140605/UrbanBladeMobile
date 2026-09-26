@@ -1068,6 +1068,11 @@ data class MyMembership(
     val plan: MembershipPlan? = null
 )
 data class MyMembershipResponse(val data: MyMembership? = null)
+/** GET ai/briefing: resumen del día para recepción y administración; source = "ia" | "reglas". */
+data class AiBriefing(val text: String = "", val source: String = "reglas", @SerializedName("generated_at") val generatedAt: String? = null)
+data class AiBriefingResponse(val data: AiBriefing? = null)
+/** Servicio que Bladebot recomendó (campo suggested_service de chatbot/query), para reservarlo directo. */
+data class SuggestedService(val id: String, val nombre: String, val precio: Double = 0.0, @SerializedName("duracion_min") val duracionMin: Int = 0)
 /** POST memberships/subscribe: el client_secret confirma el primer cobro con Stripe. */
 data class SubscribeMembershipRequest(@SerializedName("membership_plan_id") val membershipPlanId: String)
 data class SubscribeMembershipData(@SerializedName("client_secret") val clientSecret: String? = null, val membership: MyMembership? = null)

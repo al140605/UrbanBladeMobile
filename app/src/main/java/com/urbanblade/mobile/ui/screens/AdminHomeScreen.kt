@@ -129,6 +129,8 @@ fun AdminHomeScreen(
             }
             kpis != null -> {
                 item { TodayPulseCard(kpis, state.occupancyRate) }
+                // Resumen del día con IA local: carga aparte, no frena el inicio.
+                item { com.urbanblade.mobile.ui.components.AiBriefingCard() }
 
                 item { UrbanSectionTitle("Requiere tu atención", "Lo que conviene revisar ahora.") }
                 item {

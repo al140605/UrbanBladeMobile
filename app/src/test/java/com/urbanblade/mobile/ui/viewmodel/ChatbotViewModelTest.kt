@@ -114,4 +114,34 @@ class ChatbotViewModelTest {
 
         assertTrue(vm.state.value.messages.isEmpty())
     }
+
+    @Test
+    fun `la respuesta con servicio recomendado lleva el boton de reservar`() = runTest(dispatcher) {
+        val answer = JsonObject().apply {
+            addProperty("response", "Te va muy bien un Corte Clásico.")
+            add("suggested_service", JsonObject().apply {
+                addProperty("id", "svc-1"); addProperty("nombre", "Corte Clásico"); addProperty("precio", 180); addProperty("duracion_min", 30)
+            })
+        }
+        whenever(repo.chatbot("tengo el cabello rizado")).thenReturn(answer)
+        val vm = ChatbotViewModel(repo)
+
+        vm.send("tengo el cabello rizado")
+        advanceUntilIdle()
+
+        val bot = vm.state.value.messages.last()
+        assertEquals("svc-1", bot.suggestion?.id)
+        assertEquals(180.0, bot.suggestion?.precio ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `sin servicio recomendado no hay boton`() = runTest(dispatcher) {
+        whenever(repo.chatbot("hola")).thenReturn(JsonObject().apply { addProperty("response", "¡Hola!"); add("suggested_service", com.google.gson.JsonNull.INSTANCE) })
+        val vm = ChatbotViewModel(repo)
+
+        vm.send("hola")
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.messages.last().suggestion)
+    }
 }

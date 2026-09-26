@@ -3,6 +3,7 @@ package com.urbanblade.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
+import com.urbanblade.mobile.data.model.SuggestedService
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,9 @@ data class ChatBubble(
     val fromUser: Boolean,
     val text: String,
     val question: String? = null,
-    val helpful: Boolean? = null
+    val helpful: Boolean? = null,
+    /** Servicio que la IA recomendó en esta respuesta: la burbuja muestra «Reservar». */
+    val suggestion: SuggestedService? = null
 )
 
 data class ChatState(
@@ -65,7 +68,10 @@ class ChatbotViewModel @JvmOverloads constructor(
             val answer = sequenceOf("response", "answer", "message", "reply")
                 .mapNotNull { k -> r.get(k)?.takeIf { !it.isJsonNull }?.asString }
                 .firstOrNull() ?: "No encontré una respuesta. Intenta preguntarlo de otra forma."
-            _state.update { it.copy(messages = it.messages + ChatBubble(ids.incrementAndGet(), false, answer, question = question)) }
+            val suggestion = runCatching {
+                r.get("suggested_service")?.takeIf { it.isJsonObject }?.let { com.google.gson.Gson().fromJson(it, SuggestedService::class.java) }
+            }.getOrNull()
+            _state.update { it.copy(messages = it.messages + ChatBubble(ids.incrementAndGet(), false, answer, question = question, suggestion = suggestion)) }
         } catch (e: Exception) {
             _state.update { it.copy(error = e.toFriendlyMessage("Bladebot no pudo responder ahora. Intenta de nuevo en un momento.")) }
         } finally {

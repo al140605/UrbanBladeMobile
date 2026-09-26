@@ -178,6 +178,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun commentWork(id: String, comment: String) = api.commentWork(id, PostCommentRequest(comment))
     suspend fun chatbot(message: String) = api.chatbot(com.google.gson.JsonObject().apply { addProperty("message", message) })
     suspend fun chatbotHistory() = api.chatbotHistory().history
+    suspend fun aiBriefing() = api.aiBriefing().data
     suspend fun clearChatbot() = api.clearChatbot()
     suspend fun chatbotFeedback(message: String, response: String, helpful: Boolean) =
         api.chatbotFeedback(ChatFeedbackRequest(message, response, helpful))
