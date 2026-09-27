@@ -3,6 +3,8 @@ package com.urbanblade.mobile.ui.account
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
@@ -30,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -236,6 +240,8 @@ fun AccountScreen(
                             ) {
                                 if (prefs != null) {
                                     NotificationChannels(prefs, notice?.takeIf { it.section == AccountSection.NOTIFICATIONS }, vm::setPreference)
+                                    Spacer(Modifier.height(12.dp))
+                                    PushTestButton()
                                 } else {
                                     UrbanOutlineButton("Reintentar", onClick = { vm.load(isClient) }, modifier = Modifier.fillMaxWidth())
                                 }
@@ -263,5 +269,45 @@ fun AccountScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * T061 (HT-21): pide al servidor un push de prueba a este mismo teléfono. Primero vuelve a
+ * registrar el token de FCM (por si se guardó antes de que el backend distinguiera FCM de Expo).
+ */
+@Composable
+private fun PushTestButton() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var sending by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+
+    UrbanOutlineButton(
+        text = if (sending) "Enviando…" else "Probar notificación en este teléfono",
+        onClick = {
+            if (sending) return@UrbanOutlineButton
+            sending = true
+            scope.launch {
+                result = try {
+                    val repo = AppContainer.urbanRepository
+                    com.urbanblade.mobile.core.push.PushNotifications.registerCurrentToken(context, repo)
+                    repo.sendTestPush().message ?: "Notificación de prueba enviada."
+                } catch (e: Exception) {
+                    (e as? retrofit2.HttpException)?.let { http ->
+                        runCatching { org.json.JSONObject(http.response()?.errorBody()?.string().orEmpty()).optString("message") }
+                            .getOrNull()?.takeIf { it.isNotBlank() }
+                    } ?: "No se pudo enviar la notificación de prueba."
+                } finally {
+                    sending = false
+                }
+            }
+        },
+        icon = Icons.Default.NotificationsActive,
+        modifier = Modifier.fillMaxWidth()
+    )
+    result?.let {
+        Spacer(Modifier.height(8.dp))
+        Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
     }
 }

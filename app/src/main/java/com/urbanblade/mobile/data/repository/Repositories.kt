@@ -107,6 +107,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     }
     suspend fun savedCards() = api.savedCards().data
     suspend fun savePushToken(token: String) = api.savePushToken(PushTokenRequest(token))
+    suspend fun sendTestPush() = api.sendTestPush()
 
     suspend fun uploadPaymentReceipt(context: Context, code: String, propina: Double, receiptUri: Uri): UploadPaymentReceiptResponse {
         val comprobante = MediaUploadHelper.uriToPart(context, receiptUri, "comprobante")

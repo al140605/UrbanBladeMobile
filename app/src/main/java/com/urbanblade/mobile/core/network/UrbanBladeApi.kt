@@ -121,6 +121,8 @@ interface UrbanBladeApi {
     suspend fun uploadDepositReceipt(@Path("code") code: String, @Part comprobante: MultipartBody.Part): UploadPaymentReceiptResponse
     @GET("payments/cards") suspend fun savedCards(): SavedCardsResponse
     @POST("profile/push-token") suspend fun savePushToken(@Body body: PushTokenRequest): MessageResponse
+    /** T061: el servidor manda un push de prueba solo a este teléfono. */
+    @POST("profile/push-test") suspend fun sendTestPush(): MessageResponse
     @Multipart
     @POST("appointments/{code}/payment/receipt")
     suspend fun uploadPaymentReceipt(
