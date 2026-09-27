@@ -23,6 +23,8 @@ interface UrbanBladeApi {
     @GET("barbers") suspend fun barbers(): ApiList<BarberItem>
     @GET("products") suspend fun products(@Query("q") q: String? = null, @Query("categoria") categoria: String? = null): ApiList<ProductItem>
     @GET("barbers/{barber}") suspend fun barberDetail(@Path("barber") barber: String): JsonObject
+    @GET("barbers/{barber}") suspend fun barberProfile(@Path("barber") barber: String): BarberProfileResponse
+    @POST("barbers/{barber}/review") suspend fun reviewBarber(@Path("barber") barber: String, @Body body: BarberReviewRequest): MessageResponse
 
     @GET("availability/slots")
     suspend fun slots(@Query("barber_id") barberId: String, @Query("service_id") serviceId: String, @Query("date") date: String): SlotsResponse

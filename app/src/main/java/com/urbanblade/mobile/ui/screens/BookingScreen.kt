@@ -89,7 +89,10 @@ fun BookingScreen(
     // Productos de la visita: id -> cantidad (se pagan en el salón, como en la web).
     var cart by rememberSaveable { mutableStateOf(mapOf<String, Int>()) }
 
-    var step by rememberSaveable { mutableStateOf(BookingStep.SERVICE) }
+    // Si se llega con el servicio ya elegido (catálogo, Bladebot, "Reservar de nuevo"), se empieza
+    // en el horario: antes volvía a pedir el servicio y había que tocarlo dos veces.
+    val firstStep = if (initialServiceId.isNullOrBlank()) BookingStep.SERVICE else BookingStep.SCHEDULE
+    var step by rememberSaveable { mutableStateOf(firstStep) }
     var serviceId by rememberSaveable { mutableStateOf(initialServiceId.orEmpty()) }
     var barberId by rememberSaveable { mutableStateOf(initialBarberId.orEmpty()) }
     var date by rememberSaveable { mutableStateOf(vm.defaultDate()) }
@@ -179,8 +182,8 @@ fun BookingScreen(
         BookingStep.EXTRAS -> true
         BookingStep.PAY -> true
     }
-    // El "atrás" del teléfono regresa un paso; desde el primero sale de la reserva.
-    androidx.activity.compose.BackHandler(enabled = !confirmed && step != BookingStep.SERVICE) {
+    // El "atrás" del teléfono regresa un paso; desde el paso en que se entró sale de la reserva.
+    androidx.activity.compose.BackHandler(enabled = !confirmed && step.ordinal > firstStep.ordinal) {
         step = BookingStep.entries[step.ordinal - 1]
     }
 

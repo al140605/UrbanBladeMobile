@@ -87,6 +87,38 @@ data class BarberItem(
     @SerializedName("total_reviews") val totalReviews: Int = 0
 )
 
+/** GET /barbers/{slug}: ficha pública del barbero con portafolio y reseñas. */
+data class BarberProfileResponse(
+    val barber: BarberItem,
+    val works: List<BarberWork> = emptyList(),
+    val reviews: List<BarberReviewItem> = emptyList(),
+    @SerializedName("avg_rating") val avgRating: Double? = null,
+    @SerializedName("total_reviews") val totalReviews: Int = 0,
+    @SerializedName("citas_completadas") val citasCompletadas: Int = 0,
+    @SerializedName("can_review") val canReview: Boolean = false,
+    @SerializedName("already_reviewed") val alreadyReviewed: Boolean = false,
+    /** Servicios que el cliente recibió con este barbero y puede calificar. */
+    @SerializedName("reviewable_services") val reviewableServices: List<ReviewableService> = emptyList()
+)
+
+data class BarberWork(val id: String, val title: String? = null, val description: String? = null, val images: List<String> = emptyList())
+data class ReviewAuthor(val user: BarberUser? = null)
+data class BarberReviewItem(
+    val id: String,
+    val rating: Int = 0,
+    val comment: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null,
+    val client: ReviewAuthor? = null,
+    /** Nombre del servicio calificado, si la reseña es de un servicio. */
+    val service: String? = null
+)
+data class ReviewableService(val id: String, val nombre: String)
+data class BarberReviewRequest(
+    val rating: Int,
+    val comment: String? = null,
+    @SerializedName("service_id") val serviceId: String? = null
+)
+
 data class SlotItem(
     val time: String,
     val label: String,

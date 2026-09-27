@@ -562,6 +562,43 @@ class CatalogViewModel : ViewModel() {
     }
 }
 
+/** Ficha del barbero para el cliente: datos, portafolio, reseñas y calificar por servicio. */
+class BarberProfileViewModel : ViewModel() {
+    private val repo = AppContainer.urbanRepository
+    private val _profile = MutableStateFlow<BarberProfileResponse?>(null)
+    val profile = _profile.asStateFlow()
+    private val _loading = MutableStateFlow(false)
+    val loading = _loading.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
+    private val _sending = MutableStateFlow(false)
+    val sending = _sending.asStateFlow()
+    private val _reviewError = MutableStateFlow<String?>(null)
+    val reviewError = _reviewError.asStateFlow()
+    private val _reviewSent = MutableStateFlow<String?>(null)
+    val reviewSent = _reviewSent.asStateFlow()
+
+    fun load(slug: String) = viewModelScope.launch {
+        _loading.value = true; _error.value = null
+        try { _profile.value = repo.barberProfile(slug) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el perfil del barbero.") }
+        finally { _loading.value = false }
+    }
+
+    fun review(slug: String, rating: Int, comment: String, serviceId: String?) = viewModelScope.launch {
+        _sending.value = true; _reviewError.value = null
+        try {
+            val res = repo.reviewBarber(slug, BarberReviewRequest(rating, comment.trim().ifBlank { null }, serviceId))
+            _reviewSent.value = res.message ?: "¡Gracias por tu reseña!"
+            _profile.value = repo.barberProfile(slug)
+        } catch (e: Exception) {
+            // 422 trae el motivo real (ya la reseñaste, servicio no recibido...).
+            _reviewError.value = (e as? HttpException)?.takeIf { it.code() == 422 }?.serverMessage()
+                ?: e.toFriendlyMessage("No se pudo enviar tu reseña.")
+        } finally { _sending.value = false }
+    }
+}
+
 data class WalletData(
     val loyalty: ClientLoyalty? = null,
     val membership: MyMembership? = null,

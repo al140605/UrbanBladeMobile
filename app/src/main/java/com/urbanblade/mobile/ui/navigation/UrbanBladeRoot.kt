@@ -157,6 +157,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
 
     Scaffold(
         containerColor = UrbanColors.Background,
+        // Bladebot como en la web: una burbuja en las pantallas principales que abre el chat.
+        floatingActionButton = {
+            if (current in rootRoutes) {
+                com.urbanblade.mobile.ui.components.BladebotBubble(onOpen = { nav.navigate("chatbot") })
+            }
+        },
         bottomBar = {
             if (current in rootRoutes) {
                 Surface(
@@ -238,7 +244,19 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     CatalogScreen(
                         onBook = { serviceId, barberId -> nav.openBooking(bookingRoute(serviceId, barberId)) },
                         onOpenStore = { nav.navigate("store") },
-                        onOpenInspiration = { nav.navigate("social") }
+                        onOpenInspiration = { nav.navigate("social") },
+                        onOpenBarber = { slug -> nav.navigate("barber_profile/$slug") }
+                    )
+                }
+                composable(
+                    "barber_profile/{slug}",
+                    arguments = listOf(navArgument("slug") { type = NavType.StringType })
+                ) { entry ->
+                    BarberProfileScreen(
+                        slug = entry.arguments?.getString("slug").orEmpty(),
+                        canBook = isClient,
+                        onBack = { nav.popBackStack() },
+                        onBook = { barberId -> nav.openBooking(bookingRoute(null, barberId)) }
                     )
                 }
                 composable("wallet") { WalletScreen(onBack = { nav.popBackStack() }) }

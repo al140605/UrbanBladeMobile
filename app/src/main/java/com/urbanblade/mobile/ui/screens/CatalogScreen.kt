@@ -39,6 +39,8 @@ fun CatalogScreen(
     onOpenStore: (() -> Unit)? = null,
     onOpenInspiration: (() -> Unit)? = null,
     onLogin: (() -> Unit)? = null,
+    /** Abre la ficha del barbero (portafolio y reseñas); sin él, tocarlo lleva a reservar. */
+    onOpenBarber: ((slug: String) -> Unit)? = null,
     vm: CatalogViewModel = viewModel()
 ) {
     val services by vm.services.collectAsState()
@@ -165,7 +167,14 @@ fun CatalogScreen(
         if (!loading && error == null && services.isEmpty()) item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin servicios disponibles", "Vuelve a intentarlo más tarde.") }
 
         item { UrbanSectionTitle("Nuestro equipo", "Conoce a los profesionales de UrbanBlade") }
-        items(barbers, key = { it.id }) { barber -> BarberCard(barber) { onBook(null, barber.id) } }
+        items(barbers, key = { it.id }) { barber ->
+            val slug = barber.slug
+            BarberCard(
+                barber,
+                showsProfile = onOpenBarber != null && slug != null,
+                onOpen = { if (onOpenBarber != null && slug != null) onOpenBarber(slug) else onBook(null, barber.id) }
+            )
+        }
         if (!loading && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
         item { Spacer(Modifier.height(8.dp)) }
     }
@@ -181,14 +190,26 @@ private fun catalogChipColors() = FilterChipDefaults.filterChipColors(
 private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
     UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = onBook) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Foto del servicio (la que sube el administrador); sin foto o si no carga, el ícono.
+            var photoFailed by remember(service.imagen) { mutableStateOf(false) }
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = UrbanColors.Gold.copy(alpha = 0.09f),
-                modifier = Modifier.size(54.dp),
+                modifier = Modifier.size(64.dp),
                 border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.21f))
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(serviceIcon(service.nombre), null, tint = UrbanColors.Gold)
+                    if (!service.imagen.isNullOrBlank() && !photoFailed) {
+                        AsyncImage(
+                            model = service.imagen,
+                            contentDescription = service.nombre,
+                            contentScale = ContentScale.Crop,
+                            onError = { photoFailed = true },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(serviceIcon(service.nombre), null, tint = UrbanColors.Gold)
+                    }
                 }
             }
             Spacer(Modifier.width(13.dp))
@@ -215,24 +236,24 @@ private fun ServiceCard(service: ServiceItem, onBook: () -> Unit) {
 }
 
 @Composable
-private fun BarberCard(barber: BarberItem, onBook: () -> Unit) {
-    UrbanCard(Modifier.fillMaxWidth(), onClick = onBook) {
+private fun BarberCard(barber: BarberItem, showsProfile: Boolean, onOpen: () -> Unit) {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (!barber.foto.isNullOrBlank()) {
-                AsyncImage(
-                    model = barber.foto,
-                    contentDescription = barber.user?.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(58.dp).clip(CircleShape)
-                )
-            } else {
-                UrbanAvatar(barber.user?.name ?: "Barbero", Modifier.size(58.dp), imageUrl = barber.foto)
-            }
+            // Iniciales debajo de la foto: si la foto falla o no hay, siguen visibles.
+            UrbanAvatar(barber.user?.name ?: "Barbero", Modifier.size(58.dp), imageUrl = barber.foto)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(barber.user?.name ?: "Barbero", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 barber.especialidades?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                barber.avgRating?.let { avg ->
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "★ ${"%.1f".format(avg)} · ${UrbanFormat.count(barber.totalReviews, "reseña", "reseñas")}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = UrbanColors.Muted
+                    )
                 }
                 barber.descripcion?.takeIf { it.isNotBlank() }?.let {
                     Spacer(Modifier.height(4.dp))
@@ -240,8 +261,8 @@ private fun BarberCard(barber: BarberItem, onBook: () -> Unit) {
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.CalendarMonth, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
-                Text("Reservar", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+                Icon(if (showsProfile) Icons.Default.Person else Icons.Default.CalendarMonth, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+                Text(if (showsProfile) "Ver perfil" else "Reservar", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
             }
         }
     }

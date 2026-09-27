@@ -67,6 +67,8 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun dashboard() = api.dashboard()
     suspend fun services() = api.services().data
     suspend fun barbers() = api.barbers().data
+    suspend fun barberProfile(slug: String) = api.barberProfile(slug)
+    suspend fun reviewBarber(slug: String, body: BarberReviewRequest) = api.reviewBarber(slug, body)
     suspend fun slots(barberId: String, serviceId: String, date: String) =
         api.slots(barberId, serviceId, date).slots
 
