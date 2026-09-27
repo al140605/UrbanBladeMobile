@@ -9,8 +9,11 @@ plugins {
 // Notificaciones push (T142): el plugin de Google Services solo se aplica si existe
 // app/google-services.json (se descarga de la consola de Firebase y no se versiona,
 // igual que local.properties). Sin ese archivo la app compila y el push queda apagado.
+// Crashlytics y Performance (26-sep) siguen la misma regla: sin el archivo no se aplican.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+    apply(plugin = "com.google.firebase.firebase-perf")
 }
 
 val localProperties = Properties().apply {
@@ -167,9 +170,15 @@ dependencies {
     implementation("com.stripe:stripe-android:21.19.0")
 
     // Notificaciones push con Firebase Cloud Messaging (T142) -- ver core/push/.
-    // BoM 33.7.0: última línea compatible con compileSdk 35 sin subir AGP.
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    // Proyecto Firebase barber-c6b3a (26-sep): además del push, Analytics (embudo de reserva,
+    // sin datos personales), Crashlytics (fallos en dispositivo), Performance (arranque y
+    // latencia de la API) y Remote Config (interruptores sin publicar otro APK).
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
     implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-perf")
+    implementation("com.google.firebase:firebase-config")
 
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")
