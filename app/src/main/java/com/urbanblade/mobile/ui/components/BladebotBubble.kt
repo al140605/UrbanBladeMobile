@@ -35,7 +35,10 @@ import kotlinx.coroutines.delay
 fun BladebotBubble(onOpen: () -> Unit, modifier: Modifier = Modifier) {
     val reduceMotion = rememberReducedMotion()
     var showHint by remember { mutableStateOf(false) }
+    // El saludo sale una sola vez por sesión: la burbuja se esconde y reaparece al desplazarse.
     LaunchedEffect(Unit) {
+        if (hintShownThisSession) return@LaunchedEffect
+        hintShownThisSession = true
         delay(900)
         showHint = true
         delay(4500)
@@ -101,6 +104,8 @@ fun BladebotBubble(onOpen: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 }
+
+private var hintShownThisSession = false
 
 /** true si el usuario desactivó las animaciones del sistema (escala de animación en 0). */
 @Composable

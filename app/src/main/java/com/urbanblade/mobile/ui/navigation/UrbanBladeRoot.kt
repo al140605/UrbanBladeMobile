@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -155,11 +156,30 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         }
     }
 
+    var bubbleShown by remember { mutableStateOf(true) }
+    LaunchedEffect(current) { bubbleShown = true }
+    val bubbleScroll = remember {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                if (available.y < -6f) bubbleShown = false else if (available.y > 6f) bubbleShown = true
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+
     Scaffold(
         containerColor = UrbanColors.Background,
         // Bladebot como en la web: una burbuja en las pantallas principales que abre el chat.
+        // Se esconde al bajar (para no tapar lo que se está leyendo) y vuelve al subir o al cambiar de pantalla.
         floatingActionButton = {
-            if (current in rootRoutes) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = current in rootRoutes && bubbleShown,
+                enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()
+            ) {
                 com.urbanblade.mobile.ui.components.BladebotBubble(onOpen = { nav.navigate("chatbot") })
             }
         },
@@ -201,7 +221,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         // consumeWindowInsets: el Scaffold externo ya reservó barra de estado y barra inferior; sin
         // marcarlos como consumidos, cada pantalla con su propio Scaffold/TopAppBar los sumaba otra vez
         // (hueco vacío sobre el título en todas las pantallas secundarias).
-        UrbanBladeBackground(Modifier.padding(padding).consumeWindowInsets(padding)) {
+        UrbanBladeBackground(Modifier.padding(padding).consumeWindowInsets(padding).nestedScroll(bubbleScroll)) {
             NavHost(navController = nav, startDestination = "home", modifier = Modifier.fillMaxSize()) {
                 composable("home") {
                     DashboardScreen(

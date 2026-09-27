@@ -230,15 +230,7 @@ fun ClientHomeScreen(
                 onNavigate = { route -> if (route == "store") onStore() else onNavigate(route) }
             )
         }
-        item {
-            UrbanAttentionRow(
-                Icons.Default.SmartToy,
-                "¿Dudas? Pregúntale a Bladebot",
-                "Horarios, servicios o tus citas, al momento.",
-                UrbanColors.Gold,
-                onClick = { onNavigate("chatbot") }
-            )
-        }
+        // Bladebot ya no tiene tarjeta aquí: la burbuja flotante lo abre desde cualquier pantalla principal.
         item { Spacer(Modifier.height(4.dp)) }
     }
 }

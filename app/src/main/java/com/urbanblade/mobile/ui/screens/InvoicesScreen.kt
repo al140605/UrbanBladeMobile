@@ -121,7 +121,8 @@ fun InvoicesScreen(onBack: () -> Unit, vm: InvoicesViewModel = viewModel()) {
                         Spacer(Modifier.height(14.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             UrbanHeroStat("Citas", "${state.collected.size}", Icons.Default.ContentCut, Modifier.weight(1f))
-                            UrbanHeroStat("Compras", "${state.delivered.size}", Icons.Default.ShoppingBag, Modifier.weight(1f))
+                            // Mismo número que la pestaña «Productos»: por recoger y ya entregadas.
+                            UrbanHeroStat("Compras", "${state.toPickUp.size + state.delivered.size}", Icons.Default.ShoppingBag, Modifier.weight(1f))
                         }
                     }
                 }

@@ -73,6 +73,7 @@ private fun moneyShort(value: Double) = "$" + String.format(java.util.Locale("es
 
 /** Pedidos de la tienda: el personal los gestiona (entregar, cobrar, cancelar); el cliente sigue los suyos. */
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val staff = user.roles.any { it == "administrador" || it == "recepcionista" }
@@ -141,7 +142,8 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
                 }
             }
             item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Los cuatro filtros a la vista: si no caben en una línea bajan a la siguiente (antes «Cancelados» quedaba cortado).
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OrderFilter.entries.forEach { f ->
                         FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
                     }

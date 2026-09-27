@@ -252,7 +252,9 @@ fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewMod
 
 @Composable
 private fun NotificationRow(n: NotificationItem, onOpen: () -> Unit) {
-    val tone = if (n.read) UrbanColors.Muted else UrbanColors.Gold
+    val (icon, kindTone) = notificationLook(n)
+    // Leídas en gris; sin leer, con el color de su tipo (cancelada en rojo, confirmada en verde...).
+    val tone = if (n.read) UrbanColors.Muted else kindTone
     UrbanCard(Modifier.fillMaxWidth(), onClick = onOpen) {
         Row(verticalAlignment = Alignment.Top) {
             Box(
@@ -260,13 +262,7 @@ private fun NotificationRow(n: NotificationItem, onOpen: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    when (n.type?.lowercase()) {
-                        "appointment", "cita", "reminder" -> Icons.Default.CalendarMonth
-                        "payment", "pago", "deposit" -> Icons.Default.Payments
-                        "order", "pedido" -> Icons.Default.ShoppingBag
-                        "loyalty", "points", "raffle", "referral" -> Icons.Default.Star
-                        else -> Icons.Default.Notifications
-                    },
+                    icon,
                     null,
                     tint = tone,
                     modifier = Modifier.size(20.dp)
@@ -406,3 +402,26 @@ private data class ModuleItem(
     val icon: ImageVector,
     val section: String
 )
+
+/**
+ * Ícono y color de un aviso. Todas las de citas llegan con type "appointment", así que el estado
+ * (cancelada, confirmada, recordatorio...) se toma del título que manda el servidor.
+ */
+private fun notificationLook(n: NotificationItem): Pair<androidx.compose.ui.graphics.vector.ImageVector, androidx.compose.ui.graphics.Color> {
+    val type = n.type?.lowercase().orEmpty()
+    val title = n.title.lowercase()
+    return when {
+        "cancel" in title || "expir" in type || "no asist" in title -> Icons.Default.EventBusy to UrbanColors.Danger
+        "confirm" in title || "complet" in title || type == "order_delivered" -> Icons.Default.EventAvailable to UrbanColors.Success
+        "recordatorio" in title || type == "reminder" -> Icons.Default.Alarm to UrbanColors.Info
+        "reagend" in title || "cambi" in title -> Icons.Default.EditCalendar to UrbanColors.Warning
+        type == "review_request" -> Icons.Default.RateReview to UrbanColors.Gold
+        type in setOf("appointment", "cita") -> Icons.Default.CalendarMonth to UrbanColors.Gold
+        type in setOf("payment", "pago", "deposit", "transfer_receipt") -> Icons.Default.Payments to UrbanColors.Success
+        type.startsWith("order") || type == "pedido" -> Icons.Default.ShoppingBag to UrbanColors.Gold
+        type.startsWith("loyalty") || type in setOf("points", "raffle", "raffle_win", "referral", "client_birthday") -> Icons.Default.Star to UrbanColors.Gold
+        type == "promotion" -> Icons.Default.LocalOffer to UrbanColors.Gold
+        else -> Icons.Default.Notifications to UrbanColors.Gold
+    }
+}
+

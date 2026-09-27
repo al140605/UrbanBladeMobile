@@ -338,7 +338,7 @@ fun UrbanPillTabs(tabs: List<Pair<String, ImageVector>>, selected: Int, onSelect
                 ) {
                     Icon(icon, null, tint = content, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(label, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, textAlign = TextAlign.Center)
+                    Text(label, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, textAlign = TextAlign.Center, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
         }
