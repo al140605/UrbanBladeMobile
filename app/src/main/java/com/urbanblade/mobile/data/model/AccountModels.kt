@@ -38,7 +38,9 @@ data class AvatarResponse(val message: String? = null, val user: AuthUser? = nul
 data class NotificationPreferences(
     @SerializedName("in_app") val inApp: Boolean = true,
     val email: Boolean = true,
-    val promociones: Boolean = true
+    val promociones: Boolean = true,
+    /** Notificaciones en el teléfono (FCM). El backend lo trae apagado hasta que el usuario lo prende. */
+    val push: Boolean = false
 )
 
 data class NotificationPreferencesResponse(

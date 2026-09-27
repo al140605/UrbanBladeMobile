@@ -149,6 +149,7 @@ class AccountViewModel @JvmOverloads constructor(
         "in_app" -> copy(inApp = enabled)
         "email" -> copy(email = enabled)
         "promociones" -> copy(promociones = enabled)
+        "push" -> copy(push = enabled)
         else -> this
     }
 

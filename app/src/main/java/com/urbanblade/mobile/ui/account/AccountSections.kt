@@ -197,6 +197,8 @@ fun ChangePasswordForm(saving: Boolean, resetKey: Int, notice: AccountNotice?, o
 @Composable
 fun NotificationChannels(preferences: NotificationPreferences, notice: AccountNotice?, onChange: (key: String, enabled: Boolean) -> Unit) {
     Column {
+        // Sin este interruptor nadie podía activar el canal "push" y los avisos de citas nunca llegaban al teléfono.
+        AccountSwitchRow("En este teléfono", "Confirmaciones, cambios y recordatorios de tus citas como notificación.", preferences.push) { onChange("push", it) }
         AccountSwitchRow("En la app", "La campana de UrbanBlade: citas, pagos y novedades.", preferences.inApp) { onChange("in_app", it) }
         AccountSwitchRow("Correo", "Confirmaciones y recordatorios en tu correo.", preferences.email) { onChange("email", it) }
         AccountSwitchRow("Promociones", "Ofertas, cupones y campañas de la barbería.", preferences.promociones) { onChange("promociones", it) }
@@ -205,7 +207,7 @@ fun NotificationChannels(preferences: NotificationPreferences, notice: AccountNo
 }
 
 fun NotificationPreferences.summary(): String {
-    val on = listOfNotNull("app".takeIf { inApp }, "correo".takeIf { email }, "promociones".takeIf { promociones })
+    val on = listOfNotNull("teléfono".takeIf { push }, "app".takeIf { inApp }, "correo".takeIf { email }, "promociones".takeIf { promociones })
     return if (on.isEmpty()) "Todos los avisos apagados" else "Activos: " + on.joinToString(", ")
 }
 
