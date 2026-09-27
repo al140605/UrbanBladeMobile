@@ -93,6 +93,20 @@ fun BookingScreen(
     // en el horario: antes volvía a pedir el servicio y había que tocarlo dos veces.
     val firstStep = if (initialServiceId.isNullOrBlank()) BookingStep.SERVICE else BookingStep.SCHEDULE
     var step by rememberSaveable { mutableStateOf(firstStep) }
+    // Embudo de reserva en Analytics: de dónde llegó y hasta qué paso avanza (sin datos personales).
+    LaunchedEffect(Unit) {
+        com.urbanblade.mobile.core.analytics.UrbanAnalytics.log(
+            "reserva_inicio",
+            "origen" to when {
+                !initialServiceId.isNullOrBlank() -> "servicio_elegido"
+                !initialBarberId.isNullOrBlank() -> "barbero_elegido"
+                else -> "directo"
+            }
+        )
+    }
+    LaunchedEffect(step) { com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("reserva_paso", "paso" to step.name.lowercase()) }
+    // Remote Config: el pago con tarjeta se puede apagar desde Firebase (p. ej. si Stripe falla).
+    val cardEnabledRemotely by com.urbanblade.mobile.core.config.UrbanRemoteConfig.cardPayments.collectAsState()
     var serviceId by rememberSaveable { mutableStateOf(initialServiceId.orEmpty()) }
     var barberId by rememberSaveable { mutableStateOf(initialBarberId.orEmpty()) }
     var date by rememberSaveable { mutableStateOf(vm.defaultDate()) }
@@ -270,7 +284,7 @@ fun BookingScreen(
                             servicePrice = selectedService?.precio ?: 0.0,
                             transferInfo = transferInfo,
                             savedCards = savedCards,
-                            cardAvailable = cardAvailable,
+                            cardAvailable = cardAvailable && cardEnabledRemotely,
                             testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
                             onPickReceipt = pickReceipt
                         )
@@ -338,7 +352,16 @@ fun BookingScreen(
                                     savedCardId = savedId,
                                     saveCard = pay.saveCard,
                                     productos = cartLines.map { (p, qty) -> com.urbanblade.mobile.data.model.OrderItemRequest(p.id, qty) }
-                                ) { confirmed = true }
+                                ) {
+                                    confirmed = true
+                                    com.urbanblade.mobile.core.analytics.UrbanAnalytics.log(
+                                        "reserva_confirmada",
+                                        "metodo_pago" to pay.method.name.lowercase(),
+                                        "value" to (selectedService?.precio ?: 0.0),
+                                        "currency" to "MXN",
+                                        "con_productos" to cartLines.isNotEmpty()
+                                    )
+                                }
                             }
                         } else {
                             step = BookingStep.entries[step.ordinal + 1]

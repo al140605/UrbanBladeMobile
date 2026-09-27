@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Payments
 import com.urbanblade.mobile.ui.components.UrbanAttentionRow
 import com.urbanblade.mobile.ui.components.UrbanAvatar
+import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanHeroCard
 import com.urbanblade.mobile.ui.components.UrbanHeroLabel
 import com.urbanblade.mobile.ui.components.UrbanMascotState
@@ -121,6 +123,7 @@ fun ClientHomeScreen(
             else -> "Buenas noches"
         }
     }
+    val homeNotice by com.urbanblade.mobile.core.config.UrbanRemoteConfig.homeNotice.collectAsState()
     val next = response.next
     val failed = error != null && next == null
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
@@ -153,6 +156,9 @@ fun ClientHomeScreen(
                 }
             )
         }
+
+        // Aviso para todos los clientes desde Firebase Remote Config (vacío = no se muestra).
+        if (homeNotice.isNotBlank()) item { UrbanInfoBanner(homeNotice, Icons.Default.Campaign, Modifier.fillMaxWidth()) }
 
         when {
             loading && next == null -> item { UrbanSkeletonList(1) }

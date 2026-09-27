@@ -590,6 +590,7 @@ class BarberProfileViewModel : ViewModel() {
         try {
             val res = repo.reviewBarber(slug, BarberReviewRequest(rating, comment.trim().ifBlank { null }, serviceId))
             _reviewSent.value = res.message ?: "¡Gracias por tu reseña!"
+            com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("resena_enviada", "calificacion" to rating, "con_servicio" to (serviceId != null), "con_comentario" to comment.isNotBlank())
             _profile.value = repo.barberProfile(slug)
         } catch (e: Exception) {
             // 422 trae el motivo real (ya la reseñaste, servicio no recibido...).

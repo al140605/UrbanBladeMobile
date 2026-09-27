@@ -54,7 +54,10 @@ fun BarberProfileScreen(
     val profile by vm.profile.collectAsState()
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
-    LaunchedEffect(slug) { vm.load(slug) }
+    LaunchedEffect(slug) {
+        vm.load(slug)
+        com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("perfil_barbero_visto")
+    }
 
     Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
         val data = profile

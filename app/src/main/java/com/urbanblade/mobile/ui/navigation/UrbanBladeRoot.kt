@@ -157,7 +157,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     }
 
     var bubbleShown by remember { mutableStateOf(true) }
-    LaunchedEffect(current) { bubbleShown = true }
+    LaunchedEffect(current) {
+        bubbleShown = true
+        // Vista de pantalla para Analytics: la ruta con sus parámetros como plantilla ({slug}), sin IDs.
+        current?.let { com.urbanblade.mobile.core.analytics.UrbanAnalytics.screen(it) }
+    }
+    // Remote Config: la burbuja se puede apagar desde la consola de Firebase sin publicar otro APK.
+    val bubbleEnabled by com.urbanblade.mobile.core.config.UrbanRemoteConfig.bladebotBubble.collectAsState()
     val bubbleScroll = remember {
         object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
             override fun onPreScroll(
@@ -176,11 +182,14 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         // Se esconde al bajar (para no tapar lo que se está leyendo) y vuelve al subir o al cambiar de pantalla.
         floatingActionButton = {
             androidx.compose.animation.AnimatedVisibility(
-                visible = current in rootRoutes && bubbleShown,
+                visible = current in rootRoutes && bubbleShown && bubbleEnabled,
                 enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(),
                 exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut()
             ) {
-                com.urbanblade.mobile.ui.components.BladebotBubble(onOpen = { nav.navigate("chatbot") })
+                com.urbanblade.mobile.ui.components.BladebotBubble(onOpen = {
+                    com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_abierto", "origen" to current)
+                    nav.navigate("chatbot")
+                })
             }
         },
         bottomBar = {
@@ -284,7 +293,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("notifications") { NotificationsScreen(onBack = { nav.popBackStack() }) }
-                composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId -> nav.openBooking(bookingRoute(serviceId, null)) }) }
+                composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId ->
+                    com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_reservar")
+                    nav.openBooking(bookingRoute(serviceId, null))
+                }) }
                 composable("more") { MoreScreen(user = user, onNavigate = { nav.navigate(it) }) }
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
