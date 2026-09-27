@@ -114,3 +114,6 @@ private fun rememberReducedMotion(): Boolean {
         ) == 0f
     }
 }
+
+/** Espacio al final de las listas de las pantallas principales para que la burbuja no tape lo último. */
+val BladebotClearance = 96.dp

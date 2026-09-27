@@ -139,7 +139,8 @@ private fun ProfileHeader(data: BarberProfileResponse, canBook: Boolean, onBook:
             if (canBook) {
                 Spacer(Modifier.height(16.dp))
                 UrbanPrimaryButton(
-                    text = "Reservar con ${name.substringBefore(' ')}",
+                    // Sin nombre de pila: el primero suele ser el apellido («Reservar con Gonzalez»).
+                    text = "Reservar cita",
                     onClick = { onBook(data.barber.id) },
                     icon = Icons.Default.CalendarMonth,
                     modifier = Modifier.fillMaxWidth()

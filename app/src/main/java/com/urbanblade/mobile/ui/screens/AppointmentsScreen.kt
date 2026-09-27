@@ -125,7 +125,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {

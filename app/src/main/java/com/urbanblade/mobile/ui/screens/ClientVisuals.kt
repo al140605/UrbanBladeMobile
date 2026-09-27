@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.urbanblade.mobile.data.model.BarberItem
 import com.urbanblade.mobile.data.model.ServiceItem
@@ -67,4 +68,29 @@ fun serviceIcon(name: String): ImageVector = when (serviceKind(name)) {
     ServiceKind.AFEITADO, ServiceKind.BARBA -> Icons.Default.Face
     ServiceKind.TRATAMIENTO -> Icons.Default.Spa
     ServiceKind.CORTE -> Icons.Default.ContentCut
+}
+
+/** Fotos públicas de los barberos (GET /barbers), cargadas una sola vez por sesión de la app. */
+private object BarberPhotoCache {
+    var photos: Map<String, String>? = null
+}
+
+/**
+ * Foto del barbero de una cita. Los datos de la cita a veces no la traen (o traen una ruta de
+ * almacenamiento que ya no existe); en ese caso se usa la de su ficha pública, la misma del catálogo.
+ */
+@androidx.compose.runtime.Composable
+internal fun rememberBarberPhoto(barber: com.urbanblade.mobile.data.model.AppointmentBarber?): String? {
+    val own = barber?.fotoUrl?.takeIf { it.isNotBlank() }
+    val id = barber?.id ?: return own
+    val photos by androidx.compose.runtime.produceState(BarberPhotoCache.photos, id) {
+        if (value == null) {
+            value = runCatching {
+                com.urbanblade.mobile.core.network.AppContainer.urbanRepository.barbers()
+                    .mapNotNull { b -> b.foto?.takeIf { it.isNotBlank() }?.let { b.id to it } }
+                    .toMap()
+            }.getOrNull()?.also { BarberPhotoCache.photos = it }
+        }
+    }
+    return photos?.get(id) ?: own
 }

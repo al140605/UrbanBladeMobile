@@ -131,7 +131,7 @@ fun ClientHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
@@ -257,7 +257,7 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp), imageUrl = next.barber?.fotoUrl)
+            UrbanAvatar(next.barber?.user?.name ?: "Barbero", Modifier.size(44.dp), imageUrl = rememberBarberPhoto(next.barber))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
