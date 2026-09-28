@@ -987,7 +987,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                         Spacer(Modifier.height(10.dp))
                     }
                     UrbanPrimaryButton(
-                        text = "Continuar con tarjeta",
+                        text = "Proceder al pago",
                         onClick = {
                             vm.startStripeCheckout(appt.id, puntos.toIntOrNull() ?: 0, giftCardCode, tipAmount)
                         },

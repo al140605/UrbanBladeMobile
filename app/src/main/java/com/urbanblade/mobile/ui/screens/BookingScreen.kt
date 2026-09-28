@@ -460,11 +460,11 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
             }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(1),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(visible, key = { it.id }) { service ->
-                    SelectableRow(
+                    CompactServiceRow(
                         selected = service.id == selectedId,
                         onClick = { onSelect(service.id) },
                         title = service.nombre,
@@ -480,7 +480,7 @@ private fun ServiceStep(services: List<ServiceItem>, selectedId: String, onSelec
 }
 
 @Composable
-private fun SelectableRow(
+private fun CompactServiceRow(
     selected: Boolean,
     onClick: () -> Unit,
     title: String,
@@ -491,65 +491,76 @@ private fun SelectableRow(
     /** Sin foto del servicio, un ícono según su tipo (el mismo que en Explorar). */
     fallbackIcon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) UrbanColors.Gold.copy(alpha = 0.13f) else UrbanColors.Card,
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) UrbanColors.Gold else UrbanColors.Line),
-        modifier = Modifier
+    Column(
+        Modifier
             .fillMaxWidth()
-            // Lectores de pantalla: "botón de opción, seleccionado".
+            .background(if (selected) UrbanColors.Gold.copy(alpha = 0.08f) else Color.Transparent)
+            .clickable(onClick = onClick)
             .semantics(mergeDescendants = true) {
                 role = Role.RadioButton
                 this.selected = selected
             }
     ) {
         Row(
-            Modifier.padding(14.dp).fillMaxWidth(),
+            Modifier.padding(horizontal = 12.dp, vertical = 12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                if (selected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                null,
-                tint = if (selected) UrbanColors.Gold else UrbanColors.Muted
-            )
-            Spacer(Modifier.width(12.dp))
             if (!imageUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(if (avatarName != null) CircleShape else RoundedCornerShape(12.dp))
+                        .size(44.dp)
+                        .clip(if (avatarName != null) CircleShape else RoundedCornerShape(8.dp))
                         .background(UrbanColors.CardAlt)
                 )
                 Spacer(Modifier.width(12.dp))
             } else if (avatarName != null) {
-                UrbanAvatar(avatarName, Modifier.size(52.dp))
+                UrbanAvatar(avatarName, Modifier.size(44.dp))
                 Spacer(Modifier.width(12.dp))
             } else if (fallbackIcon != null) {
                 Box(
                     Modifier
                         .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(UrbanColors.Gold.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(fallbackIcon, null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
+                    Icon(fallbackIcon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(12.dp))
             }
+            
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (selected) UrbanColors.Gold else UrbanColors.Ink,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
+                )
                 subtitle?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                 }
             }
+            
             trailing?.let {
-                Text(it, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
+                Text(
+                    it,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (selected) UrbanColors.Gold else UrbanColors.Ink
+                )
+            }
+            
+            Spacer(Modifier.width(12.dp))
+            
+            if (selected) {
+                Icon(Icons.Default.CheckCircle, null, tint = UrbanColors.Gold, modifier = Modifier.size(22.dp))
+            } else {
+                Box(Modifier.size(22.dp))
             }
         }
+        HorizontalDivider(color = UrbanColors.Line.copy(alpha = 0.4f), modifier = Modifier.padding(horizontal = 12.dp))
     }
 }
 
