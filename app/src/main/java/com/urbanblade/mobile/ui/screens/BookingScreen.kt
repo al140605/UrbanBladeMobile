@@ -345,6 +345,8 @@ fun BookingScreen(
                             val savedId = pay.savedCardToUse(savedCards)
                             if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.cardWidget?.paymentMethodCreateParams == null) {
                                 localError = "Revisa los datos de tu tarjeta: número, vencimiento y CVC."
+                                // Lleva al formulario para que se vea qué falta (antes quedaba abajo, fuera de la vista).
+                                pay.cardAttention++
                             } else {
                                 vm.reserve(
                                     context, barberId, serviceId, date, time, notes,

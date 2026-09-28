@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import com.stripe.android.view.CardMultilineWidget
 import com.urbanblade.mobile.data.model.SavedCard
 import com.urbanblade.mobile.data.model.TransferInfo
@@ -50,6 +52,12 @@ class BookingPaymentState {
     var useNewCard by mutableStateOf(false)
     var selectedCardId by mutableStateOf<String?>(null)
     var saveCard by mutableStateOf(true)
+
+    /**
+     * Cada vez que sube, el formulario de la tarjeta se desplaza a la vista. Antes, al elegir
+     * Tarjeta el formulario quedaba abajo sin que se notara y «Reservar» solo mostraba un error.
+     */
+    var cardAttention by mutableIntStateOf(0)
 
     /** Formulario de Stripe en pantalla; no es estado de Compose, solo la vista viva para leer lo que escribió el cliente. */
     var cardWidget: CardMultilineWidget? = null
@@ -298,6 +306,13 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
         }
     }
 
+    // Al aparecer (se eligió Tarjeta) y cada vez que falten datos, el formulario se pone a la vista.
+    val cardInView = remember { BringIntoViewRequester() }
+    LaunchedEffect(state.cardAttention, usingSaved) {
+        kotlinx.coroutines.delay(150)
+        cardInView.bringIntoView()
+    }
+
     if (usingSaved == null) {
         if (savedCards.isNotEmpty()) Spacer(Modifier.height(16.dp))
         UrbanFieldLabel("Datos de la tarjeta")
@@ -315,7 +330,9 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
             shape = MaterialTheme.shapes.medium,
             color = UrbanColors.Card,
             border = BorderStroke(1.dp, UrbanColors.Muted.copy(alpha = 0.3f)),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .bringIntoViewRequester(cardInView)
         ) {
             AndroidView(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
