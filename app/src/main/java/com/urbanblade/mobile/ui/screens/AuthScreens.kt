@@ -69,6 +69,8 @@ import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.core.auth.GoogleAuthHelper
 import com.urbanblade.mobile.ui.components.AuthBackdrop
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
+import com.urbanblade.mobile.ui.components.LegalConsentCheckbox
+import com.urbanblade.mobile.ui.components.LegalLinksText
 import com.urbanblade.mobile.ui.components.PasswordStrengthMeter
 import com.urbanblade.mobile.ui.components.StaggerIn
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
@@ -133,6 +135,8 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+        // Continuar con Google crea la cuenta si no existe: el aviso deja claro qué se acepta.
+        StaggerIn(2) { LegalLinksText("Al continuar con Google aceptas los ") }
         StaggerIn(2) { OrDivider("o con tu correo") }
         StaggerIn(3) {
             UrbanTextField(
@@ -199,6 +203,8 @@ fun RegisterScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var googleBusy by remember { mutableStateOf(false) }
+    // Consentimiento obligatorio (igual que la web): Términos, Aviso de Privacidad y mayoría de edad.
+    var acceptedLegal by remember { mutableStateOf(false) }
 
     // Mismo mínimo que AuthController::register() ('password' => ['min:8', 'confirmed']) --
     // validar aquí evita un viaje al servidor que de todos modos rechazaría la contraseña.
@@ -207,7 +213,7 @@ fun RegisterScreen(
     val passwordTooShort = password.isNotEmpty() && password.length < 8
     val passwordsMismatch = confirmation.isNotEmpty() && password != confirmation
     val emailValid = isValidEmail(email)
-    val canSubmit = name.isNotBlank() && emailValid && password.length >= 8 && confirmation == password
+    val canSubmit = name.isNotBlank() && emailValid && password.length >= 8 && confirmation == password && acceptedLegal
     fun submit() {
         if (canSubmit && !busy) authViewModel.register(name.trim(), email.trim(), password, confirmation)
     }
@@ -220,9 +226,13 @@ fun RegisterScreen(
         onBack = onBack
     ) {
         StaggerIn(1) {
+            LegalConsentCheckbox(acceptedLegal, { acceptedLegal = it })
+        }
+        StaggerIn(1) {
             GoogleSignInButton(
                 text = "Registrarme con Google",
                 loading = googleBusy,
+                enabled = acceptedLegal,
                 onClick = {
                     scope.launch {
                         googleBusy = true
@@ -438,11 +448,12 @@ private fun GoogleSignInButton(
     text: String,
     loading: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     OutlinedButton(
         onClick = onClick,
-        enabled = !loading,
+        enabled = enabled && !loading,
         modifier = modifier.heightIn(min = 56.dp),
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, UrbanColors.Line),

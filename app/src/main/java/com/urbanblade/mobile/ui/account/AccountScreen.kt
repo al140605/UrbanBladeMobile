@@ -252,6 +252,26 @@ fun AccountScreen(
             }
         }
 
+        // Documentos legales (los mismos de la web) y cómo pedir el borrado de la cuenta, que en la
+        // app todavía no se hace desde un botón.
+        item {
+            val openLegal = com.urbanblade.mobile.ui.components.rememberOpenLegal()
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL) }) {
+                    Text("Aviso de Privacidad", color = UrbanColors.Gold)
+                }
+                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL) }) {
+                    Text("Términos y Condiciones", color = UrbanColors.Gold)
+                }
+                Text(
+                    "Para eliminar tu cuenta o ejercer tus derechos sobre tus datos, escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = UrbanColors.Muted,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+            }
+        }
+
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 UrbanOutlineButton(
