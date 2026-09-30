@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
@@ -203,6 +204,27 @@ fun AccountScreen(
                                 )
                             }
                         }
+                        // Eliminar la cuenta desde la app (antes solo se podía por correo). Los
+                        // administradores no pueden borrarse a sí mismos, igual que en la web.
+                        if ("administrador" !in user.roles) item {
+                            AccountAccordion(
+                                title = "Eliminar mi cuenta",
+                                summary = "Borra tu acceso de forma permanente.",
+                                icon = Icons.Default.DeleteForever,
+                                expanded = openSecurity == "delete",
+                                onToggle = {
+                                    openSecurity = toggle(openSecurity, "delete")
+                                    vm.checkSessionKind()
+                                }
+                            ) {
+                                DeleteAccountForm(
+                                    viaGoogle = state.sessionViaGoogle,
+                                    deleting = state.deletingAccount,
+                                    notice = notice?.takeIf { it.section == AccountSection.DELETE },
+                                    onDelete = { secret -> vm.deleteAccount(secret, onLogout) }
+                                )
+                            }
+                        }
                         item {
                             val verified = profile.emailVerifiedAt != null
                             UrbanAttentionRow(
@@ -264,7 +286,7 @@ fun AccountScreen(
                     Text("Términos y Condiciones", color = UrbanColors.Gold)
                 }
                 Text(
-                    "Para eliminar tu cuenta o ejercer tus derechos sobre tus datos, escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
+                    "Para ejercer tus derechos sobre tus datos (acceso, corrección o borrado del historial), escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = UrbanColors.Muted,
                     modifier = Modifier.padding(horizontal = 12.dp)

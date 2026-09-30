@@ -21,6 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -189,6 +192,52 @@ fun ChangePasswordForm(saving: Boolean, resetKey: Int, notice: AccountNotice?, o
             icon = Icons.Default.Lock,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+    AccountNoticeBanner(notice)
+}
+
+/**
+ * Eliminar la cuenta propia. Con sesión de Google (sin contraseña conocida) se confirma escribiendo
+ * ELIMINAR; con cualquier otra, con la contraseña. [viaGoogle] null = todavía se está consultando.
+ */
+@Composable
+fun DeleteAccountForm(viaGoogle: Boolean?, deleting: Boolean, notice: AccountNotice?, onDelete: (secret: String) -> Unit) {
+    var secret by rememberSaveable { mutableStateOf("") }
+    val ready = when (viaGoogle) {
+        true -> secret.trim() == "ELIMINAR"
+        false -> secret.isNotEmpty()
+        null -> false
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            "Se borran tu acceso y todas tus sesiones; no se puede deshacer. Antes debes cancelar tus citas pendientes. " +
+                "El historial de citas y pagos puede conservarse como registro del negocio; si quieres que también se borre, pídelo por correo.",
+            style = MaterialTheme.typography.bodySmall,
+            color = UrbanColors.Muted
+        )
+        when (viaGoogle) {
+            null -> Text("Revisando tu sesión…", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            true -> UrbanTextField(
+                secret, { secret = it }, "Escribe ELIMINAR para confirmar",
+                leadingIcon = Icons.Default.DeleteForever, placeholder = "ELIMINAR",
+                helper = "Entraste con Google, así que no te pedimos contraseña.",
+                capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done
+            )
+            false -> UrbanTextField(
+                secret, { secret = it }, "Tu contraseña", leadingIcon = Icons.Default.Lock,
+                isPassword = true, imeAction = ImeAction.Done
+            )
+        }
+        androidx.compose.material3.Button(
+            onClick = { if (ready && !deleting) onDelete(secret) },
+            enabled = ready && !deleting,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = UrbanColors.Danger, contentColor = androidx.compose.ui.graphics.Color.White),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+        ) {
+            Text(if (deleting) "Eliminando…" else "Eliminar mi cuenta definitivamente", fontWeight = FontWeight.SemiBold)
+        }
     }
     AccountNoticeBanner(notice)
 }

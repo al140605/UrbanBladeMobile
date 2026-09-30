@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 /** Sección de Mi cuenta a la que pertenece un aviso, para mostrarlo junto a lo que lo causó. */
-enum class AccountSection { DATA, AVATAR, PASSWORD, NOTIFICATIONS }
+enum class AccountSection { DATA, AVATAR, PASSWORD, NOTIFICATIONS, DELETE }
 
 data class AccountNotice(val section: AccountSection, val text: String, val isError: Boolean)
 
@@ -33,6 +33,9 @@ data class AccountState(
     val uploadingAvatar: Boolean = false,
     /** Cambia cada vez que la contraseña se guarda, para que la pantalla limpie los campos. */
     val passwordChanges: Int = 0,
+    /** null = aún no se sabe; true = sesión abierta con Google (se confirma con ELIMINAR). */
+    val sessionViaGoogle: Boolean? = null,
+    val deletingAccount: Boolean = false,
     val notice: AccountNotice? = null
 )
 
@@ -125,6 +128,29 @@ class AccountViewModel @JvmOverloads constructor(
             }
         } finally {
             _state.update { it.copy(savingPassword = false) }
+        }
+    }
+
+    /** Averigua cómo se abrió la sesión para pedir contraseña o ELIMINAR al borrar la cuenta. */
+    fun checkSessionKind() = viewModelScope.launch {
+        if (_state.value.sessionViaGoogle != null) return@launch
+        val viaGoogle = try { repo.sessionOpenedWithGoogle() } catch (_: Exception) { false }
+        _state.update { it.copy(sessionViaGoogle = viaGoogle) }
+    }
+
+    /** Elimina la cuenta; si el servidor acepta, [onDeleted] cierra la sesión en el teléfono. */
+    fun deleteAccount(secret: String, onDeleted: () -> Unit) = viewModelScope.launch {
+        val viaGoogle = _state.value.sessionViaGoogle == true
+        _state.update { it.copy(deletingAccount = true, notice = null) }
+        try {
+            repo.deleteAccount(if (viaGoogle) mapOf("confirmacion" to secret.trim()) else mapOf("password" to secret))
+            onDeleted()
+        } catch (e: Exception) {
+            _state.update {
+                it.copy(notice = AccountNotice(AccountSection.DELETE, e.serverOrFriendly("No se pudo eliminar tu cuenta."), true))
+            }
+        } finally {
+            _state.update { it.copy(deletingAccount = false) }
         }
     }
 

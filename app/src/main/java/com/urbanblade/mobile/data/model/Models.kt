@@ -28,7 +28,11 @@ data class LoginResponse(
     val user: AuthUser
 )
 
-data class MeResponse(val user: AuthUser)
+data class MeResponse(
+    val user: AuthUser,
+    /** La sesión se abrió con Google: para eliminar la cuenta se confirma con ELIMINAR, no con contraseña. */
+    @SerializedName("sesion_con_google") val sesionConGoogle: Boolean = false
+)
 
 data class AuthUser(
     val id: String? = null,

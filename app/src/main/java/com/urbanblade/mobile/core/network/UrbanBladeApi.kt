@@ -12,6 +12,8 @@ interface UrbanBladeApi {
     @POST("auth/forgot-password") suspend fun forgotPassword(@Body body: ForgotPasswordRequest): MessageResponse
     @POST("auth/google/token") suspend fun googleLogin(@Body body: GoogleLoginRequest): LoginResponse
     @GET("auth/me") suspend fun me(): MeResponse
+    /** Elimina la cuenta propia: {"password": …} o, en sesión de Google, {"confirmacion": "ELIMINAR"}. */
+    @HTTP(method = "DELETE", path = "profile", hasBody = true) suspend fun deleteAccount(@Body body: Map<String, String>): MessageResponse
     @POST("auth/logout") suspend fun logout(): MessageResponse?
     @POST("auth/refresh-token") suspend fun refreshToken(): LoginResponse
 
