@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -25,7 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.stripe.android.model.ConfirmPaymentIntentParams
+import com.stripe.android.payments.paymentlauncher.PaymentResult
+import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.urbanblade.mobile.BuildConfig
 import com.urbanblade.mobile.core.payment.isStripeConfigured
 import com.urbanblade.mobile.core.payment.rememberUrbanPaymentSheet
 import com.urbanblade.mobile.data.model.AppointmentRow
@@ -74,23 +79,31 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     val stats = if (staff) {
         AppointmentStats(
             total = response.data.size,
-            proximas = response.data.count { it.fecha >= today && it.estado in active },
+            proximas = response.data.count { 
+                it.estado in active && (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= LocalDate.parse(today) 
+            },
             completadas = response.data.count { it.estado == "completada" },
             canceladas = response.data.count { it.estado == "cancelada" }
         )
     } else {
         response.stats
     }
+    
+    fun getLocalDate(d: String) = runCatching { LocalDate.parse(d.take(10)) }.getOrNull() ?: LocalDate.MAX
+    fun getLocalTime(t: String) = runCatching { java.time.LocalTime.parse(t.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX
+    
     val visible = if (calendarMode) {
-        monthRows.filter { it.fecha.startsWith(selectedDay?.toString() ?: "-") }.sortedBy { it.horaInicio }
+        monthRows.filter { it.fecha.startsWith(selectedDay?.toString() ?: "-") }.sortedBy { getLocalTime(it.horaInicio) }
     } else if (!staff) {
         response.data
     } else {
         when (staffFilter) {
-            "hoy" -> response.data.filter { it.fecha == today }.sortedBy { it.horaInicio }
-            "atencion", "proximas" -> response.data.filter { it.fecha >= today && it.estado in active }
-                .sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
-            else -> response.data.sortedWith(compareBy({ it.fecha }, { it.horaInicio }))
+            "hoy" -> response.data.filter { it.fecha.take(10) == today }.sortedBy { getLocalTime(it.horaInicio) }
+            "atencion", "proximas" -> response.data.filter { 
+                    it.estado in active && (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= LocalDate.parse(today) 
+                }
+                .sortedWith(compareBy<AppointmentRow> { getLocalDate(it.fecha) }.thenBy { getLocalTime(it.horaInicio) })
+            else -> response.data.sortedWith(compareBy<AppointmentRow> { getLocalDate(it.fecha) }.thenBy { getLocalTime(it.horaInicio) })
         }
     }
     val pendingCount = if (staff && !calendarMode) visible.count { it.estado == "pendiente" } else 0
@@ -393,59 +406,75 @@ private fun StaffPriorityAppointment(
     onCancel: (() -> Unit)?,
     onCharge: (() -> Unit)?
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = UrbanColors.Card.copy(alpha = 0.86f),
-        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.72f))
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top
+    var stamped by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    LaunchedEffect(stamped) {
+        if (stamped) {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+            kotlinx.coroutines.delay(650)
+            onConfirm()
+        }
+    }
+
+    Box(contentAlignment = Alignment.Center) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().alpha(if (stamped) 0.5f else 1f),
+            shape = RoundedCornerShape(20.dp),
+            color = UrbanColors.Card.copy(alpha = 0.86f),
+            border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.72f))
         ) {
-            AppointmentDateRail(appt, emphasized = true)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Row(verticalAlignment = Alignment.Top) {
-                    Text(
-                        appt.service?.nombre ?: "Servicio",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    UrbanStatusPill(appt.estado)
-                    StaffAppointmentMenu(onCancel = onCancel, onCharge = onCharge)
-                }
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        PersonLine(
-                            label = appt.client?.user?.name ?: "Cliente por confirmar",
-                            name = appt.client?.user?.name ?: "Cliente",
-                            imageUrl = appt.client?.user?.avatarUrl,
-                            color = UrbanColors.Ink
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                AppointmentDateRail(appt, emphasized = true)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(
+                            appt.service?.nombre ?: "Servicio",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
                         )
-                        PersonLine(
-                            label = appt.barber?.user?.name ?: "Barbero por confirmar",
-                            name = appt.barber?.user?.name ?: "Barbero",
-                            imageUrl = appt.barber?.fotoUrl,
-                            color = UrbanColors.Muted
-                        )
-                        ReminderLine(appt)
+                        UrbanStatusPill(appt.estado)
+                        StaffAppointmentMenu(onCancel = onCancel, onCharge = onCharge)
                     }
-                    Button(
-                        onClick = onConfirm,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = UrbanColors.Gold,
-                            contentColor = UrbanColors.OnGold
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Confirmar", fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            PersonLine(
+                                label = appt.client?.user?.name ?: "Cliente por confirmar",
+                                name = appt.client?.user?.name ?: "Cliente",
+                                imageUrl = appt.client?.user?.avatarUrl,
+                                color = UrbanColors.Ink
+                            )
+                            PersonLine(
+                                label = appt.barber?.user?.name ?: "Barbero por confirmar",
+                                name = appt.barber?.user?.name ?: "Barbero",
+                                imageUrl = appt.barber?.fotoUrl,
+                                color = UrbanColors.Muted
+                            )
+                            ReminderLine(appt)
+                        }
+                        Button(
+                            onClick = { stamped = true },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = UrbanColors.Gold,
+                                contentColor = UrbanColors.OnGold
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text("Confirmar", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
+        }
+        if (stamped) {
+            com.urbanblade.mobile.ui.components.UrbanStampAnimation("CONFIRMADA")
         }
     }
 }
@@ -457,35 +486,55 @@ private fun StaffTimelineAppointment(
     onCancel: (() -> Unit)?,
     onCharge: (() -> Unit)?
 ) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            AppointmentDateRail(appt, emphasized = false)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        appt.service?.nombre ?: "Servicio",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    UrbanStatusPill(appt.estado)
-                    StaffAppointmentMenu(
-                        onStatus = onStatus,
-                        currentStatus = appt.estado,
-                        onCancel = onCancel,
-                        onCharge = onCharge
-                    )
-                }
-                Text(appt.client?.user?.name ?: "Cliente por confirmar", style = MaterialTheme.typography.bodyMedium)
-                Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                ReminderLine(appt)
-            }
+    var stampedAction by remember { mutableStateOf<String?>(null) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    LaunchedEffect(stampedAction) {
+        if (stampedAction != null) {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+            kotlinx.coroutines.delay(650)
+            onStatus?.invoke(stampedAction!!)
+            stampedAction = null
         }
-        HorizontalDivider(color = UrbanColors.Line.copy(alpha = 0.65f))
+    }
+
+    Box(contentAlignment = Alignment.Center) {
+        Column(modifier = Modifier.alpha(if (stampedAction != null) 0.5f else 1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                AppointmentDateRail(appt, emphasized = false)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            appt.service?.nombre ?: "Servicio",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        UrbanStatusPill(appt.estado)
+                        StaffAppointmentMenu(
+                            onStatus = if (onStatus != null) { { estado -> stampedAction = estado } } else null,
+                            currentStatus = appt.estado,
+                            onCancel = onCancel,
+                            onCharge = onCharge
+                        )
+                    }
+                    Text(appt.client?.user?.name ?: "Cliente por confirmar", style = MaterialTheme.typography.bodyMedium)
+                    Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    ReminderLine(appt)
+                }
+            }
+            HorizontalDivider(color = UrbanColors.Line.copy(alpha = 0.65f))
+        }
+
+        when (stampedAction) {
+            "completada" -> com.urbanblade.mobile.ui.components.UrbanStampAnimation("COMPLETADA", color = UrbanColors.Success)
+            "no_asistio" -> com.urbanblade.mobile.ui.components.UrbanStampAnimation("NO ASISTIÓ", color = UrbanColors.Danger)
+            "en_proceso" -> com.urbanblade.mobile.ui.components.UrbanStampAnimation("INICIADA", color = UrbanColors.Gold)
+        }
     }
 }
 
@@ -874,6 +923,10 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
     var giftCardCode by remember { mutableStateOf("") }
     var puntos by remember { mutableStateOf("") }
     var receiptUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val savedCards by vm.savedCards.collectAsState()
+    val savedCardConfirm by vm.savedCardConfirm.collectAsState()
+    // Tarjeta al centro del carrusel; null = «Otra tarjeta» (se paga con el PaymentSheet de Stripe).
+    var selectedCardId by remember { mutableStateOf<String?>(null) }
 
     val basePrice = appt.precioCobrado ?: appt.service?.precio ?: 0.0
     val tipAmount = when (tipOption) {
@@ -884,9 +937,8 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
     }
 
     // La cita puede haberse marcado como pagada mientras la hoja sigue
-    // abierta (confirmAppointmentPayment refresca la lista) -- cerrar sola.
+    // abierta (confirmAppointmentPayment refresca la lista)
     val justPaid = response.data.firstOrNull { it.id == appt.id }?.hasPayment == true
-    LaunchedEffect(justPaid) { if (justPaid) onDismiss() }
 
     val pickReceipt = rememberSingleImagePicker { receiptUri = it }
 
@@ -905,8 +957,33 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
         clientSecret?.let { presentPaymentSheet(it) }
     }
 
+    // Pago con una tarjeta guardada: Stripe lo confirma directo con esa tarjeta, sin pedir datos.
+    val paymentLauncher = rememberPaymentLauncher(BuildConfig.STRIPE_PUBLISHABLE_KEY) { result ->
+        when (result) {
+            is PaymentResult.Completed -> vm.confirmAppointmentPayment(appt.id)
+            is PaymentResult.Canceled -> vm.onStripeCanceled()
+            is PaymentResult.Failed -> vm.onStripeFailed(result.throwable.localizedMessage)
+        }
+    }
+    LaunchedEffect(savedCardConfirm) {
+        val confirm = savedCardConfirm ?: return@LaunchedEffect
+        vm.clearSavedCardConfirm()
+        confirm.paymentMethodId?.let { paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(it, confirm.clientSecret)) }
+    }
+    LaunchedEffect(cardAvailable) { if (cardAvailable) vm.loadSavedCards() }
+
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Card) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+        if (justPaid) {
+            Box(Modifier.fillMaxWidth().padding(bottom = 32.dp), contentAlignment = Alignment.Center) {
+                com.urbanblade.mobile.ui.components.UrbanReceiptAnimation(
+                    serviceName = appt.service?.nombre ?: "Servicio",
+                    total = basePrice + tipAmount,
+                    date = "${UrbanFormat.date(appt.fecha)} • ${UrbanFormat.time(appt.horaInicio)}",
+                    onAnimationEnd = onDismiss
+                )
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
             UrbanSectionTitle("Pagar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 
@@ -986,10 +1063,22 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                         UrbanInfoBanner("El pago con tarjeta no está disponible en esta versión de la app. Paga por transferencia o en la barbería.")
                         Spacer(Modifier.height(10.dp))
                     }
+                    // Antes era solo un botón al PaymentSheet: ahora las tarjetas guardadas se eligen deslizando.
+                    val chosenCard = savedCards.firstOrNull { it.id == selectedCardId }
+                    if (cardAvailable && savedCards.isNotEmpty()) {
+                        UrbanFieldLabel("Tus tarjetas")
+                        Spacer(Modifier.height(10.dp))
+                        UrbanCreditCardCarousel(
+                            cards = savedCards,
+                            selectedCardId = selectedCardId,
+                            onSelect = { selectedCardId = it }
+                        )
+                        Spacer(Modifier.height(16.dp))
+                    }
                     UrbanPrimaryButton(
-                        text = "Proceder al pago",
+                        text = chosenCard?.let { "Pagar con •••• ${it.last4}" } ?: "Proceder al pago",
                         onClick = {
-                            vm.startStripeCheckout(appt.id, puntos.toIntOrNull() ?: 0, giftCardCode, tipAmount)
+                            vm.startStripeCheckout(appt.id, puntos.toIntOrNull() ?: 0, giftCardCode, tipAmount, chosenCard?.id)
                         },
                         enabled = cardAvailable && !confirmingPayment,
                         loading = checkoutBusy,
@@ -1035,8 +1124,9 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
 
             error?.let { Spacer(Modifier.height(12.dp)); UrbanErrorBanner(it) }
             Spacer(Modifier.height(24.dp))
-        }
-    }
+            } // fin del Column
+        } // fin del else
+    } // fin del ModalBottomSheet
 }
 
 /** Una persona de la cita (cliente o barbero) con su foto, o iniciales si no tiene. */

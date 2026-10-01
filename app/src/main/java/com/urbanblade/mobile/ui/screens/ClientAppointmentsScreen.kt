@@ -99,14 +99,25 @@ fun ClientAppointmentsScreen(
     }
 
     val today = remember { LocalDate.now().toString() }
+    val todayDate = remember { LocalDate.now() }
+    
     val upcoming = response.data
-        .filter { it.estado in ACTIVE && it.fecha.take(10) >= today }
-        .sortedWith(compareBy({ it.fecha.take(10) }, { it.horaInicio }))
+        .filter { 
+            it.estado in ACTIVE && 
+            (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= todayDate 
+        }
+        .sortedWith(
+            compareBy<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MAX }
+                .thenBy { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX }
+        )
     val upcomingIds = upcoming.map { it.id }.toSet()
     val toPay = response.data.filter { it.isPayable() && it.id !in upcomingIds }
     val history = response.data
         .filter { it.id !in upcomingIds }
-        .sortedWith(compareByDescending<AppointmentRow> { it.fecha.take(10) }.thenByDescending { it.horaInicio })
+        .sortedWith(
+            compareByDescending<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN }
+                .thenByDescending { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MIN }
+        )
     val failed = error != null && response.data.isEmpty()
 
     fun rebook(appt: AppointmentRow) {

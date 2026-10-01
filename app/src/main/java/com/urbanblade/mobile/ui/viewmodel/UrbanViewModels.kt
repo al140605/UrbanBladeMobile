@@ -83,14 +83,36 @@ class AppointmentsViewModel @JvmOverloads constructor(
     private val _paymentNotice = MutableStateFlow<String?>(null)
     val paymentNotice = _paymentNotice.asStateFlow()
 
-    fun startStripeCheckout(appointmentId: String, puntosCanjeados: Int, codigoGiftCard: String?, propina: Double) =
+    // Tarjetas guardadas del cliente para el carrusel del checkout (vacío si no tiene o si falla).
+    private val _savedCards = MutableStateFlow<List<SavedCard>>(emptyList())
+    val savedCards = _savedCards.asStateFlow()
+
+    // Pago con una tarjeta guardada: se confirma en la hoja con PaymentLauncher, sin abrir el PaymentSheet.
+    private val _savedCardConfirm = MutableStateFlow<CardConfirm?>(null)
+    val savedCardConfirm = _savedCardConfirm.asStateFlow()
+
+    fun loadSavedCards() = viewModelScope.launch {
+        _savedCards.value = try { repo.savedCards() } catch (_: Exception) { emptyList() }
+    }
+
+    fun clearSavedCardConfirm() { _savedCardConfirm.value = null }
+
+    /**
+     * Con [savedCardId] el intent se crea para el Customer del cliente (tarjeta_guardada) y se confirma
+     * con esa tarjeta; sin él, se abre el PaymentSheet de Stripe para una tarjeta nueva, como antes.
+     */
+    fun startStripeCheckout(appointmentId: String, puntosCanjeados: Int, codigoGiftCard: String?, propina: Double, savedCardId: String? = null) =
         viewModelScope.launch {
             _checkoutBusy.value = true; _error.value = null; _paymentNotice.value = null
             try {
                 val data = repo.stripeIntent(
-                    StripeIntentRequest(appointmentId, puntosCanjeados, codigoGiftCard?.takeIf { it.isNotBlank() }, propina)
+                    StripeIntentRequest(
+                        appointmentId, puntosCanjeados, codigoGiftCard?.takeIf { it.isNotBlank() }, propina,
+                        tarjetaGuardada = (savedCardId != null).takeIf { it }
+                    )
                 )
-                _stripeClientSecret.value = data.clientSecret
+                if (savedCardId != null) _savedCardConfirm.value = CardConfirm(data.clientSecret, savedCardId)
+                else _stripeClientSecret.value = data.clientSecret
             } catch (e: HttpException) {
                 _error.value = if (e.code() == 422) e.serverMessage() ?: e.toFriendlyMessage("No se pudo iniciar el pago.")
                 else e.toFriendlyMessage("No se pudo iniciar el pago.")
