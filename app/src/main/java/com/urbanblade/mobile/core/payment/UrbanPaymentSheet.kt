@@ -21,6 +21,21 @@ fun isStripeConfigured(key: String = BuildConfig.STRIPE_PUBLISHABLE_KEY): Boolea
     key.startsWith("pk_") && !key.contains("PENDIENTE")
 
 /**
+ * Inicializa Stripe con la publishable key una sola vez por pantalla y devuelve si la tarjeta está
+ * disponible en este build. Reemplaza el `remember { PaymentConfiguration.init(...) }` que devolvía
+ * Unit (lint RememberReturnType lo marcaba como error y frenaba el CI de Android, T141).
+ */
+@Composable
+fun rememberStripeReady(): Boolean {
+    val context = LocalContext.current
+    return remember {
+        isStripeConfigured().also { ready ->
+            if (ready) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY)
+        }
+    }
+}
+
+/**
  * Colores de la hoja de Stripe con el tema elegido en la app (no el modo claro/oscuro del
  * sistema): Stripe escoge colorsLight o colorsDark según el sistema, así que ambos llevan la
  * misma paleta de UrbanBlade y la hoja se ve igual que el resto de la app en los cuatro temas.
@@ -52,8 +67,7 @@ fun rememberUrbanPaymentSheet(
     merchantDisplayName: String = "UrbanBlade",
     onResult: (PaymentSheetResult) -> Unit
 ): (String) -> Unit {
-    val context = LocalContext.current
-    remember { if (isStripeConfigured()) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    rememberStripeReady()
     val paymentSheet = rememberPaymentSheet(onResult)
 
     return remember(paymentSheet) {

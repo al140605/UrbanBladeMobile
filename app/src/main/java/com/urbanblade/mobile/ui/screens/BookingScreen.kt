@@ -1,12 +1,11 @@
 package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.background
-import com.stripe.android.PaymentConfiguration
 import com.stripe.android.model.ConfirmPaymentIntentParams
 import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.urbanblade.mobile.BuildConfig
-import com.urbanblade.mobile.core.payment.isStripeConfigured
+import com.urbanblade.mobile.core.payment.rememberStripeReady
 import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -121,8 +120,7 @@ fun BookingScreen(
     val transferInfo by vm.transferInfo.collectAsState()
     val savedCards by vm.savedCards.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val cardAvailable = remember { isStripeConfigured() }
-    remember { if (cardAvailable) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    val cardAvailable = rememberStripeReady()
     val pickReceipt = rememberSingleImagePicker { pay.receiptUri = it }
     val paymentLauncher = rememberPaymentLauncher(BuildConfig.STRIPE_PUBLISHABLE_KEY) { result ->
         when (result) {

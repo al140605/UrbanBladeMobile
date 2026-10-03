@@ -3,12 +3,11 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.stripe.android.PaymentConfiguration
 import com.stripe.android.model.ConfirmPaymentIntentParams
 import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.urbanblade.mobile.BuildConfig
-import com.urbanblade.mobile.core.payment.isStripeConfigured
+import com.urbanblade.mobile.core.payment.rememberStripeReady
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,8 +58,7 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     // efectivo y la tarjeta guardada no se podía elegir (solo servía una tarjeta nueva).
     val payState = remember { BookingPaymentState().apply { method = BookingPayMethod.TARJETA } }
     var sheetError by remember { mutableStateOf<String?>(null) }
-    val cardAvailable = remember { isStripeConfigured() }
-    remember { if (cardAvailable) PaymentConfiguration.init(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    val cardAvailable = rememberStripeReady()
     val paymentLauncher = rememberPaymentLauncher(BuildConfig.STRIPE_PUBLISHABLE_KEY) { result ->
         when (result) {
             is PaymentResult.Completed -> { vm.onCheckoutResult(true, false, null); checkoutPlan = null }

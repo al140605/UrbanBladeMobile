@@ -1,0 +1,61 @@
+# CI de la app Android (T141, HU-38): en cada push y pull request a main corre lint,
+# las pruebas unitarias y el build de debug. Sin app/google-services.json ni local.properties
+# (no se versionan) la app compila igual: Firebase queda apagado y las claves usan sus
+# valores de relleno, así que el CI no necesita ningún secreto.
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint + pruebas unitarias + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # gradle/gradle-daemon-jvm.properties pide JetBrains 21 para el daemon de Gradle.
+      - name: JDK 21 (JetBrains)
+        uses: actions/setup-java@v4
+        with:
+          distribution: jetbrains
+          java-version: "21"
+
+      # El repo no versiona gradlew: se usa la misma versión que gradle-wrapper.properties.
+      - name: Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Lint
+        run: gradle :app:lintDebug --console=plain
+
+      - name: Pruebas unitarias
+        run: gradle :app:testDebugUnitTest --console=plain
+
+      - name: Build de debug
+        run: gradle :app:assembleDebug --console=plain
+
+      - name: Reportes de lint y pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-android
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 14
