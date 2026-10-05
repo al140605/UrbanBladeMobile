@@ -25,18 +25,18 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # gradle/gradle-daemon-jvm.properties pide JetBrains 21 para el daemon de Gradle.
       - name: JDK 21 (JetBrains)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: jetbrains
           java-version: "21"
 
       # El repo no versiona gradlew: se usa la misma versión que gradle-wrapper.properties.
       - name: Gradle 8.13
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.13"
 
@@ -51,7 +51,7 @@ jobs:
 
       - name: Reportes de lint y pruebas
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reportes-android
           path: |
