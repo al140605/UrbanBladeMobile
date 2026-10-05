@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -95,6 +96,11 @@ android {
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
+            // R8: sin esto el APK de producción sale sin ofuscar ni reducir. Los DTO que Gson
+            // llena por reflexión se conservan en proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // Build de prueba contra el staging de AWS: se instala igual que debug (mismo
         // applicationId, así el login con Google sigue funcionando), pero habla HTTPS con
@@ -110,12 +116,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+}
+
+// `kotlinOptions { jvmTarget = "17" }` dejó de compilar con Kotlin 2.2+ ("Using 'jvmTarget:
+// String' is an error"); compilerOptions es el DSL vigente y funciona también con 2.1.10.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

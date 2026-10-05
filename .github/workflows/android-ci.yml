@@ -49,6 +49,11 @@ jobs:
       - name: Build de debug
         run: gradle :app:assembleDebug --console=plain
 
+      # R8 solo corre en release: sin este paso una regla de proguard-rules.pro rota (o un DTO
+      # que R8 renombra) no se vería hasta publicar. La URL es pública y solo se compila.
+      - name: Build de release (R8)
+        run: gradle :app:assembleRelease -PRELEASE_API_BASE_URL=https://api.urbanblade.com.mx/api/v1/ --console=plain
+
       - name: Reportes de lint y pruebas
         if: always()
         uses: actions/upload-artifact@v7
