@@ -4,10 +4,14 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 
+// `plataforma` le dice al backend que este token es de la app móvil: tiene su propia vigencia
+// (config/auth.php de barber: 180 días con ventana deslizante, la web usa 30). Sin ella el
+// backend la infiere del device_name, pero declararla evita depender del texto del nombre.
 data class LoginRequest(
     val email: String,
     val password: String,
-    @SerializedName("device_name") val deviceName: String = "Android UrbanBlade"
+    @SerializedName("device_name") val deviceName: String = "Android UrbanBlade",
+    val plataforma: String = "movil"
 )
 
 data class RegisterRequest(
@@ -15,7 +19,8 @@ data class RegisterRequest(
     val email: String,
     val password: String,
     @SerializedName("password_confirmation") val passwordConfirmation: String,
-    @SerializedName("device_name") val deviceName: String = "Android UrbanBlade"
+    @SerializedName("device_name") val deviceName: String = "Android UrbanBlade",
+    val plataforma: String = "movil"
 )
 
 data class ForgotPasswordRequest(val email: String)
