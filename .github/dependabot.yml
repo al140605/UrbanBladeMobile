@@ -1,0 +1,43 @@
+# Dependabot (HT-08 / TT22): PR semanales con actualizaciones de dependencias.
+#
+# Proceso de actualización:
+# 1. Dependabot abre los PR los lunes. Menores y parches van agrupados en un
+#    solo PR por ecosistema; cada versión mayor llega en su propio PR.
+# 2. El Android CI de cada PR (lint, pruebas unitarias y build de debug) tiene
+#    que pasar antes de fusionar. Las librerías que tocan el contrato con el
+#    backend o con servicios externos (Retrofit/OkHttp, Stripe, Firebase,
+#    Credential Manager) se prueban además en un teléfono real: login, reserva,
+#    pago con tarjeta en modo prueba y push.
+# 3. El plugin de Android (AGP), Kotlin y el compilador de Compose se mueven
+#    juntos: si llegan por separado y el CI falla, se fusionan en un solo PR.
+# 4. Los PR de seguridad inmediatos (sin esperar al lunes) requieren activar
+#    "Dependabot alerts" y "Dependabot security updates" en Settings >
+#    Code security del repo; este archivo solo cubre las versiones.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+      timezone: America/Mexico_City
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      gradle-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+      timezone: America/Mexico_City
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions:
+        update-types: [minor, patch, major]
