@@ -58,6 +58,24 @@ class UrbanBladeApiContractTest {
     }
 
     @Test
+    fun `login declara la plataforma movil para recibir un token de movil`() = runTest {
+        // barber da a cada plataforma su propia vigencia de token; el cuerpo que sale de verdad
+        // hacia el servidor debe llevar `plataforma` (y el nombre del campo es el del backend).
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"message":"ok","token_type":"Bearer","token":"abc123","expires_at":"2026-11-04T12:00:00.000000Z",
+                    "user":{"id":"1","name":"Ana","email":"ana@test.com","roles":["cliente"]}}"""
+            )
+        )
+
+        api.login(LoginRequest("ana@test.com", "secret123"))
+
+        val enviado = Gson().fromJson(server.takeRequest().body.readUtf8(), Map::class.java)
+        assertEquals("movil", enviado["plataforma"])
+        assertEquals("Android UrbanBlade", enviado["device_name"])
+    }
+
+    @Test
     fun `login 401 propaga HttpException con code 401`() = runTest {
         server.enqueue(MockResponse().setResponseCode(401).setBody("""{"message":"Credenciales incorrectas."}"""))
 
