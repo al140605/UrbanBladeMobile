@@ -595,12 +595,32 @@ UrbanBladeMobile/
 - [ ] Paridad visual completa con los 4 temas de UrbanBlade Web
 - [ ] Stripe Android SDK
 - [ ] Firebase Cloud Messaging
-- [ ] Pruebas unitarias
-- [ ] Pruebas instrumentadas
+- [x] Pruebas unitarias (40 archivos JVM en `app/src/test/`)
+- [ ] Pruebas instrumentadas (`app/src/androidTest/` está vacío)
 - [ ] Soporte offline selectivo
 - [ ] APK / AAB firmado
-- [ ] CI/CD Android
+- [x] CI/CD Android (`.github/workflows/android-ci.yml`: lint + pruebas unitarias + build de debug)
 - [ ] Publicación en Google Play
+
+---
+
+## ✅ Verificación
+
+El sandbox del workspace corre las pruebas de los cuatro proyectos de una vez:
+
+```powershell
+cd ..\barber\scripts\verificacion
+.\verificar.ps1 -Proyecto mobile
+```
+
+Ejecuta, en este orden: `gradle :app:lintDebug`, `:app:testDebugUnitTest` (217 pruebas
+JVM en 40 archivos) y `:app:assembleDebug`. Necesita el **Android SDK** y **Gradle 8.13** — el
+repo no versiona `gradlew` a propósito, se usa la misma versión declarada en
+`gradle-wrapper.properties`. Si falta alguno, el sandbox lo reporta como **omitido** con
+el motivo, en vez de darlo por bueno.
+
+> El sandbox avisa además de una trampa conocida: `local.properties` define `sdk.dir`,
+> y ese archivo **no se versiona**. Sin él, Gradle no encuentra el SDK.
 
 ---
 
