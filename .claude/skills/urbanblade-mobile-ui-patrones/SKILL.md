@@ -143,8 +143,8 @@ responsabilidad).
 8. **Formularios de Stripe** (`CardMultilineWidget`) heredan colores del tema oscuro: fijar
    texto, pista y acento (`styleCardWidget`) o salen blancos sobre blanco.
 9. **Validar** con `gradle :app:testDebugUnitTest` e instalar con `:app:installDebug`.
-   La IA no hace commit ni push; entrega el mensaje en español con el ID de la tarea y
-   sin línea `Co-Authored-By`.
+   Git por rama y PR según `git-commit-conventions`; el mensaje va en español con el ID de
+   la tarea y sin línea `Co-Authored-By`.
 
 ## 8. Kit de controles, dashboards y gráficas (plan del 26-sep-2026)
 
@@ -166,3 +166,34 @@ request de Retrofit quedan idénticos.
 
 Validar igual que siempre (sección 7, punto 9) y revisar cada pantalla tocada en el S25
 en al menos un tema oscuro y en "Libreta".
+
+## 9. Movimiento y datos extremos en Compose (reglas adaptadas de emilkowalski/skills)
+
+Mismo criterio que en la web (`frontend-urban/.claude/skills/ui-ux-visual-polish`), con estas
+equivalencias:
+
+- **Primero, ¿debe animarse?** Por frecuencia y propósito: lo que el usuario hace muchas veces
+  al día no se anima; lo ocasional (hojas de pago, diálogos) sí; lo raro (reserva confirmada,
+  recibo, sello) puede llevar un detalle de gusto.
+- **Salidas y entradas con *ease-out*:** `tween` con `CubicBezierEasing(0.23f, 1f, 0.32f, 1f)` o
+  `FastOutSlowInEasing`; nunca `LinearEasing` en la interfaz salvo barras de progreso. Lo que
+  se arrastra o responde al dedo usa `spring` o `Animatable`, que se reorienta desde donde
+  está, en vez de reiniciar.
+- **Duración de la interfaz por debajo de 300 ms.**
+- **Anima la capa, no el diseño:** `graphicsLayer { translationX/Y, scaleX/Y, alpha,
+  rotation }` y no `width`, `height` ni `padding`, que obligan a recomponer y medir en cada
+  cuadro. Nada nace de escala 0: parte de 0.85–0.95 con `alpha` bajo (así lo hace
+  `UrbanCreditCardCarousel`).
+- **Respuesta al toque:** todo control tocable cambia al presionarlo (escala 0.97 o cambio de
+  color) y las acciones importantes vibran con `HapticFeedbackType`, sin abusar.
+- **Movimiento reducido:** cuando el sistema tiene la escala de animaciones en 0, la pantalla
+  tiene que seguir siendo clara sin movimiento.
+- **Datos extremos antes de dar por buena una pantalla:** nombres largos con acentos y de una
+  letra (iniciales), correo largo, campo opcional vacío (sin renglón huérfano), listas con 0, 1
+  y muchos elementos (`UrbanFormat.count` para "1 cita"/"3 citas"), números con formato local,
+  textos con `maxLines` y `TextOverflow.Ellipsis` donde no debe crecer la tarjeta, ancho de
+  320 dp, **tamaño de fuente al máximo** y los cuatro temas. En el S25 se prueba el tamaño de
+  fuente con `adb shell settings put system font_scale 2.0` y **se restaura** con
+  `adb shell settings put system font_scale 1.0`. Los datos se cambian en el borde (el
+  repositorio o el estado del `ViewModel`), nunca editando el diseño; los fallos se reportan
+  con su propuesta antes de corregir.
