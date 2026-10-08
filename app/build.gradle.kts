@@ -34,6 +34,13 @@ val releaseApiBaseUrl = providers.gradleProperty("RELEASE_API_BASE_URL").orNull
     ?: localProperties.getProperty("RELEASE_API_BASE_URL")
     ?: "https://PENDIENTE_CONFIGURAR.example/api/v1/"
 
+// Firma de release (Play App Signing: esta es la *upload key*). El keystore vive FUERA del repo;
+// se declara en local.properties (o -P) con UPLOAD_STORE_FILE, UPLOAD_STORE_PASSWORD,
+// UPLOAD_KEY_ALIAS y UPLOAD_KEY_PASSWORD. Sin ellos el release sale sin firmar y falla la guarda.
+fun signingProp(name: String): String? =
+    providers.gradleProperty(name).orNull ?: localProperties.getProperty(name)
+val uploadStoreFile = signingProp("UPLOAD_STORE_FILE")
+
 // Staging en AWS (CloudFront, HTTPS) detrás del dominio propio. La URL no es un secreto; se puede
 // sobreescribir con STAGING_API_BASE_URL (local.properties o -P) si cambia.
 val stagingApiBaseUrl = providers.gradleProperty("STAGING_API_BASE_URL").orNull
@@ -55,12 +62,12 @@ val stripePublishableKey = providers.gradleProperty("STRIPE_PUBLISHABLE_KEY").or
 
 android {
     namespace = "com.urbanblade.mobile"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.urbanblade.mobile"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36   // Play exige API 36 en apps nuevas desde 31-ago-2026
         versionCode = 3
         versionName = "3.0.0"
 
@@ -87,6 +94,17 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (uploadStoreFile != null) {
+            create("upload") {
+                storeFile = file(uploadStoreFile)
+                storePassword = signingProp("UPLOAD_STORE_PASSWORD")
+                keyAlias = signingProp("UPLOAD_KEY_ALIAS")
+                keyPassword = signingProp("UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         // API_BASE_URL se define por variante, no en defaultConfig: debug solo habla
         // con el emulador (10.0.2.2, HTTP -- loopback, no es un secreto); release
@@ -100,6 +118,7 @@ android {
             // llena por reflexión se conservan en proguard-rules.pro.
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // Build de prueba contra el staging de AWS: se instala igual que debug (mismo
@@ -118,6 +137,24 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+}
+
+// Guarda de publicación: el AAB que se sube a Google Play (bundleRelease) con valores PENDIENTE o clave
+// de prueba de Stripe sale roto en producción, así que el build falla antes de generarlo. Solo aplica a
+// bundleRelease: el CI corre assembleRelease (R8) sin claves ni keystore y debe seguir compilando.
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project == project && it.name.startsWith("bundle") && it.name.endsWith("Release") }) {
+        val problemas = buildList {
+            if (releaseApiBaseUrl.contains("PENDIENTE") || !releaseApiBaseUrl.startsWith("https://")) add("RELEASE_API_BASE_URL (debe ser https real)")
+            if (googleClientId.contains("PENDIENTE")) add("GOOGLE_CLIENT_ID")
+            if (!stripePublishableKey.startsWith("pk_live_")) add("STRIPE_PUBLISHABLE_KEY (debe ser pk_live_)")
+            if (uploadStoreFile == null) add("UPLOAD_STORE_FILE / contraseñas del keystore de subida")
+            if (!file("google-services.json").exists()) add("app/google-services.json")
+        }
+        if (problemas.isNotEmpty()) {
+            throw GradleException("Release no publicable, falta configurar: " + problemas.joinToString(", "))
+        }
     }
 }
 
