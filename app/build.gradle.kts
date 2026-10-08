@@ -231,6 +231,8 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    // Certificados falsos para probar el certificate pinning (CertificatePinsTest).
+    testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     // Mockito 5.x mockea AuthRepository (clase final) sin necesitar un
     // SessionManager real (que exige un Context de Android/DataStore no
     // disponible en pruebas JVM puras).

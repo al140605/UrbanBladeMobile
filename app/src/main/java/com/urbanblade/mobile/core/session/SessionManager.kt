@@ -11,18 +11,20 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore by preferencesDataStore(name = "urbanblade_session")
 
 class SessionManager(private val context: Context) {
-    private val tokenKey = stringPreferencesKey("bearer_token")
     private val themeKey = stringPreferencesKey("theme")
 
-    val token: Flow<String?> = context.dataStore.data.map { it[tokenKey] }
+    // El token vive cifrado (AES-256-GCM, clave en Android Keystore); ver SessionTokenStore.
+    private val tokenStore = SessionTokenStore(context.dataStore, AesGcmTokenCipher(KeystoreAesKey::get))
+
+    val token: Flow<String?> = tokenStore.token
     val theme: Flow<String?> = context.dataStore.data.map { it[themeKey] }
 
-    suspend fun currentToken(): String? = token.first()
+    suspend fun currentToken(): String? = tokenStore.currentToken()
 
     suspend fun currentTheme(): String? = theme.first()
 
     suspend fun saveToken(token: String) {
-        context.dataStore.edit { it[tokenKey] = token }
+        tokenStore.saveToken(token)
     }
 
     // El tema es una preferencia de apariencia, no de sesión -- a
@@ -32,6 +34,6 @@ class SessionManager(private val context: Context) {
     }
 
     suspend fun clear() {
-        context.dataStore.edit { it.remove(tokenKey) }
+        tokenStore.clear()
     }
 }
