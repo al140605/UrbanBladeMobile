@@ -4,6 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -922,6 +923,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
     var customTip by remember { mutableStateOf("") }
     var giftCardCode by remember { mutableStateOf("") }
     var puntos by remember { mutableStateOf("") }
+    var showExtras by remember { mutableStateOf(false) }
     var receiptUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val savedCards by vm.savedCards.collectAsState()
     val savedCardConfirm by vm.savedCardConfirm.collectAsState()
@@ -983,12 +985,15 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                 )
             }
         } else {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+            // Con carrusel de tarjetas el contenido supera la altura de pantallas chicas: la hoja se desplaza
+            // para que el botón de pagar siempre se pueda alcanzar.
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 8.dp)) {
             UrbanSectionTitle("Pagar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 
             UrbanKeyValue("Servicio", "\$${"%.0f".format(basePrice)}")
             if (tipAmount > 0) UrbanKeyValue("Propina", "\$${"%.0f".format(tipAmount)}")
+            UrbanKeyValue("Total estimado", "\$${"%.0f".format(basePrice + tipAmount)}")
             Spacer(Modifier.height(4.dp))
             Text(
                 "El monto final (con descuentos de nivel/membresía o gift card aplicados) lo confirma UrbanBlade al procesar el pago.",
@@ -1015,27 +1020,37 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
-            UrbanFieldLabel("Código de gift card (opcional)")
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                giftCardCode, { giftCardCode = it },
-                placeholder = { Text("Ej. UB-XXXXXX") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            )
+            // Gift card y puntos son poco frecuentes: se esconden para que el método de pago quede a la vista.
+            val extrasOpen = showExtras || giftCardCode.isNotBlank() || puntos.isNotBlank()
+            TextButton(onClick = { showExtras = !extrasOpen }) {
+                Text(if (extrasOpen) "Ocultar gift card y puntos" else "¿Tienes gift card o puntos?", color = UrbanColors.Gold)
+                Icon(if (extrasOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, tint = UrbanColors.Gold)
+            }
+            if (extrasOpen) {
+                Spacer(Modifier.height(16.dp))
+                UrbanFieldLabel("Código de gift card (opcional)")
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    giftCardCode, { giftCardCode = it },
+                    placeholder = { Text("Ej. UB-XXXXXX") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                )
 
-            Spacer(Modifier.height(16.dp))
-            UrbanFieldLabel("Puntos a canjear (opcional)")
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                puntos, { puntos = it.filter(Char::isDigit) },
-                placeholder = { Text("0") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            )
+                Spacer(Modifier.height(16.dp))
+                UrbanFieldLabel("Puntos a canjear (opcional)")
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    puntos, { puntos = it.filter(Char::isDigit) },
+                    placeholder = { Text("0") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                )
+
+            }
 
             Spacer(Modifier.height(20.dp))
             UrbanFieldLabel("Método de pago")

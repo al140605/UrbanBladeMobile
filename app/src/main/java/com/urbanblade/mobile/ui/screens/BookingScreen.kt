@@ -136,7 +136,7 @@ fun BookingScreen(
         if (savedId != null) {
             paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
         } else {
-            val params = pay.cardWidget?.paymentMethodCreateParams
+            val params = pay.paymentMethodParams()
             if (params != null) {
                 paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
             } else {
@@ -341,8 +341,8 @@ fun BookingScreen(
                         if (step == BookingStep.PAY) {
                             localError = null
                             val savedId = pay.savedCardToUse(savedCards)
-                            if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.cardWidget?.paymentMethodCreateParams == null) {
-                                localError = "Revisa los datos de tu tarjeta: número, vencimiento y CVC."
+                            if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.newCardProblem() != null) {
+                                localError = pay.newCardProblem()
                                 // Lleva al formulario para que se vea qué falta (antes quedaba abajo, fuera de la vista).
                                 pay.cardAttention++
                             } else {

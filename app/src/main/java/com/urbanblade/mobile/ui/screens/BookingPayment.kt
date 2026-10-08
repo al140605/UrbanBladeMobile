@@ -2,6 +2,8 @@ package com.urbanblade.mobile.ui.screens
 
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.ContextThemeWrapper
 import android.widget.EditText
 import android.widget.Toast
@@ -36,7 +38,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import com.stripe.android.model.PaymentMethod
+import com.stripe.android.model.PaymentMethodCreateParams
 import com.stripe.android.view.CardMultilineWidget
+import com.urbanblade.mobile.core.payment.cardDigits
+import com.urbanblade.mobile.core.payment.detectCardBrand
+import com.urbanblade.mobile.core.payment.expiryPreview
+import com.urbanblade.mobile.core.payment.holderNameProblem
+import com.urbanblade.mobile.core.payment.normalizeHolderName
 import com.urbanblade.mobile.data.model.SavedCard
 import com.urbanblade.mobile.data.model.TransferInfo
 import com.urbanblade.mobile.ui.components.*
@@ -61,6 +73,32 @@ class BookingPaymentState {
 
     /** Formulario de Stripe en pantalla; no es estado de Compose, solo la vista viva para leer lo que escribió el cliente. */
     var cardWidget: CardMultilineWidget? = null
+
+    /** Nombre impreso en la tarjeta nueva; se manda a Stripe como dato de facturación y se muestra en la tarjeta. */
+    var holderName by mutableStateOf("")
+    var holderTouched by mutableStateOf(false)
+
+    /** Lo que se lleva escrito del número y del vencimiento, para dibujar la tarjeta en vivo. */
+    var cardNumberDigits by mutableStateOf("")
+    var cardExpiryText by mutableStateOf("")
+
+    fun newCardPreview() = NewCardPreview(
+        brand = detectCardBrand(cardNumberDigits),
+        digits = cardNumberDigits,
+        holder = holderName,
+        expiry = cardExpiryText
+    )
+
+    /** Datos de la tarjeta nueva para Stripe, con el nombre del titular como dato de facturación. */
+    fun paymentMethodParams(): PaymentMethodCreateParams? {
+        val card = cardWidget?.paymentMethodCard ?: return null
+        return PaymentMethodCreateParams.create(card, PaymentMethod.BillingDetails(name = holderName.trim().ifBlank { null }))
+    }
+
+    /** Qué falta para pagar con una tarjeta nueva, o null si se puede. */
+    fun newCardProblem(): String? =
+        holderNameProblem(holderName)
+            ?: if (cardWidget?.paymentMethodCard == null) "Revisa los datos de tu tarjeta: número, vencimiento y CVC." else null
 
     /** Propina estimada sobre el precio de lista; barber la vuelve a validar y solo la suma aparte. */
     fun tipFor(base: Double): Double = when (tipOption) {
@@ -284,26 +322,23 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
 
     if (savedCards.isNotEmpty()) {
         UrbanFieldLabel("Tus tarjetas")
-        Spacer(Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            savedCards.forEach { card ->
-                SavedCardRow(
-                    title = "${cardBrandLabel(card.brand)} •••• ${card.last4}",
-                    subtitle = cardExpiryLabel(card),
-                    icon = Icons.Default.CreditCard,
-                    selected = usingSaved == card.id
-                ) {
+        Spacer(Modifier.height(10.dp))
+        // Carrusel con las tarjetas guardadas y «Otra tarjeta» como última página (mismo componente
+        // que el cobro de citas): deslizar elige la tarjeta, sin filas con botón de selección.
+        com.urbanblade.mobile.ui.components.UrbanCreditCardCarousel(
+            cards = savedCards,
+            selectedCardId = usingSaved,
+            startOnNewCard = usingSaved == null,
+            newCardPreview = state.newCardPreview(),
+            onSelect = { id ->
+                if (id == null) {
+                    state.useNewCard = true
+                } else {
                     state.useNewCard = false
-                    state.selectedCardId = card.id
+                    state.selectedCardId = id
                 }
             }
-            SavedCardRow(
-                title = "Usar otra tarjeta",
-                subtitle = "Crédito o débito",
-                icon = Icons.Default.AddCard,
-                selected = usingSaved == null
-            ) { state.useNewCard = true }
-        }
+        )
     }
 
     // Al aparecer (se eligió Tarjeta) y cada vez que falten datos, el formulario se pone a la vista.
@@ -316,7 +351,24 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
     if (usingSaved == null) {
         if (savedCards.isNotEmpty()) Spacer(Modifier.height(16.dp))
         UrbanFieldLabel("Datos de la tarjeta")
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
+        // Sin tarjetas guardadas no hay carrusel: la tarjeta en vivo se muestra sola, igual que en él.
+        if (savedCards.isEmpty()) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LiveCardPreview(state.newCardPreview()) }
+            Spacer(Modifier.height(14.dp))
+        }
+        UrbanTextField(
+            value = state.holderName,
+            onValueChange = { state.holderName = normalizeHolderName(it) },
+            label = "Nombre del titular",
+            leadingIcon = Icons.Default.Person,
+            placeholder = "Como aparece en la tarjeta",
+            error = if ((state.holderTouched || state.cardAttention > 0)) holderNameProblem(state.holderName) else null,
+            capitalization = KeyboardCapitalization.Characters,
+            imeAction = ImeAction.Next,
+            onBlur = { state.holderTouched = true }
+        )
+        Spacer(Modifier.height(12.dp))
         // El formulario de Stripe es una vista clásica: toma los colores del tema de la app (tarjeta,
         // texto, pistas y dorado al enfocar) en lugar de un recuadro blanco que no combinaba.
         val colors = CardFormColors(
@@ -346,6 +398,20 @@ internal fun CardDetails(state: BookingPaymentState, savedCards: List<SavedCard>
                         widget.setShouldShowPostalCode(false)
                         styleCardWidget(widget, colors)
                         state.cardWidget = widget
+                        // La tarjeta en pantalla se llena con lo que se escribe aquí (marca, número y vencimiento).
+                        state.cardNumberDigits = ""
+                        state.cardExpiryText = ""
+                        fun field(name: String) = widget.findViewById<EditText>(widget.resources.getIdentifier(name, "id", widget.context.packageName))
+                        field("et_card_number")?.addTextChangedListener(object : TextWatcher {
+                            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                            override fun afterTextChanged(s: Editable?) { state.cardNumberDigits = cardDigits(s?.toString().orEmpty()) }
+                        })
+                        field("et_expiry")?.addTextChangedListener(object : TextWatcher {
+                            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                            override fun afterTextChanged(s: Editable?) { state.cardExpiryText = expiryPreview(s?.toString().orEmpty()) }
+                        })
                     }
                 },
                 // Si el usuario cambia de tema con la hoja abierta, se vuelven a pintar los campos.

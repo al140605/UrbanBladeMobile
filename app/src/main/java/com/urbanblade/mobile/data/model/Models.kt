@@ -529,7 +529,9 @@ data class SavedCard(
     val brand: String = "card",
     val last4: String = "",
     @SerializedName("exp_month") val expMonth: Int = 0,
-    @SerializedName("exp_year") val expYear: Int = 0
+    @SerializedName("exp_year") val expYear: Int = 0,
+    /** Nombre del titular tal como se guardó en Stripe; null en tarjetas guardadas antes de pedirlo. */
+    val holder: String? = null
 )
 data class SavedCardsResponse(val data: List<SavedCard> = emptyList())
 data class StripeIntentResponseData(
