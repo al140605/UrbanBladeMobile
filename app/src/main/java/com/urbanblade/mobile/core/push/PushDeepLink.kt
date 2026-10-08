@@ -17,7 +17,9 @@ object PushDeepLink {
 
     /** Lee la ruta del intent (extra propio o dato que Firebase copia al tocar la notificación). */
     fun handle(intent: Intent?) {
-        safePushRoute(intent?.getStringExtra(EXTRA_ROUTE))?.let { _pending.value = it }
+        val route = safePushRoute(intent?.getStringExtra(EXTRA_ROUTE))
+            ?: routeFromDeepLink(intent?.data?.scheme, intent?.data?.host, intent?.data?.getQueryParameter("route"))
+        route?.let { _pending.value = it }
     }
 
     fun consume() {

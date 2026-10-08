@@ -24,9 +24,17 @@ data class PushContent(
 )
 
 /** Pantallas a las que una notificación puede llevar. Lo demás se ignora (la app no abre rutas arbitrarias). */
-val PUSH_ROUTES = setOf("home", "appointments", "payments", "orders", "wallet", "notifications", "inventory")
+val PUSH_ROUTES = setOf(
+    "home", "appointments", "payments", "orders", "wallet", "notifications", "inventory",
+    // Añadidas para los enlaces de los correos (urbanblade://open?route=...).
+    "catalog", "barber_agenda", "profile",
+)
 
 fun safePushRoute(route: String?): String? = route?.trim()?.takeIf { it in PUSH_ROUTES }
+
+/** Pantalla pedida por un enlace `urbanblade://open?route=<pantalla>`; null si no es de la app o no está permitida. */
+fun routeFromDeepLink(scheme: String?, host: String?, route: String?): String? =
+    if (scheme == "urbanblade" && host == "open") safePushRoute(route) else null
 
 /**
  * Pantalla a la que lleva una notificación de la bandeja (GET /notifications) según su `type`. Son los
