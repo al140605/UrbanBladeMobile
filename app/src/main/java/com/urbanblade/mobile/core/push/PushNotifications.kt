@@ -10,12 +10,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.urbanblade.mobile.MainActivity
 import com.urbanblade.mobile.R
 import com.urbanblade.mobile.data.repository.UrbanRepository
+import com.urbanblade.mobile.ui.theme.UrbanColors
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -28,7 +30,6 @@ import kotlin.coroutines.resume
  * apagado sin romper nada (isAvailable() == false).
  */
 object PushNotifications {
-    const val CHANNEL_ID = "citas"
 
     fun isAvailable(context: Context): Boolean = FirebaseApp.getApps(context).isNotEmpty()
 
@@ -36,12 +37,16 @@ object PushNotifications {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    fun ensureChannel(context: Context) {
+    /** Crea (o actualiza) todos los canales; se llama al arrancar para que existan antes del primer aviso. */
+    fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(CHANNEL_ID, "Citas", NotificationManager.IMPORTANCE_HIGH).apply {
-            description = "Recordatorios y cambios de tus citas en UrbanBlade"
+        val manager = context.getSystemService(NotificationManager::class.java)
+        PushChannel.entries.forEach { c ->
+            val importance = if (c.important) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT
+            manager.createNotificationChannel(
+                NotificationChannel(c.id, c.label, importance).apply { description = c.description }
+            )
         }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     /** Obtiene el token FCM actual y lo registra en barber. Devuelve false si no se pudo. */
@@ -76,20 +81,34 @@ object PushNotifications {
 
     fun show(context: Context, content: PushContent) {
         if (!canNotify(context)) return
-        ensureChannel(context)
+        ensureChannels(context)
         val openApp = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            context, content.channel.ordinal,
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(PushDeepLink.EXTRA_ROUTE, content.route),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, content.channel.id)
             .setSmallIcon(R.drawable.ic_stat_urbanblade)
+            .setColor(UrbanColors.Gold.toArgb())
             .setContentTitle(content.title)
             .setContentText(content.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content.body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(if (content.channel.important) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(if (content.channel == PushChannel.PROMOCIONES) NotificationCompat.CATEGORY_PROMO else NotificationCompat.CATEGORY_EVENT)
+            // Se agrupan por canal para que varios avisos no llenen la bandeja.
+            .setGroup("urbanblade_${content.channel.id}")
             // En pantalla de bloqueo solo se ve "UrbanBlade", no los datos de la cita (checklist CN-098).
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(context, content.channel.id)
+                    .setSmallIcon(R.drawable.ic_stat_urbanblade)
+                    .setColor(UrbanColors.Gold.toArgb())
+                    .setContentTitle("UrbanBlade")
+                    .setContentText("Tienes un aviso nuevo")
+                    .build()
+            )
             .setAutoCancel(true)
             .setContentIntent(openApp)
             .build()

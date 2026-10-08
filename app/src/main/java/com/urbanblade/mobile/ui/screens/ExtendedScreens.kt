@@ -1,5 +1,7 @@
 package com.urbanblade.mobile.ui.screens
 
+import com.urbanblade.mobile.core.push.routeForNotificationType
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -213,7 +215,7 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit) {
 }
 
 @Composable
-fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewModel()) {
+fun NotificationsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, vm: NotificationsViewModel = viewModel()) {
     val data by vm.data.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
@@ -244,14 +246,19 @@ fun NotificationsScreen(onBack: () -> Unit, vm: NotificationsViewModel = viewMod
                 UrbanMascotState(UrbanStateKind.EMPTY, "Sin notificaciones", "Aquí verás confirmaciones de citas, pagos y novedades.")
             }
             else -> items(view.items, key = { it.id }) { n ->
-                NotificationRow(n) { if (!n.read) vm.read(n.id) }
+                val route = routeForNotificationType(n.type)
+                NotificationRow(n, hasRoute = route != null) {
+                    if (!n.read) vm.read(n.id)
+                    // Tocar un aviso lo marca como leído y abre lo que anuncia (cita, pago, pedido...).
+                    route?.let(onOpen)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun NotificationRow(n: NotificationItem, onOpen: () -> Unit) {
+private fun NotificationRow(n: NotificationItem, hasRoute: Boolean, onOpen: () -> Unit) {
     val (icon, kindTone) = notificationLook(n)
     // Leídas en gris; sin leer, con el color de su tipo (cancelada en rojo, confirmada en verde...).
     val tone = if (n.read) UrbanColors.Muted else kindTone
@@ -293,6 +300,10 @@ private fun NotificationRow(n: NotificationItem, onOpen: () -> Unit) {
             if (!n.read) {
                 Spacer(Modifier.width(8.dp))
                 Box(Modifier.padding(top = 6.dp).size(9.dp).clip(CircleShape).background(UrbanColors.Gold))
+            }
+            if (hasRoute) {
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted, modifier = Modifier.padding(top = 8.dp).size(20.dp))
             }
         }
     }
