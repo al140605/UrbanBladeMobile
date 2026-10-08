@@ -70,7 +70,7 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
     LaunchedEffect(checkout) {
         val confirm = checkout ?: return@LaunchedEffect
         val savedId = confirm.savedCardId
-        val params = payState.cardWidget?.paymentMethodCreateParams
+        val params = payState.paymentMethodParams()
         when {
             savedId != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
             params != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
@@ -202,8 +202,10 @@ fun WalletScreen(onBack: () -> Unit, vm: WalletViewModel = viewModel()) {
                 testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
                 onPay = {
                     val savedId = payState.savedCardToUse(data.savedCards)
-                    if (savedId == null && payState.cardWidget?.paymentMethodCreateParams == null) {
-                        sheetError = "Revisa los datos de tu tarjeta: número, vencimiento y CVC."
+                    if (savedId == null && payState.newCardProblem() != null) {
+                        payState.holderTouched = true
+                        payState.cardAttention++
+                        sheetError = payState.newCardProblem()
                     } else {
                         sheetError = null
                         vm.subscribe(plan.id, savedId)

@@ -156,6 +156,19 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         }
     }
 
+    // Notificación tocada (push): abre la pantalla indicada una sola vez. Si llegó antes de iniciar
+    // sesión, espera aquí a que exista la navegación autenticada.
+    val pushRoute by com.urbanblade.mobile.core.push.PushDeepLink.pending.collectAsState()
+    LaunchedEffect(pushRoute) {
+        val route = pushRoute ?: return@LaunchedEffect
+        com.urbanblade.mobile.core.push.PushDeepLink.consume()
+        // Se vacía la pila hasta Inicio: «atrás» desde el aviso regresa a Inicio, no a otro aviso abierto antes.
+        if (route != "home") nav.navigate(route) {
+            popUpTo(nav.graph.findStartDestination().id)
+            launchSingleTop = true
+        }
+    }
+
     var bubbleShown by remember { mutableStateOf(true) }
     LaunchedEffect(current) {
         bubbleShown = true
@@ -292,7 +305,9 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("store") { StoreScreen(user = user, onOrders = { nav.navigate("orders") }) }
                 composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }
-                composable("notifications") { NotificationsScreen(onBack = { nav.popBackStack() }) }
+                composable("notifications") {
+                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> nav.navigate(route) { launchSingleTop = true } })
+                }
                 composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId ->
                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_reservar")
                     nav.openBooking(bookingRoute(serviceId, null))

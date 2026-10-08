@@ -30,8 +30,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import com.urbanblade.mobile.core.payment.cardNumberPreview
 import com.urbanblade.mobile.data.model.SavedCard
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -51,10 +53,14 @@ fun UrbanCreditCardCarousel(
     cards: List<SavedCard>,
     selectedCardId: String?,
     onSelect: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Abre en «Otra tarjeta» (la última página) en vez de en la tarjeta elegida. */
+    startOnNewCard: Boolean = false,
+    /** Lo que la persona escribe de una tarjeta nueva: «Otra tarjeta» se dibuja en vivo con ello. */
+    newCardPreview: NewCardPreview? = null
 ) {
     val pageCount = cards.size + 1
-    val initialPage = cards.indexOfFirst { it.id == selectedCardId }.takeIf { it >= 0 } ?: 0
+    val initialPage = if (startOnNewCard) cards.size else cards.indexOfFirst { it.id == selectedCardId }.takeIf { it >= 0 } ?: 0
     val pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -109,13 +115,27 @@ fun UrbanCreditCardCarousel(
                         selected = pagerState.currentPage == page
                     }
             ) {
-                if (card != null) CardFace(card) else NewCardFace()
+                when {
+                    card != null -> CardFace(card)
+                    newCardPreview?.hasInput == true -> LiveCardFace(newCardPreview)
+                    else -> NewCardFace()
+                }
             }
         }
 
         Spacer(Modifier.height(10.dp))
         PagerDots(count = pageCount, current = pagerState.currentPage)
     }
+}
+
+/** Lo escrito de una tarjeta nueva. La marca usa los códigos de Stripe: visa, mastercard, amex... */
+data class NewCardPreview(
+    val brand: String = "unknown",
+    val digits: String = "",
+    val holder: String = "",
+    val expiry: String = ""
+) {
+    val hasInput: Boolean get() = digits.isNotEmpty() || holder.isNotBlank() || expiry.isNotEmpty()
 }
 
 /** Proporción de una tarjeta física (ISO/IEC 7810 ID-1). */
@@ -167,7 +187,53 @@ private fun cardBrandName(brand: String): String = when (brand.lowercase()) {
 
 @Composable
 private fun CardFace(card: SavedCard) {
-    val skin = skinFor(card.brand)
+    CardFaceLayout(
+        brand = card.brand,
+        numberText = "••••  ••••  ••••  ${card.last4}",
+        holder = card.holder?.takeIf { it.isNotBlank() },
+        expiry = if (card.expMonth > 0 && card.expYear > 0) "%02d/%02d".format(card.expMonth, card.expYear % 100) else null
+    )
+}
+
+/** Tarjeta que se llena mientras la persona escribe: marca, número, titular y vencimiento. */
+@Composable
+private fun LiveCardFace(preview: NewCardPreview) {
+    CardFaceLayout(
+        brand = preview.brand,
+        numberText = cardNumberPreview(preview.digits, preview.brand),
+        holder = preview.holder.takeIf { it.isNotBlank() },
+        expiry = preview.expiry.takeIf { it.isNotEmpty() },
+        holderPlaceholder = "NOMBRE DEL TITULAR",
+        expiryPlaceholder = "MM/AA"
+    )
+}
+
+/**
+ * La misma tarjeta, sola (sin carrusel), para cuando el cliente aún no tiene tarjetas guardadas y
+ * escribe la primera: se ve igual que en el carrusel.
+ */
+@Composable
+fun LiveCardPreview(preview: NewCardPreview, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .widthIn(max = 340.dp)
+            .aspectRatio(CARD_RATIO)
+            .clip(RoundedCornerShape(18.dp))
+            .semantics { contentDescription = "Vista previa de tu tarjeta" }
+    ) { LiveCardFace(preview) }
+}
+
+@Composable
+private fun CardFaceLayout(
+    brand: String,
+    numberText: String,
+    holder: String?,
+    expiry: String?,
+    holderPlaceholder: String? = null,
+    expiryPlaceholder: String? = null
+) {
+    val skin = skinFor(brand)
     Column(
         Modifier
             .fillMaxSize()
@@ -178,7 +244,7 @@ private fun CardFace(card: SavedCard) {
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("URBANBLADE", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black, color = skin.text.copy(alpha = 0.75f))
-            BrandMark(card.brand, skin)
+            BrandMark(brand, skin)
         }
         // Chip
         Box(
@@ -188,21 +254,42 @@ private fun CardFace(card: SavedCard) {
                 .background(Brush.linearGradient(listOf(Color(0xFFE9D9A6), Color(0xFFB8963F))))
         )
         Text(
-            "••••  ••••  ••••  ${card.last4}",
+            numberText,
             style = MaterialTheme.typography.titleMedium,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.SemiBold,
-            color = skin.text
+            color = skin.text,
+            maxLines = 1
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(cardBrandName(card.brand), style = MaterialTheme.typography.labelMedium, color = skin.text.copy(alpha = 0.8f))
-            if (card.expMonth > 0 && card.expYear > 0) {
-                Text(
-                    "%02d/%02d".format(card.expMonth, card.expYear % 100),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontFamily = FontFamily.Monospace,
-                    color = skin.text.copy(alpha = 0.8f)
-                )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            val holderText = holder ?: holderPlaceholder
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                if (holderText != null) {
+                    Text("TITULAR", style = MaterialTheme.typography.labelSmall, color = skin.text.copy(alpha = 0.6f))
+                    Text(
+                        holderText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = skin.text.copy(alpha = if (holder != null) 0.95f else 0.45f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else {
+                    // Tarjeta guardada antes de que existiera el titular: se muestra la marca, como siempre.
+                    Text(cardBrandName(brand), style = MaterialTheme.typography.labelMedium, color = skin.text.copy(alpha = 0.8f))
+                }
+            }
+            val expiryText = expiry ?: expiryPlaceholder
+            if (expiryText != null) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("VENCE", style = MaterialTheme.typography.labelSmall, color = skin.text.copy(alpha = 0.6f))
+                    Text(
+                        expiryText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontFamily = FontFamily.Monospace,
+                        color = skin.text.copy(alpha = if (expiry != null) 0.95f else 0.45f)
+                    )
+                }
             }
         }
     }
@@ -218,6 +305,8 @@ private fun BrandMark(brand: String, skin: CardSkin) {
         }
         "visa" -> Text("VISA", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = skin.accent)
         "amex" -> Text("AMEX", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = skin.accent)
+        // Marca aún desconocida (se está escribiendo el número): no se rotula con «UNKNOWN».
+        "unknown", "", "card" -> Unit
         else -> Text(cardBrandName(brand).uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = skin.accent)
     }
 }

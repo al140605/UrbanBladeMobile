@@ -9,6 +9,7 @@ class UrbanBladeApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppContainer.init(this)
+        com.urbanblade.mobile.core.push.PushNotifications.ensureChannels(this)
         UrbanAnalytics.init(this)
         UrbanRemoteConfig.init(this)
     }

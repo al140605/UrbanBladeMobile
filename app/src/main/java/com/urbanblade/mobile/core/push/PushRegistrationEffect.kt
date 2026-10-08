@@ -29,7 +29,7 @@ fun PushRegistrationEffect(userId: String?) {
 
     LaunchedEffect(userId) {
         if (!PushNotifications.isAvailable(context)) return@LaunchedEffect
-        PushNotifications.ensureChannel(context)
+        PushNotifications.ensureChannels(context)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !PushNotifications.canNotify(context)) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
