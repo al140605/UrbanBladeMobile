@@ -23,6 +23,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Enlaces de los correos: urbanblade://open?route=<pantalla> (la web los envía desde /abrir). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="urbanblade" android:host="open" />
+            </intent-filter>
         </activity>
 
         <!-- Recepción de notificaciones push de Firebase Cloud Messaging (T142). -->
