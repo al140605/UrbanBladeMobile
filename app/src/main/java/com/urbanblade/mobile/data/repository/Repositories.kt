@@ -3,6 +3,7 @@ package com.urbanblade.mobile.data.repository
 import android.content.Context
 import android.net.Uri
 import com.urbanblade.mobile.core.media.MediaUploadHelper
+import com.urbanblade.mobile.core.media.UploadPolicy
 import com.urbanblade.mobile.core.network.UrbanBladeApi
 import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.model.*
@@ -150,7 +151,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun updatePassword(current: String, password: String, confirmation: String) =
         api.updatePassword(ChangePasswordRequest(current, password, confirmation))
     suspend fun updateAvatar(context: Context, uri: Uri): AvatarResponse {
-        val avatar = MediaUploadHelper.uriToPart(context, uri, "avatar")
+        val avatar = MediaUploadHelper.uriToPart(context, uri, "avatar", UploadPolicy.AVATAR)
             ?: error("No se pudo leer la foto seleccionada.")
         return api.updateAvatar(avatar)
     }

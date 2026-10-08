@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.urbanblade.mobile.core.media.UploadRejectedException
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.AccountUser
 import com.urbanblade.mobile.data.model.ClientLoyalty
@@ -105,7 +106,9 @@ class AccountViewModel @JvmOverloads constructor(
             onUserChanged()
         } catch (e: Exception) {
             _state.update {
-                it.copy(notice = AccountNotice(AccountSection.AVATAR, e.serverOrFriendly("No se pudo subir la foto. Usa JPG, PNG o WebP de hasta 4 MB."), true))
+                val text = (e as? UploadRejectedException)?.message
+                    ?: e.serverOrFriendly("No se pudo subir la foto. Usa JPG, PNG o WebP de hasta 4 MB.")
+                it.copy(notice = AccountNotice(AccountSection.AVATAR, text, true))
             }
         } finally {
             _state.update { it.copy(uploadingAvatar = false) }
