@@ -7,6 +7,7 @@ import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.repository.AuthRepository
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -56,12 +57,18 @@ object AppContainer {
             }
         }
 
-        val client = OkHttpClient.Builder()
+        val clientBuilder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        // Certificate pinning en staging/release; el debug queda libre para depurar con un proxy.
+        if (!BuildConfig.DEBUG) {
+            BuildConfig.API_BASE_URL.toHttpUrlOrNull()?.host
+                ?.let { CertificatePins.forApiHost(it) }
+                ?.let { clientBuilder.certificatePinner(it) }
+        }
+        val client = clientBuilder.build()
 
         api = Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)
