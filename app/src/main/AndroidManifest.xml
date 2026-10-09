@@ -32,6 +32,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Botones de la notificación «tu servicio termina en 5 min»: terminar ya / +10 / +15 min. -->
+        <receiver
+            android:name=".core.push.ServiceActionReceiver"
+            android:exported="false" />
+
         <!-- Recepción de notificaciones push de Firebase Cloud Messaging (T142). -->
         <service
             android:name=".core.push.UrbanMessagingService"

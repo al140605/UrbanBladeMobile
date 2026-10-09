@@ -3,6 +3,7 @@ package com.urbanblade.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.urbanblade.mobile.core.network.AppContainer
+import com.urbanblade.mobile.data.model.NoShowFeeItem
 import com.urbanblade.mobile.data.model.PaymentRow
 import com.urbanblade.mobile.data.model.PaymentsStats
 import com.urbanblade.mobile.data.model.PendingPaymentRow
@@ -38,6 +39,9 @@ data class PaymentsStaffState(
      * Antes ninguna pantalla (ni la web) los mostraba y se quedaban en revisión para siempre.
      */
     val deposits: List<PendingPaymentRow> = emptyList(),
+    /** Adeudos por inasistencia pendientes: se cobran en sucursal (o admin los condona). */
+    val fees: List<NoShowFeeItem> = emptyList(),
+    val busyFeeId: String? = null,
     val query: String = "",
     val method: PaymentMethodFilter = PaymentMethodFilter.Todos,
     val range: ReportRange = ReportRange.All,
@@ -68,6 +72,7 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                 // Si falla la lista de pendientes no se oculta el historial: se conserva la anterior.
                 val pending = runCatching { repo.pendingPayments().data }.getOrDefault(_state.value.pending)
                 val deposits = runCatching { repo.pendingDeposits().data }.getOrDefault(_state.value.deposits)
+                val fees = runCatching { repo.noShowFees().data }.getOrDefault(_state.value.fees)
                 val meta = history.meta
                 _state.value = _state.value.copy(
                     items = history.data,
@@ -77,6 +82,7 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                     lastPage = meta?.lastPage ?: 1,
                     pending = pending,
                     deposits = deposits,
+                    fees = fees,
                     loading = false
                 )
             } catch (e: Exception) {
@@ -126,8 +132,48 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
         _state.value = _state.value.copy(error = null, notice = null)
     }
 
-    /** Aprueba una transferencia: el servidor completa la cita y acredita el pago. */
-    fun approve(id: String) = review(id, "No se pudo aprobar el comprobante.", "Comprobante aprobado. La cita quedó completada.") {
+    /** Cobra en sucursal un adeudo por inasistencia (efectivo o transferencia): el cliente ya puede volver a reservar. */
+    fun payFee(id: String, metodo: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(busyFeeId = id, error = null, notice = null)
+            try {
+                repo.payNoShowFee(id, metodo)
+                _state.value = _state.value.copy(
+                    fees = _state.value.fees.filterNot { it.id == id },
+                    busyFeeId = null,
+                    notice = "Cargo cobrado. El cliente ya puede volver a reservar."
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(busyFeeId = null, error = e.toFriendlyMessage("No se pudo registrar el cobro."))
+            }
+        }
+    }
+
+    /** Administración condona un adeudo; el motivo queda registrado. */
+    fun waiveFee(id: String, motivo: String, onDone: () -> Unit) {
+        val trimmed = motivo.trim()
+        if (trimmed.length < 3) {
+            _state.value = _state.value.copy(error = "Escribe el motivo para condonar el cargo.")
+            return
+        }
+        viewModelScope.launch {
+            _state.value = _state.value.copy(busyFeeId = id, error = null, notice = null)
+            try {
+                repo.waiveNoShowFee(id, trimmed.take(300))
+                _state.value = _state.value.copy(
+                    fees = _state.value.fees.filterNot { it.id == id },
+                    busyFeeId = null,
+                    notice = "Cargo condonado."
+                )
+                onDone()
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(busyFeeId = null, error = e.toFriendlyMessage("No se pudo condonar el cargo."))
+            }
+        }
+    }
+
+    /** Aprueba una transferencia: queda verificada y el pago resuelto; el barbero inicia y termina el servicio. */
+    fun approve(id: String) = review(id, "No se pudo aprobar el comprobante.", "Comprobante aprobado. El pago quedó registrado; el barbero ya puede iniciar la cita.") {
         repo.approvePayment(id)
     }
 

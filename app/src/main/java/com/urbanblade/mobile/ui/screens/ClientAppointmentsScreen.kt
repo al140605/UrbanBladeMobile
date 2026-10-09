@@ -58,6 +58,8 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
+import com.urbanblade.mobile.ui.components.ServiceTicketDialog
+import com.urbanblade.mobile.ui.components.formatMoney
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStateKind
@@ -87,6 +89,8 @@ fun ClientAppointmentsScreen(
     val hasMore by vm.hasMore.collectAsState()
     val loadingMore by vm.loadingMore.collectAsState()
     val waitlist by vm.waitlistEntries.collectAsState()
+    val debt by vm.debt.collectAsState()
+    val ticket by vm.ticket.collectAsState()
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var confirmCancel by remember { mutableStateOf<AppointmentRow?>(null) }
@@ -96,6 +100,7 @@ fun ClientAppointmentsScreen(
     LaunchedEffect(Unit) {
         vm.load()
         vm.loadWaitlist()
+        vm.loadDebt()
     }
 
     val today = remember { LocalDate.now().toString() }
@@ -150,6 +155,16 @@ fun ClientAppointmentsScreen(
             }
             else -> {
                 error?.let { item { UrbanErrorBanner(it) } }
+                if (debt > 0) {
+                    item {
+                        UrbanAttentionRow(
+                            Icons.Default.Payments,
+                            "Tienes un adeudo por inasistencia",
+                            "${formatMoney(debt)} por pagar en la barbería (efectivo o transferencia). Mientras tanto no puedes reservar.",
+                            UrbanColors.Warning
+                        )
+                    }
+                }
                 item {
                     UrbanPillTabs(
                         listOf("Próximas (${upcoming.size})" to Icons.Default.Event, "Historial" to Icons.Default.History),
@@ -226,7 +241,8 @@ fun ClientAppointmentsScreen(
                             ClientAppointmentRow(
                                 appt,
                                 onPay = if (appt.isPayable()) { { checkingOut = appt } } else null,
-                                onRebook = if (appt.estado == "completada" || appt.estado == "cancelada") { { rebook(appt) } } else null
+                                onRebook = if (appt.estado == "completada" || appt.estado == "cancelada") { { rebook(appt) } } else null,
+                                onTicket = if (appt.estado == "completada" && appt.code != null) { { vm.openTicket(appt.code) } } else null
                             )
                         }
                     }
@@ -246,6 +262,7 @@ fun ClientAppointmentsScreen(
         item { Spacer(Modifier.height(8.dp)) }
     }
 
+    ticket?.let { ServiceTicketDialog(it) { vm.dismissTicket() } }
     rescheduling?.let { RescheduleSheet(appt = it, vm = vm, onDismiss = { rescheduling = null }) }
     checkingOut?.let { CheckoutSheet(appt = it, vm = vm, onDismiss = { checkingOut = null }) }
     confirmCancel?.let { appt ->
@@ -266,6 +283,15 @@ fun ClientAppointmentsScreen(
             dismissButton = { TextButton(onClick = { confirmCancel = null }) { Text("Volver") } }
         )
     }
+}
+
+/** Qué sigue en cada estado, en lenguaje claro (el cliente no ve los botones de la agenda del barbero). */
+internal fun clientStateHint(estado: String): String? = when (estado) {
+    "pendiente" -> "Esperando que tu barbero apruebe la cita; te avisaremos en cuanto la confirme."
+    "confirmada" -> "Cita aprobada. Antes de que empiece el servicio debe estar pagada: con tarjeta aquí, o en recepción al llegar."
+    "en_proceso" -> "Tu servicio está en curso."
+    "no_asistio" -> "No registramos tu asistencia. Si hay un cargo pendiente, págalo en la barbería para volver a reservar."
+    else -> null
 }
 
 private fun AppointmentRow.isManageable() = estado in listOf("pendiente", "confirmada") && code != null
@@ -296,9 +322,9 @@ private fun NextClientAppointment(appt: AppointmentRow, onPay: (() -> Unit)?, on
                 Text("\$${"%.0f".format(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Gold)
             }
         }
-        if (appt.estado == "pendiente") {
+        clientStateHint(appt.estado)?.let {
             Spacer(Modifier.height(10.dp))
-            Text("Tu barbero aún no la confirma; te avisaremos.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
         if (onPay != null) {
             Spacer(Modifier.height(14.dp))
@@ -318,7 +344,8 @@ private fun ClientAppointmentRow(
     onPay: (() -> Unit)? = null,
     onReschedule: (() -> Unit)? = null,
     onCancel: (() -> Unit)? = null,
-    onRebook: (() -> Unit)? = null
+    onRebook: (() -> Unit)? = null,
+    onTicket: (() -> Unit)? = null
 ) {
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -341,9 +368,17 @@ private fun ClientAppointmentRow(
                 Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
         }
+        clientStateHint(appt.estado)?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
         if (onPay != null) {
             Spacer(Modifier.height(12.dp))
             UrbanPrimaryButton(text = "Pagar cita", onClick = onPay, icon = Icons.Default.Payments, modifier = Modifier.fillMaxWidth())
+        }
+        if (onTicket != null) {
+            Spacer(Modifier.height(10.dp))
+            UrbanOutlineButton(text = "Ver ticket", onClick = onTicket, modifier = Modifier.fillMaxWidth())
         }
         if (onReschedule != null || onCancel != null || onRebook != null) {
             Spacer(Modifier.height(6.dp))

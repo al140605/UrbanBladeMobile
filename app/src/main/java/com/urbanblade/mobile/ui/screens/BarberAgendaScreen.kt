@@ -17,6 +17,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.core.appointments.EXTEND_OPTIONS
+import com.urbanblade.mobile.core.appointments.RemainingTone
+import com.urbanblade.mobile.core.appointments.minutesLeft
+import com.urbanblade.mobile.core.appointments.remainingLabel
+import com.urbanblade.mobile.core.appointments.remainingTone
 import com.urbanblade.mobile.data.model.AppointmentRow
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -40,6 +45,9 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     val busy by vm.busy.collectAsState()
     val updating by vm.updating.collectAsState()
     val error by vm.error.collectAsState()
+    val ticket by vm.ticket.collectAsState()
+    val notice by vm.notice.collectAsState()
+    val forceExtend by vm.forceExtend.collectAsState()
 
     var period by remember { mutableStateOf("day") }
     var estadoFilter by remember { mutableStateOf<String?>(null) }
@@ -48,6 +56,17 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     val reload = { vm.load(period, estadoFilter, offset) }
 
     LaunchedEffect(period, estadoFilter, offset) { reload() }
+
+    // Reloj para la cuenta regresiva y recarga cada minuto: un cambio de recepción o del cliente aparece solo.
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        var ticks = 0
+        while (true) {
+            kotlinx.coroutines.delay(15_000)
+            nowMillis = System.currentTimeMillis()
+            if (++ticks % 4 == 0 && updating == null) reload()
+        }
+    }
 
     val change = { appt: AppointmentRow, estado: String ->
         if (isDestructiveStatus(estado)) confirmChange = appt to estado
@@ -128,8 +147,17 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             }
             else -> {
                 error?.let { item { UrbanErrorBanner(it) } }
+                notice?.let { item { UrbanInfoBanner(it) } }
                 items(agenda.data, key = { it.id }) { appt ->
-                    AgendaCard(appt, updating == appt.code, showDate = period == "week") { estado -> change(appt, estado) }
+                    AgendaCard(
+                        appt = appt,
+                        updating = updating == appt.code,
+                        showDate = period == "week",
+                        nowMillis = nowMillis,
+                        onExtend = { minutos -> appt.code?.let { vm.extend(it, minutos, period, estadoFilter, offset) } },
+                        onTicket = { appt.code?.let { vm.openTicket(it) } },
+                        onChangeStatus = { estado -> change(appt, estado) }
+                    )
                 }
             }
         }
@@ -140,8 +168,13 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             onDismissRequest = { confirmChange = null },
             title = { Text(if (estado == "cancelada") "¿Cancelar esta cita?" else "¿Marcar que no asistió?") },
             text = {
+                val who = "${appt.client?.user?.name ?: "El cliente"} · ${UrbanFormat.time(appt.horaInicio)}."
                 Text(
-                    "${appt.client?.user?.name ?: "El cliente"} · ${UrbanFormat.time(appt.horaInicio)}. No se puede deshacer desde la agenda."
+                    if (estado == "no_asistio") {
+                        "$who Se le generará un cargo por inasistencia: se cobra a su tarjeta guardada o queda como adeudo en recepción. No se puede deshacer desde la agenda."
+                    } else {
+                        "$who No se puede deshacer desde la agenda."
+                    }
                 )
             },
             confirmButton = {
@@ -153,11 +186,41 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             dismissButton = { TextButton(onClick = { confirmChange = null }) { Text("Volver") } }
         )
     }
+
+    // Agregar tiempo choca con la siguiente cita: el barbero decide si extiende de todos modos.
+    forceExtend?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { vm.dismissForceExtend() },
+            title = { Text("Choca con la siguiente cita") },
+            text = { Text(pending.message) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.dismissForceExtend()
+                    vm.extend(pending.code, pending.minutos, period, estadoFilter, offset, forzar = true)
+                }) { Text("Extender de todos modos", color = UrbanColors.Danger) }
+            },
+            dismissButton = { TextButton(onClick = { vm.dismissForceExtend() }) { Text("Volver") } }
+        )
+    }
+
+    // Al terminar el servicio (o al pedirlo desde una cita completada) se muestra el ticket.
+    ticket?.let { ServiceTicketDialog(it) { vm.dismissTicket() } }
 }
 
 @Composable
-private fun AgendaCard(appt: AppointmentRow, updating: Boolean, showDate: Boolean, onChangeStatus: (String) -> Unit) {
+private fun AgendaCard(
+    appt: AppointmentRow,
+    updating: Boolean,
+    showDate: Boolean,
+    nowMillis: Long,
+    onExtend: (Int) -> Unit,
+    onTicket: () -> Unit,
+    onChangeStatus: (String) -> Unit
+) {
     val next = nextStatesFor(appt.estado)
+    // Iniciar exige que sea hoy y que el pago esté resuelto (cobro verificado): el servidor lo decide y aquí se explica.
+    val startBlocked = appt.estado == "confirmada" && appt.puedeIniciar == false
+    val left = if (appt.estado == "en_proceso") minutesLeft(appt.finEstimado, nowMillis) else null
 
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -183,14 +246,41 @@ private fun AgendaCard(appt: AppointmentRow, updating: Boolean, showDate: Boolea
             Spacer(Modifier.height(8.dp))
             Text("“$it”", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
+        if (appt.estado == "en_proceso") {
+            Spacer(Modifier.height(8.dp))
+            val tone = when (remainingTone(left)) {
+                RemainingTone.OK -> UrbanColors.Info
+                RemainingTone.SOON -> UrbanColors.Warning
+                RemainingTone.OVER -> UrbanColors.Danger
+            }
+            val extra = appt.minutosExtra?.takeIf { it > 0 }?.let { " · +$it min agregados" } ?: ""
+            Text(remainingLabel(left) + extra, style = MaterialTheme.typography.titleSmall, color = tone)
+        }
+        if (startBlocked && !appt.motivoNoIniciar.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(appt.motivoNoIniciar, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Warning)
+        }
         if (next.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             UrbanPrimaryButton(
-                text = statusActionLabel(next.first()),
+                text = if (appt.estado == "pendiente") "Aprobar" else statusActionLabel(next.first()),
                 onClick = { onChangeStatus(next.first()) },
                 loading = updating,
+                enabled = !startBlocked,
                 modifier = Modifier.fillMaxWidth()
             )
+            if (appt.estado == "en_proceso") {
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EXTEND_OPTIONS.forEach { minutos ->
+                        OutlinedButton(
+                            onClick = { onExtend(minutos) },
+                            enabled = !updating,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("+$minutos min") }
+                    }
+                }
+            }
             if (next.size > 1) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     next.drop(1).forEach { estado ->
@@ -200,6 +290,10 @@ private fun AgendaCard(appt: AppointmentRow, updating: Boolean, showDate: Boolea
                     }
                 }
             }
+        }
+        if (appt.estado == "completada") {
+            Spacer(Modifier.height(12.dp))
+            UrbanOutlineButton(text = "Ver ticket", onClick = onTicket, modifier = Modifier.fillMaxWidth())
         }
     }
 }

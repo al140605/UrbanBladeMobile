@@ -300,10 +300,53 @@ class BarberAgendaViewModel : ViewModel() {
         finally { _busy.value = false }
     }
 
+    private val _ticket = MutableStateFlow<ServiceTicket?>(null); val ticket = _ticket.asStateFlow()
+    private val _notice = MutableStateFlow<String?>(null); val notice = _notice.asStateFlow()
+    /** Agregar tiempo choca con la siguiente cita: espera la confirmación del barbero (código, minutos, motivo). */
+    private val _forceExtend = MutableStateFlow<ForceExtend?>(null); val forceExtend = _forceExtend.asStateFlow()
+
+    data class ForceExtend(val code: String, val minutos: Int, val message: String)
+
+    fun dismissTicket() { _ticket.value = null }
+    fun dismissNotice() { _notice.value = null }
+    fun dismissForceExtend() { _forceExtend.value = null }
+
     fun updateStatus(code: String, estado: String, period: String, filtroEstado: String?, offset: Int) = viewModelScope.launch {
         _updating.value = code; _error.value = null
-        try { repo.updateAppointmentStatus(code, estado); load(period, filtroEstado, offset) }
+        try {
+            val res = repo.updateAppointmentStatus(code, estado)
+            // Al terminar el servicio la API trae el ticket para mostrarlo de inmediato.
+            if (estado == "completada") _ticket.value = res.ticket
+            load(period, filtroEstado, offset)
+        }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo actualizar la cita.") }
+        finally { _updating.value = null }
+    }
+
+    /** Agrega [minutos] al servicio en curso. Si choca con la siguiente cita pide confirmar y repite con `forzar`. */
+    fun extend(code: String, minutos: Int, period: String, filtroEstado: String?, offset: Int, forzar: Boolean = false) = viewModelScope.launch {
+        _updating.value = code; _error.value = null
+        try {
+            repo.extendAppointment(code, minutos, forzar)
+            _notice.value = "Se agregaron $minutos minutos. Avisamos al cliente."
+            load(period, filtroEstado, offset)
+        } catch (e: Exception) {
+            val body = (e as? retrofit2.HttpException)?.takeIf { it.code() == 422 }?.response()?.errorBody()?.string()
+            val serverMessage = body?.let { b -> runCatching { com.google.gson.JsonParser.parseString(b).asJsonObject.get("message").asString }.getOrNull() }
+            if (!forzar && com.urbanblade.mobile.core.appointments.canForceFromBody(body)) {
+                _forceExtend.value = ForceExtend(code, minutos, serverMessage ?: "Agregar ese tiempo choca con la siguiente cita.")
+            } else {
+                _error.value = serverMessage ?: e.toFriendlyMessage("No se pudo agregar tiempo.")
+            }
+        }
+        finally { _updating.value = null }
+    }
+
+    /** Abre el ticket de un servicio ya terminado (GET /appointments/{code}/ticket). */
+    fun openTicket(code: String) = viewModelScope.launch {
+        _updating.value = code; _error.value = null
+        try { _ticket.value = repo.appointmentTicket(code) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("Esta cita todavía no tiene ticket.") }
         finally { _updating.value = null }
     }
 }

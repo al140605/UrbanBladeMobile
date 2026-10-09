@@ -519,6 +519,7 @@ private fun StaffTimelineAppointment(
                         StaffAppointmentMenu(
                             onStatus = if (onStatus != null) { { estado -> stampedAction = estado } } else null,
                             currentStatus = appt.estado,
+                            startBlocked = appt.estado == "confirmada" && appt.puedeIniciar == false,
                             onCancel = onCancel,
                             onCharge = onCharge
                         )
@@ -593,6 +594,7 @@ private fun appointmentIsFuture(appt: AppointmentRow): Boolean = runCatching {
 private fun StaffAppointmentMenu(
     onStatus: ((String) -> Unit)? = null,
     currentStatus: String? = null,
+    startBlocked: Boolean = false,
     onCancel: (() -> Unit)?,
     onCharge: (() -> Unit)?
 ) {
@@ -610,7 +612,8 @@ private fun StaffAppointmentMenu(
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 if (next != null && onStatus != null) {
                     DropdownMenuItem(
-                        text = { Text(next.second) },
+                        text = { Text(if (startBlocked) "${next.second} (falta el pago)" else next.second) },
+                        enabled = !startBlocked,
                         leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                         onClick = { expanded = false; onStatus(next.first) }
                     )
@@ -688,11 +691,17 @@ private fun AppointmentCard(
                         "en_proceso" -> "completada" to "Completar"
                         else -> null
                     }
+                    // Iniciar exige que sea hoy y que el pago esté resuelto (cobrada o transferencia verificada).
+                    val startBlocked = appt.estado == "confirmada" && appt.puedeIniciar == false
+                    if (startBlocked && !appt.motivoNoIniciar.isNullOrBlank()) {
+                        Text(appt.motivoNoIniciar, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Warning)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (next != null && onStatus != null) {
                             UrbanPrimaryButton(
                                 text = next.second,
                                 onClick = { onStatus(next.first) },
+                                enabled = !startBlocked,
                                 modifier = Modifier.weight(1f)
                             )
                         }
