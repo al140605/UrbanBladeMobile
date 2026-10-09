@@ -171,12 +171,12 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.9")
+    implementation("androidx.navigation:navigation-compose:2.10.2")
     implementation("androidx.datastore:datastore-preferences:1.1.2")
 
     implementation("androidx.compose.ui:ui")
@@ -193,19 +193,19 @@ dependencies {
     implementation("io.coil-kt:coil-video:2.7.0")                              // miniatura (primer cuadro) de los videos del muro
 
     // Reproductor de los videos del muro de los barberos. 1.5.x es la última línea con compileSdk 35.
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-ui:1.5.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
 
     // Pulido visual (2026-09-18). Versiones fijadas a las compatibles con Kotlin 2.1.10,
     // compileSdk 35 y AGP 8.8.2; subirlas exige subir esos tres a la vez.
     implementation("dev.chrisbanes.haze:haze:1.6.10")                       // desenfoque tipo cristal
-    implementation("com.valentinilk.shimmer:compose-shimmer:1.3.3")         // esqueletos de carga
-    implementation("com.airbnb.android:lottie-compose:6.6.10")              // animaciones
+    implementation("com.valentinilk.shimmer:compose-shimmer:1.5.0")         // esqueletos de carga
+    implementation("com.airbnb.android:lottie-compose:6.7.1")              // animaciones
 
     // Login con Google nativo (Credential Manager) -- ver core/auth/GoogleAuthHelper.kt
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
 
     // Checkout con Stripe (PaymentSheet) -- ver core/payment/UrbanPaymentSheet.kt.
     // Fijado a esta versión (no la más reciente): versiones más nuevas jalan
@@ -229,13 +229,13 @@ dependencies {
 
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     // Certificados falsos para probar el certificate pinning (CertificatePinsTest).
     testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     // Mockito 5.x mockea AuthRepository (clase final) sin necesitar un
     // SessionManager real (que exige un Context de Android/DataStore no
     // disponible en pruebas JVM puras).
-    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }
