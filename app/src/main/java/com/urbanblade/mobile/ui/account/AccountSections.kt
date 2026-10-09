@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -155,9 +156,11 @@ fun PersonalDataForm(
  */
 @Composable
 fun ChangePasswordForm(saving: Boolean, resetKey: Int, notice: AccountNotice?, onSubmit: (current: String, password: String, confirmation: String) -> Unit) {
-    var current by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmation by rememberSaveable { mutableStateOf("") }
+    // Contraseñas con remember y no rememberSaveable: así no se copian al estado guardado de la
+    // actividad (Bundle) al rotar o cuando Android mata la app. Se vacían al rotar la pantalla.
+    var current by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
     LaunchedEffect(resetKey) {
         if (resetKey > 0) { current = ""; password = ""; confirmation = "" }
     }
@@ -202,7 +205,7 @@ fun ChangePasswordForm(saving: Boolean, resetKey: Int, notice: AccountNotice?, o
  */
 @Composable
 fun DeleteAccountForm(viaGoogle: Boolean?, deleting: Boolean, notice: AccountNotice?, onDelete: (secret: String) -> Unit) {
-    var secret by rememberSaveable { mutableStateOf("") }
+    var secret by remember { mutableStateOf("") } // contraseña o ELIMINAR: no se guarda en el estado de la actividad
     val ready = when (viaGoogle) {
         true -> secret.trim() == "ELIMINAR"
         false -> secret.isNotEmpty()
