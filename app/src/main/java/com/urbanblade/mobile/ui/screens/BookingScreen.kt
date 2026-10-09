@@ -113,6 +113,8 @@ fun BookingScreen(
     var notes by rememberSaveable { mutableStateOf("") }
     var slotsRequested by rememberSaveable { mutableStateOf(false) }
     var confirmed by rememberSaveable { mutableStateOf(false) }
+    // El cliente acepta el cargo por inasistencia en el último paso (el backend guarda cuándo lo aceptó).
+    var acceptsNoShowFee by rememberSaveable { mutableStateOf(false) }
     val pay = rememberBookingPaymentState()
     var localError by remember { mutableStateOf<String?>(null) }
     val paymentNote by vm.paymentNote.collectAsState()
@@ -319,6 +321,22 @@ fun BookingScreen(
                     Text("\$${"%.0f".format(visitTotal)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Gold)
                 }
             }
+            if (step == BookingStep.PAY) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { acceptsNoShowFee = !acceptsNoShowFee }
+                        .padding(horizontal = 18.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = acceptsNoShowFee, onCheckedChange = { acceptsNoShowFee = it })
+                    Text(
+                        "Acepto el cargo por inasistencia: si no llego a mi cita sin cancelar a tiempo, se cobra un porcentaje del servicio a mi tarjeta guardada o queda como adeudo por pagar en la barbería para volver a reservar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = UrbanColors.Muted
+                    )
+                }
+            }
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -351,7 +369,8 @@ fun BookingScreen(
                                     pay.method, pay.tipFor(selectedService?.precio ?: 0.0), pay.receiptUri,
                                     savedCardId = savedId,
                                     saveCard = pay.saveCard,
-                                    productos = cartLines.map { (p, qty) -> com.urbanblade.mobile.data.model.OrderItemRequest(p.id, qty) }
+                                    productos = cartLines.map { (p, qty) -> com.urbanblade.mobile.data.model.OrderItemRequest(p.id, qty) },
+                                    aceptaCargo = acceptsNoShowFee
                                 ) {
                                     confirmed = true
                                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log(
@@ -367,7 +386,7 @@ fun BookingScreen(
                             step = BookingStep.entries[step.ordinal + 1]
                         }
                     },
-                    enabled = canAdvance && (step != BookingStep.PAY || reserveArmed),
+                    enabled = canAdvance && (step != BookingStep.PAY || (reserveArmed && acceptsNoShowFee)),
                     loading = busy && step == BookingStep.PAY,
                     icon = if (step == BookingStep.PAY) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
                     modifier = Modifier.weight(1f)

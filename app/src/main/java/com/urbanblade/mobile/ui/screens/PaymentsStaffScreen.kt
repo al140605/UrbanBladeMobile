@@ -58,6 +58,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.data.model.NoShowFeeItem
 import com.urbanblade.mobile.data.model.PaymentRow
 import com.urbanblade.mobile.data.model.PendingPaymentRow
 import com.urbanblade.mobile.ui.components.UrbanCard
@@ -101,6 +102,7 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
     val context = LocalContext.current
     var approving by remember { mutableStateOf<ReviewTarget?>(null) }
     var rejecting by remember { mutableStateOf<ReviewTarget?>(null) }
+    var waiving by remember { mutableStateOf<NoShowFeeItem?>(null) }
 
     LaunchedEffect(Unit) { vm.load() }
 
@@ -182,6 +184,23 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
                 }
             }
 
+            if (state.fees.isNotEmpty()) {
+                item {
+                    UrbanSectionTitle(
+                        "Adeudos por inasistencia",
+                        "${UrbanFormat.count(state.fees.size, "cliente no puede", "clientes no pueden")} reservar hasta pagar · ${money(state.fees.sumOf { it.monto })}"
+                    )
+                }
+                items(state.fees, key = { "fee-" + it.id }) { fee ->
+                    FeeCard(
+                        fee = fee,
+                        busy = state.busyFeeId == fee.id,
+                        onPay = { metodo -> vm.payFee(fee.id, metodo) },
+                        onWaive = { vm.clearMessages(); waiving = fee }
+                    )
+                }
+            }
+
             item { UrbanSectionTitle("Historial", "Pagos registrados en UrbanBlade") }
             item {
                 UrbanTextField(
@@ -251,6 +270,16 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
         )
     }
 
+    waiving?.let { fee ->
+        WaiveFeeDialog(
+            fee = fee,
+            busy = state.busyFeeId == fee.id,
+            error = state.error,
+            onDismiss = { waiving = null },
+            onConfirm = { motivo -> vm.waiveFee(fee.id, motivo) { waiving = null } }
+        )
+    }
+
     rejecting?.let { target ->
         val payment = target.row
         RejectDialog(
@@ -312,6 +341,71 @@ private fun PendingCard(payment: PendingPaymentRow, deposit: Boolean, busy: Bool
             UrbanOutlineButton("Rechazar", onReject, Modifier.weight(1f))
         }
     }
+}
+
+/** Adeudo por inasistencia: se cobra en sucursal (efectivo o transferencia) o administración lo condona. */
+@Composable
+private fun FeeCard(fee: NoShowFeeItem, busy: Boolean, onPay: (String) -> Unit, onWaive: () -> Unit) {
+    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("CARGO POR INASISTENCIA", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Gold)
+            SimpleStatusPill("por cobrar", UrbanColors.Warning)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(money(fee.monto), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+        Text(
+            listOfNotNull(fee.cita?.cliente, fee.cita?.servicio).joinToString(" · ").ifEmpty { "Cita sin datos" },
+            style = MaterialTheme.typography.bodyMedium,
+            color = UrbanColors.Ink
+        )
+        Text(
+            "${fee.porcentaje}% del servicio" +
+                (fee.cita?.fecha?.let { " · cita del $it" } ?: "") +
+                if (fee.creditoAnticipo > 0) " · ${money(fee.creditoAnticipo)} ya cubiertos por pago anticipado" else "",
+            style = MaterialTheme.typography.labelSmall,
+            color = UrbanColors.Muted
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            UrbanPrimaryButton("Efectivo", { onPay("efectivo") }, Modifier.weight(1f), enabled = !busy, icon = Icons.Default.Payments, loading = busy)
+            UrbanOutlineButton("Transferencia", { onPay("transferencia") }, Modifier.weight(1f))
+        }
+        TextButton(onClick = onWaive, enabled = !busy) { Text("Condonar (solo administración)", color = UrbanColors.Muted) }
+    }
+}
+
+@Composable
+private fun WaiveFeeDialog(fee: NoShowFeeItem, busy: Boolean, error: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var motivo by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        containerColor = UrbanColors.Card,
+        title = { Text("Condonar cargo de ${money(fee.monto)}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "${fee.cita?.cliente ?: "El cliente"} volverá a poder reservar. El motivo queda registrado.",
+                    color = UrbanColors.Muted,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                UrbanTextField(
+                    value = motivo,
+                    onValueChange = { motivo = it.take(300) },
+                    label = "Motivo",
+                    capitalization = KeyboardCapitalization.Sentences,
+                    helper = "${motivo.length}/300",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                error?.let { UrbanErrorBanner(it) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !busy && motivo.trim().length >= 3, onClick = { onConfirm(motivo) }) {
+                Text(if (busy) "Enviando…" else "Condonar", color = UrbanColors.Danger)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Volver") } }
+    )
 }
 
 @Composable

@@ -180,7 +180,10 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
             // motivo del servidor cuando lo manda, para no confundir con "inicia sesión".
             403 -> serverMessage()?.takeIf { it.isNotBlank() && it != "This action is unauthorized." }
                 ?: "Tu cuenta no tiene permiso para hacer esto."
-            422 -> "Revisa los datos capturados."
+            // El servidor explica por qué no se pudo ("el pago aún no está resuelto", "tienes un adeudo…") en
+            // español; los errores de validación genéricos de Laravel vienen en inglés y se siguen resumiendo.
+            422 -> serverMessage()?.takeIf { it.isNotBlank() && !it.startsWith("The ") && !it.contains("(and ") }
+                ?: "Revisa los datos capturados."
             429 -> "Demasiados intentos. Intenta de nuevo más tarde."
             503 -> "UrbanBlade está en mantenimiento."
             else -> fallback

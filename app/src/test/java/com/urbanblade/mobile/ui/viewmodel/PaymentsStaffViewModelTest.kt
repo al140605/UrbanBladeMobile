@@ -166,7 +166,7 @@ class PaymentsStaffViewModelTest {
         vm.approve("p1")
         advanceUntilIdle()
 
-        assertEquals("Comprobante aprobado. La cita quedó completada.", vm.state.value.notice)
+        assertEquals("Comprobante aprobado. El pago quedó registrado; el barbero ya puede iniciar la cita.", vm.state.value.notice)
     }
 
     @Test

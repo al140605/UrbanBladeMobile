@@ -20,8 +20,47 @@ data class PushContent(
     val title: String,
     val body: String,
     val channel: PushChannel = PushChannel.CITAS,
-    val route: String? = null
+    val route: String? = null,
+    /** Botones de la notificación (p. ej. terminar / +10 / +15 min del aviso «tu servicio termina en 5 min»). */
+    val actions: List<ServiceAction> = emptyList(),
+    /** Código público de la cita sobre la que actúan los botones. */
+    val appointmentCode: String? = null
 )
+
+/** Acción que el barbero puede hacer desde la notificación sin abrir la app. */
+sealed class ServiceAction {
+    /** Terminar el servicio ahora (cita → «completada»). */
+    data object Finish : ServiceAction()
+
+    /** Agregar [minutes] al servicio en curso. */
+    data class Extend(val minutes: Int) : ServiceAction()
+}
+
+/** Minutos permitidos al agregar tiempo desde la notificación (los mismos del backend: config/appointments.php). */
+private val NOTIFICATION_EXTEND_MINUTES = setOf(10, 15)
+
+/**
+ * Convierte el texto del backend (`terminar`, `extender_10`…) en una acción. Solo se aceptan las conocidas: un valor
+ * raro (o de otra versión) simplemente no crea botón.
+ */
+fun parseServiceAction(raw: String?): ServiceAction? {
+    val value = raw?.trim()?.lowercase() ?: return null
+    if (value == "terminar") return ServiceAction.Finish
+    val minutes = value.removePrefix("extender_").takeIf { value.startsWith("extender_") }?.toIntOrNull()
+    return minutes?.takeIf { it in NOTIFICATION_EXTEND_MINUTES }?.let { ServiceAction.Extend(it) }
+}
+
+/** Texto de un botón de la notificación. */
+fun ServiceAction.label(): String = when (this) {
+    ServiceAction.Finish -> "Terminar ya"
+    is ServiceAction.Extend -> "+$minutes min"
+}
+
+/** Clave estable de la acción para el intent del botón. */
+fun ServiceAction.key(): String = when (this) {
+    ServiceAction.Finish -> "terminar"
+    is ServiceAction.Extend -> "extender_$minutes"
+}
 
 /** Pantallas a las que una notificación puede llevar. Lo demás se ignora (la app no abre rutas arbitrarias). */
 val PUSH_ROUTES = setOf(
@@ -62,5 +101,9 @@ fun pushContent(notificationTitle: String?, notificationBody: String?, data: Map
         .firstOrNull { !it.isNullOrBlank() }?.trim() ?: return null
     val title = listOf(notificationTitle, data["title"])
         .firstOrNull { !it.isNullOrBlank() }?.trim() ?: "UrbanBlade"
-    return PushContent(title, body, PushChannel.from(data["channel"]), safePushRoute(data["route"]))
+    val code = data["appointment_code"]?.trim()?.takeIf { it.isNotEmpty() }
+    // Los botones necesitan la cita: sin código no se muestran aunque el mensaje los pida.
+    val actions = if (code == null) emptyList()
+    else data["acciones"].orEmpty().split(',').mapNotNull(::parseServiceAction).distinct()
+    return PushContent(title, body, PushChannel.from(data["channel"]), safePushRoute(data["route"]), actions, code)
 }

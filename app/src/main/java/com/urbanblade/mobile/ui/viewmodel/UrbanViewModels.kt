@@ -51,6 +51,28 @@ class AppointmentsViewModel @JvmOverloads constructor(
     private val _waitlistEntries = MutableStateFlow<List<WaitlistEntry>>(emptyList())
     val waitlistEntries = _waitlistEntries.asStateFlow()
 
+    // Adeudo por inasistencia del cliente (mientras sea > 0 no puede reservar) y ticket del servicio terminado.
+    private val _debt = MutableStateFlow(0.0)
+    val debt = _debt.asStateFlow()
+    private val _ticket = MutableStateFlow<ServiceTicket?>(null)
+    val ticket = _ticket.asStateFlow()
+    private val _ticketBusy = MutableStateFlow<String?>(null)
+    val ticketBusy = _ticketBusy.asStateFlow()
+
+    /** Consulta lo que el cliente debe por inasistencias; un fallo no molesta: solo no se muestra el aviso. */
+    fun loadDebt() = viewModelScope.launch {
+        try { _debt.value = repo.noShowFees().adeudoTotal ?: 0.0 } catch (_: Exception) { _debt.value = 0.0 }
+    }
+
+    fun openTicket(code: String) = viewModelScope.launch {
+        _ticketBusy.value = code
+        try { _ticket.value = repo.appointmentTicket(code) }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("Esta cita todavía no tiene ticket.") }
+        finally { _ticketBusy.value = null }
+    }
+
+    fun dismissTicket() { _ticket.value = null }
+
     // Solo para la hoja de reagendado (mantiene el servicio de la cita,
     // permite cambiar barbero/fecha/hora) -- estado independiente del
     // wizard de nueva reserva en BookingViewModel.
@@ -462,6 +484,7 @@ class BookingViewModel @JvmOverloads constructor(
         method: BookingPayMethod, propina: Double, receiptUri: Uri?,
         savedCardId: String? = null, saveCard: Boolean = false,
         productos: List<OrderItemRequest> = emptyList(),
+        aceptaCargo: Boolean = false,
         onDone: (String?) -> Unit
     ) {
         if (barberId.isBlank() || serviceId.isBlank() || date.isBlank() || time.isBlank()) {
@@ -479,6 +502,7 @@ class BookingViewModel @JvmOverloads constructor(
                         barberId, serviceId, date, time, notes.ifBlank { null },
                         pagarAhora = payNow.takeIf { it },
                         propinaSugerida = propina.takeIf { payNow && it > 0 },
+                        aceptaCargoInasistencia = aceptaCargo.takeIf { it },
                         productos = productos.ifEmpty { null }
                     )
                 )

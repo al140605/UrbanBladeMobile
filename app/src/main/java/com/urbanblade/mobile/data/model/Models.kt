@@ -58,7 +58,59 @@ data class ClientInfo(
     val sexo: String? = null
 )
 
-data class MessageResponse(val message: String? = null)
+data class MessageResponse(
+    val message: String? = null,
+    /** Solo en PATCH /appointments/{code}/status al pasar a «completada»: el ticket del servicio. */
+    val ticket: ServiceTicket? = null
+)
+
+/** Ticket del servicio terminado (GET /appointments/{code}/ticket y la respuesta de «completada»). */
+data class ServiceTicket(
+    val folio: String = "",
+    val cita: String? = null,
+    val fecha: String? = null,
+    val cliente: String? = null,
+    val barbero: String? = null,
+    val servicio: String? = null,
+    @SerializedName("duracion_min") val duracionMin: Int = 0,
+    @SerializedName("minutos_extra") val minutosExtra: Int = 0,
+    @SerializedName("metodo_pago") val metodoPago: String? = null,
+    @SerializedName("precio_servicio") val precioServicio: Double = 0.0,
+    val descuentos: Double = 0.0,
+    @SerializedName("deposito_aplicado") val depositoAplicado: Double = 0.0,
+    val monto: Double = 0.0,
+    val propina: Double = 0.0,
+    @SerializedName("total_pagado") val totalPagado: Double = 0.0,
+    @SerializedName("comprobante_url") val comprobanteUrl: String? = null
+)
+
+data class ServiceTicketResponse(val data: ServiceTicket? = null)
+
+/** Cargo por inasistencia (GET /no-show-fees): el cliente ve los suyos; recepción, los pendientes. */
+data class NoShowFeeCita(
+    val code: String? = null,
+    val fecha: String? = null,
+    val servicio: String? = null,
+    val cliente: String? = null
+)
+
+data class NoShowFeeItem(
+    val id: String = "",
+    @SerializedName("appointment_id") val appointmentId: String = "",
+    val cita: NoShowFeeCita? = null,
+    val monto: Double = 0.0,
+    @SerializedName("monto_base") val montoBase: Double = 0.0,
+    @SerializedName("credito_anticipo") val creditoAnticipo: Double = 0.0,
+    val porcentaje: Int = 0,
+    val estado: String = "pendiente",
+    @SerializedName("metodo_cobro") val metodoCobro: String? = null
+)
+
+data class NoShowFeesResponse(
+    val data: List<NoShowFeeItem> = emptyList(),
+    /** Solo para el cliente: lo que debe en total. */
+    @SerializedName("adeudo_total") val adeudoTotal: Double? = null
+)
 
 /** POST /appointments (201): trae la cita creada para poder ofrecer "Pagar ahora" sin buscarla en la lista. */
 data class CreatedAppointmentData(val id: String? = null, val code: String? = null)
@@ -166,6 +218,13 @@ data class AppointmentRow(
     @SerializedName("is_chargeable") val isChargeable: Boolean = false,
     @SerializedName("reminder_24h_sent") val reminder24hSent: Boolean = false,
     @SerializedName("reminder_2h_sent") val reminder2hSent: Boolean = false,
+    /** Flujo V2 (solo citas confirmadas): si el pago ya está resuelto y si se puede iniciar el servicio, con el motivo. */
+    @SerializedName("pago_resuelto") val pagoResuelto: Boolean? = null,
+    @SerializedName("puede_iniciar") val puedeIniciar: Boolean? = null,
+    @SerializedName("motivo_no_iniciar") val motivoNoIniciar: String? = null,
+    /** Solo en servicio en proceso: fin estimado (ISO-8601, con el tiempo extra) y minutos agregados. */
+    @SerializedName("fin_estimado") val finEstimado: String? = null,
+    @SerializedName("minutos_extra") val minutosExtra: Int? = null,
     val client: AppointmentClientRef? = null,
     val barber: AppointmentBarber? = null,
     val service: AppointmentService? = null
@@ -325,6 +384,8 @@ data class AppointmentRequest(
     /** Pagar todo al reservar: barber fija el monto (con descuento) como cobro de la cita pendiente. */
     @SerializedName("pagar_ahora") val pagarAhora: Boolean? = null,
     @SerializedName("propina_sugerida") val propinaSugerida: Double? = null,
+    /** El cliente acepta el cargo por inasistencia en el último paso de la reserva. */
+    @SerializedName("acepta_cargo_inasistencia") val aceptaCargoInasistencia: Boolean? = null,
     /** Productos opcionales de la visita: barber crea un pedido ligado a la cita que se paga en el salón. */
     val productos: List<OrderItemRequest>? = null
 )

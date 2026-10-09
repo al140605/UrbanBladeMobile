@@ -42,6 +42,16 @@ interface UrbanBladeApi {
     @PATCH("appointments/{code}/status") suspend fun updateAppointmentStatus(@Path("code") code: String, @Body body: JsonObject): MessageResponse
     @DELETE("appointments/{code}") suspend fun cancelAppointment(@Path("code") code: String): MessageResponse
 
+    /** Agregar tiempo al servicio en curso (flujo V2): `{minutos, forzar}`. 422 con `puede_forzar` si choca con la siguiente cita. */
+    @POST("appointments/{code}/extend") suspend fun extendAppointment(@Path("code") code: String, @Body body: JsonObject): MessageResponse
+    /** Ticket del servicio terminado (cliente dueño, barbero de la cita o personal). */
+    @GET("appointments/{code}/ticket") suspend fun appointmentTicket(@Path("code") code: String): ServiceTicketResponse
+
+    /** Cargos por inasistencia: el cliente los suyos (con `adeudo_total`); recepción/admin, por estado (pendiente por defecto). */
+    @GET("no-show-fees") suspend fun noShowFees(@Query("estado") estado: String? = null): NoShowFeesResponse
+    @POST("no-show-fees/{id}/pay") suspend fun payNoShowFee(@Path("id") id: String, @Body body: JsonObject): MessageResponse
+    @POST("no-show-fees/{id}/waive") suspend fun waiveNoShowFee(@Path("id") id: String, @Body body: JsonObject): MessageResponse
+
     @POST("waitlist") suspend fun joinWaitlist(@Body body: WaitlistRequest): WaitlistJoinResponse
     @GET("waitlist") suspend fun waitlist(): WaitlistResponse
     @GET("waitlist") suspend fun waitlistForStaff(@Query("estado") estado: String? = null): WaitlistResponse
