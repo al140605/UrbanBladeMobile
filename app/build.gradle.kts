@@ -214,7 +214,7 @@ dependencies {
     // sola dependencia es un cambio de mayor alcance que no correspondía a
     // esta ronda. Revisar si conviene actualizar cuando el proyecto suba de
     // compileSdk por otro motivo.
-    implementation("com.stripe:stripe-android:21.19.0")
+    implementation("com.stripe:stripe-android:23.21.0")
 
     // Notificaciones push con Firebase Cloud Messaging (T142) -- ver core/push/.
     // Proyecto Firebase barber-c6b3a (26-sep): además del push, Analytics (embudo de reserva,
