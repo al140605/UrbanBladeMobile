@@ -187,8 +187,8 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.5.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")                              // miniatura (primer cuadro) de los videos del muro
 
@@ -230,9 +230,9 @@ dependencies {
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.5.0")
     // Certificados falsos para probar el certificate pinning (CertificatePinsTest).
-    testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
+    testImplementation("com.squareup.okhttp3:okhttp-tls:5.5.0")
     // Mockito 5.x mockea AuthRepository (clase final) sin necesitar un
     // SessionManager real (que exige un Context de Android/DataStore no
     // disponible en pruebas JVM puras).
