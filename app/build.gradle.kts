@@ -201,7 +201,7 @@ dependencies {
 
     // Pulido visual (2026-09-18). Versiones fijadas a las compatibles con Kotlin 2.1.10,
     // compileSdk 35 y AGP 8.8.2; subirlas exige subir esos tres a la vez.
-    implementation("dev.chrisbanes.haze:haze:1.6.10")                       // desenfoque tipo cristal
+    implementation("dev.chrisbanes.haze:haze:2.0.1")                       // desenfoque tipo cristal
     implementation("com.valentinilk.shimmer:compose-shimmer:1.5.0")         // esqueletos de carga
     implementation("com.airbnb.android:lottie-compose:6.7.1")              // animaciones
 
