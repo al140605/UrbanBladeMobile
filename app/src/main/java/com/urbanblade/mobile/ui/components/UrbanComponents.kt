@@ -69,8 +69,16 @@ fun UrbanBladeBackground(
 }
 
 @Composable
-fun UrbanBrandMark(compact: Boolean = false) {
+fun UrbanBrandMark(compact: Boolean = false, unboxed: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        if (unboxed) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.urbanblade.mobile.R.drawable.urbanblade_brand_symbol),
+                contentDescription = null,
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(UrbanColors.GoldText),
+                modifier = Modifier.size(if (compact) 36.dp else 44.dp)
+            )
+        } else {
         Box(
             Modifier
                 .size(if (compact) 34.dp else 42.dp)
@@ -91,6 +99,7 @@ fun UrbanBrandMark(compact: Boolean = false) {
                 contentDescription = null,
                 modifier = Modifier.size(if (compact) 26.dp else 32.dp)
             )
+        }
         }
         Spacer(Modifier.width(10.dp))
         Column {

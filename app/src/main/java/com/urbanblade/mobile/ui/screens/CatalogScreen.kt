@@ -67,7 +67,11 @@ fun CatalogScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            UrbanPageHeader(
+            if (isGuest) UrbanPublicHero(
+                title = "Encuentra tu estilo.",
+                subtitle = "Servicios y precios para tu próxima visita.",
+                compact = true
+            ) else UrbanPageHeader(
                 title = if (canBook) "Reservar" else "Servicios y barberos",
                 subtitle = if (canBook) "Elige un servicio o un barbero y un horario real." else "Consulta servicios, precios y perfiles del equipo.",
                 eyebrow = if (canBook) "Reserva" else "Catálogo"
@@ -75,23 +79,11 @@ fun CatalogScreen(
         }
         if (isGuest) {
             item {
-                UrbanInfoBanner(
-                    "Explora como invitado. Para confirmar una reserva, te pediremos iniciar sesión o crear tu cuenta.",
-                    Icons.Default.Info
-                )
-            }
-            if (onLogin != null) {
-                item {
-                    UrbanOutlineButton(
-                        text = "Ya tengo cuenta, iniciar sesión",
-                        onClick = onLogin,
-                        icon = Icons.Default.Login,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Text("Explora los servicios. Para continuar con tu reserva necesitas una cuenta.",
+                    style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
         }
-        item {
+        if (!isGuest) item {
             UrbanHeroCard {
                 UrbanHeroLabel(if (canBook) "¿Ya sabes qué quieres?" else "El catálogo UrbanBlade")
                 Spacer(Modifier.height(6.dp))
@@ -160,7 +152,7 @@ fun CatalogScreen(
                 if (filtering) UrbanFormat.count(visible.size, "resultado", "resultados") else "Precio y duración reales; toca uno para reservar."
             )
         }
-        items(visible, key = { it.id }) { service -> ServiceCard(service, canBook) { onBook(service.id, null) } }
+        items(visible, key = { it.id }) { service -> ServiceCard(service, canBook, isGuest) { onBook(service.id, null) } }
         if (filtering && visible.isEmpty()) item {
             UrbanMascotState(
                 UrbanStateKind.EMPTY,
@@ -185,6 +177,11 @@ fun CatalogScreen(
             )
         }
         if (!loading && error == null && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
+        if (isGuest && onLogin != null) item {
+            TextButton(onClick = onLogin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text("Ya tengo cuenta · Iniciar sesión", color = UrbanColors.GoldText)
+            }
+        }
         item { Spacer(Modifier.height(8.dp)) }
     }
 }
@@ -197,7 +194,7 @@ private fun catalogChipColors() = FilterChipDefaults.filterChipColors(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ServiceCard(service: ServiceItem, canBook: Boolean, onBook: () -> Unit) {
+private fun ServiceCard(service: ServiceItem, canBook: Boolean, editorial: Boolean = false, onBook: () -> Unit) {
     UrbanPremiumCard(Modifier.fillMaxWidth(), onClick = if (canBook) onBook else null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Foto del servicio (la que sube el administrador); sin foto o si no carga, el ícono.
@@ -205,7 +202,7 @@ private fun ServiceCard(service: ServiceItem, canBook: Boolean, onBook: () -> Un
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = UrbanColors.Gold.copy(alpha = 0.09f),
-                modifier = Modifier.size(64.dp),
+                modifier = if (editorial) Modifier.width(92.dp).height(112.dp) else Modifier.size(64.dp),
                 border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.21f))
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -231,8 +228,14 @@ private fun ServiceCard(service: ServiceItem, canBook: Boolean, onBook: () -> Un
                     Spacer(Modifier.height(4.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
+                if (editorial) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(UrbanFormat.money(service.precio), style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
+                    if (canBook) Text("Elegir servicio ›", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
+                }
             }
         }
+        if (!editorial) {
         Spacer(Modifier.height(14.dp))
         HorizontalDivider(color = UrbanColors.Line)
         Spacer(Modifier.height(10.dp))
@@ -242,6 +245,7 @@ private fun ServiceCard(service: ServiceItem, canBook: Boolean, onBook: () -> Un
                 Text("Reservar", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
                 Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.GoldText, modifier = Modifier.size(18.dp))
             }
+        }
         }
     }
 }
