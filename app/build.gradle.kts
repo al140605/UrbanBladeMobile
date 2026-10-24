@@ -120,6 +120,9 @@ android {
             // QA aislado: permite instalar junto a la app habitual sin tocar su sesión.
             if (providers.gradleProperty("UI_AUDIT").orNull == "true") applicationIdSuffix = ".audit"
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
+            // Cobertura de las pruebas unitarias con JaCoCo (T088): AGP instrumenta el código y genera el
+            // reporte con :app:createDebugUnitTestCoverageReport (lo corre el CI y lo publica como artefacto).
+            enableUnitTestCoverage = true
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
