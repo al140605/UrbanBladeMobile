@@ -244,7 +244,7 @@ dependencies {
     // Proyecto Firebase barber-c6b3a (26-sep): además del push, Analytics (embudo de reserva,
     // sin datos personales), Crashlytics (fallos en dispositivo), Performance (arranque y
     // latencia de la API) y Remote Config (interruptores sin publicar otro APK).
-    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation(platform("com.google.firebase:firebase-bom:35.0.2"))
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-crashlytics")
