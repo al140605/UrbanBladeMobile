@@ -57,6 +57,23 @@ jobs:
           assert skipped == 0, f'Hay {skipped} pruebas omitidas'
           PY
 
+      # Cobertura de las pruebas unitarias con JaCoCo (T088). Las pruebas ya corrieron arriba, así que Gradle solo
+      # junta los datos y genera el reporte. Se publica en el resumen del job y como artefacto; no hay umbral que
+      # falle porque casi toda la app es interfaz Compose y la cobertura medida es baja.
+      - name: Cobertura (JaCoCo)
+        run: |
+          gradle :app:createDebugUnitTestCoverageReport --console=plain
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          root = ET.parse('app/build/reports/coverage/test/debug/report.xml').getroot()
+          print('### Cobertura de las pruebas unitarias (JaCoCo)\n')
+          print('| Métrica | Cubierto | Total | % |\n|---|---|---|---|')
+          for kind, label in (('LINE', 'Líneas'), ('BRANCH', 'Ramas'), ('METHOD', 'Métodos'), ('CLASS', 'Clases')):
+              c = next(x for x in root.findall('counter') if x.get('type') == kind)
+              cov, miss = int(c.get('covered')), int(c.get('missed'))
+              print(f'| {label} | {cov} | {cov + miss} | {100 * cov / (cov + miss):.1f} % |')
+          PY
+
       - name: Build de debug
         run: gradle :app:assembleDebug --console=plain
 
@@ -73,5 +90,6 @@ jobs:
           path: |
             app/build/reports/lint-results-debug.html
             app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/coverage/test/debug/
           if-no-files-found: ignore
           retention-days: 14
