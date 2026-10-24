@@ -261,7 +261,7 @@ dependencies {
     // SessionManager real (que exige un Context de Android/DataStore no
     // disponible en pruebas JVM puras).
     testImplementation("org.mockito:mockito-core:5.24.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
     // Pruebas de componente de las pantallas (Compose UI Test) en la JVM, sin emulador: Robolectric.
     testImplementation(composeBom)
     testImplementation("androidx.compose.ui:ui-test-junit4")
