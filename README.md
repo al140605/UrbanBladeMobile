@@ -652,3 +652,11 @@ el motivo, en vez de darlo por bueno.
 Desarrollado como parte del ecosistema **UrbanBlade**.
 
 </div>
+
+## Políticas y licencia
+
+- [GNU GPLv3, versión 3 únicamente](LICENSE) — GPL-3.0-only.
+- [Alcance de la licencia y componentes de terceros](LICENSING.md).
+- [Política de seguridad y reporte privado](SECURITY.md).
+- [Cómo contribuir](CONTRIBUTING.md).
+- [Código de conducta](CODE_OF_CONDUCT.md).
