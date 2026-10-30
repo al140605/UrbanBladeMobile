@@ -1,5 +1,8 @@
 # Ficha de Google Play — textos listos para pegar
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Los textos de abajo ya están medidos contra los límites de Play (nombre 30, descripción corta 80, descripción larga 4000
 caracteres). Cada función mencionada existe en la app (comprobado en el código el 2026-10-19). Revisarlos con el equipo antes de
 pegar: son la cara pública de la app.

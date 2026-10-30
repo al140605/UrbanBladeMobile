@@ -1,5 +1,8 @@
 # Seguridad de los datos — respuestas para Play Console
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Formulario: *Contenido de la app → Seguridad de los datos*. Las respuestas salen de tres fuentes cruzadas el 2026-10-19:
 el **código** de la app (SDK y llamadas a la API), el **manifiesto final** de un `bundleRelease` real y el **Aviso de
 Privacidad** publicado. Google exige que lo declarado coincida con lo que la app hace; si algo cambia, se actualiza aquí
@@ -7,7 +10,7 @@ y en la consola.
 
 > **Importante:** el formulario de Play Console cambia con el tiempo y no pude abrirlo desde aquí. Las categorías de
 > abajo siguen las definiciones de Google que conozco; contrastarlas con lo que muestre la consola, sobre todo la
-> distinción entre *recopilar* y *compartir*. Los puntos marcados con ⚠️ requieren que el equipo confirme un hecho.
+> distinción entre *recopilar* y *compartir*. Los puntos marcados con Atención requieren que el equipo confirme un hecho.
 
 ## 1. Preguntas generales
 
@@ -24,7 +27,7 @@ y en la consola.
 *Recopilado* = la app o su servidor lo reciben. *Compartido* = se transfiere a un tercero que no actúa solo como proveedor
 de servicio por cuenta de UrbanBlade; Google no considera "compartir" el envío a proveedores que procesan los datos
 en nombre de la app (AWS, MongoDB Atlas, Stripe como procesador de pago, Firebase) ni los datos que el usuario inicia
-hacia un procesador de pagos. Por eso la columna *Compartido* queda en **No**, salvo la nota ⚠️ de Wikipedia.
+hacia un procesador de pagos. Por eso la columna *Compartido* queda en **No**, salvo la nota Atención de Wikipedia.
 
 ### Información personal
 | Tipo | Recopilado | Compartido | Opcional | Finalidades | Fuente |
@@ -32,8 +35,8 @@ hacia un procesador de pagos. Por eso la columna *Compartido* queda en **No**, s
 | Nombre | Sí | No | No | Funcionalidad de la app, gestión de cuenta | Registro; Google Sign-In |
 | Dirección de correo | Sí | No | No | Funcionalidad de la app, gestión de cuenta, comunicaciones del desarrollador | Registro; Google Sign-In |
 | ID de usuario | Sí | No | No | Funcionalidad de la app, gestión de cuenta | Cuenta de UrbanBlade |
-| Número de teléfono | Sí | No | ⚠️ confirmar | Funcionalidad de la app, gestión de cuenta | Perfil de cliente |
-| Otra información (fecha de nacimiento, sexo) | Sí | No | Sí (el sexo es opcional; ⚠️ confirmar la fecha) | Funcionalidad de la app (regalo de cumpleaños), personalización | Perfil de cliente |
+| Número de teléfono | Sí | No | Atención confirmar | Funcionalidad de la app, gestión de cuenta | Perfil de cliente |
+| Otra información (fecha de nacimiento, sexo) | Sí | No | Sí (el sexo es opcional; Atención confirmar la fecha) | Funcionalidad de la app (regalo de cumpleaños), personalización | Perfil de cliente |
 
 ### Información financiera
 | Tipo | Recopilado | Compartido | Opcional | Finalidades | Fuente |
@@ -55,13 +58,13 @@ La app usa el **selector de fotos del sistema**: no pide permisos de galería ni
 ### Mensajes
 | Tipo | Recopilado | Compartido | Opcional | Finalidades | Fuente |
 | --- | --- | --- | --- | --- | --- |
-| Otros mensajes dentro de la app | Sí | No (ver ⚠️) | Sí | Funcionalidad de la app | Chat con Bladebot (se guarda el historial con la sesión iniciada) |
+| Otros mensajes dentro de la app | Sí | No (ver Atención) | Sí | Funcionalidad de la app | Chat con Bladebot (se guarda el historial con la sesión iniciada) |
 
-⚠️ **Wikipedia:** para algunas preguntas generales, Bladebot envía el **texto de la pregunta** (sin nombre ni datos de la
+Atención: **Wikipedia:** para algunas preguntas generales, Bladebot envía el **texto de la pregunta** (sin nombre ni datos de la
 cuenta) a Wikipedia. Es un envío a un tercero que no es un proveedor de servicio. Decidir con el equipo si se declara como
 *compartido* (lo prudente) y confirmar que el Aviso de Privacidad lo siga diciendo.
 
-✅ **Proveedor de IA (comprobado el 2026-10-19):** el Aviso de Privacidad afirma que el modelo "corre en nuestros propios
+Aprobado **Proveedor de IA (comprobado el 2026-10-19):** el Aviso de Privacidad afirma que el modelo "corre en nuestros propios
 servidores" y que los mensajes no se envían a empresas externas de IA. En el código el valor por defecto de
 `CHATBOT_AI_PROVIDER` es `gemini`, pero el backend al que apunta la app (staging en AWS) tiene `CHATBOT_AI_PROVIDER=ollama`
 y el servicio `uba-stg-ollama` corriendo en el propio clúster. El aviso es verdadero hoy; **si el valor cambiara a `gemini`
@@ -90,7 +93,7 @@ Ubicación (aproximada o precisa), contactos, calendario, audio, archivos y docu
 instaladas, salud y actividad física, y **ID de publicidad**: el permiso se elimina del manifiesto (verificado en el
 manifiesto final; PR #17) y la app no muestra anuncios.
 
-⚠️ **Salud:** el Aviso de Privacidad dice que el personal puede anotar en la ficha del cliente datos como "una alergia".
+Atención: **Salud:** el Aviso de Privacidad dice que el personal puede anotar en la ficha del cliente datos como "una alergia".
 Si esas notas se capturan desde la app o llegan a ella, Google puede considerarlo *información de salud*. Confirmar con el
 equipo dónde se escriben esas notas; si es desde la app, declarar **Salud → Información de salud** como recopilada
 (funcionalidad de la app, opcional) y revisar el texto del aviso.

@@ -1,5 +1,8 @@
 # Design QA — Citas de administrador
 
+> Referencia histórica. Describe una revisión o propuesta anterior; no usar como inventario vigente ni requisito de instalación. Consultar el [índice de documentación](docs/README.md).
+
+
 ## Evidencia
 
 - Fuente visual seleccionada: `C:\Users\luis1\.codex\generated_images\01a0d20a-d904-7ee0-bcf4-420c580d829c\exec-66a626d9-1827-4b8d-8ce6-2eb4e7ed632a.png`.

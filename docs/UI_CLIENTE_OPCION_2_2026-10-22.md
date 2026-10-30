@@ -1,5 +1,8 @@
 # Cliente: mejora sobre la opción 2 — TT32 / HT-12
 
+Actualización del 30 de octubre de 2026: mejoras conservadas en `feat/mejoras-interfaz-mobile` e integración local de `main` publicado, commit `3173e34839517145c1708f86f56320da0c6e9f1a`, sin conflictos. Validación de la combinación: lintDebug, testDebugUnitTest y assembleDebug aprobados; 369 pruebas, cero fallos, errores u omisiones. No se instaló el APK, no se subió esta rama y no se repitió la revisión visual en dispositivo. Las observaciones de octubre 22 que siguen son históricas.
+
+
 22-oct-2026. El usuario eligió la segunda propuesta y pidió conservar las imágenes existentes. Se mejora la distribución actual, sin reproducir las fotografías ficticias del mockup ni cambiar la bienvenida pública aprobada.
 
 ## Cambios

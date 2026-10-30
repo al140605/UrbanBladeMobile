@@ -10,7 +10,7 @@ Para revisar la interfaz sin backend real:
 
 ```powershell
 python scripts/ui-audit/fixture_server.py
-gradle :app:assembleDebug -PUI_AUDIT=true -PDEBUG_API_BASE_URL=http://10.0.2.2:18765/api/v1/
+.\gradlew.bat :app:assembleDebug -PUI_AUDIT=true -PDEBUG_API_BASE_URL=http://10.0.2.2:18765/api/v1/
 adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s emulator-5554 shell am start -n com.urbanblade.mobile.audit/com.urbanblade.mobile.MainActivity
 ```

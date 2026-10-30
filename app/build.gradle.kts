@@ -120,6 +120,9 @@ android {
             // QA aislado: permite instalar junto a la app habitual sin tocar su sesión.
             if (providers.gradleProperty("UI_AUDIT").orNull == "true") applicationIdSuffix = ".audit"
             buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
+            // Cobertura de las pruebas unitarias con JaCoCo (T088): AGP instrumenta el código y genera el
+            // reporte con :app:createDebugUnitTestCoverageReport (lo corre el CI y lo publica como artefacto).
+            enableUnitTestCoverage = true
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
@@ -146,6 +149,13 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+    // Las pruebas de componente (Compose UI Test sobre Robolectric, en la JVM) necesitan los recursos y el
+    // manifiesto de la app para dibujar las pantallas como en el teléfono.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
 }
 
@@ -252,4 +262,9 @@ dependencies {
     // disponible en pruebas JVM puras).
     testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    // Pruebas de componente de las pantallas (Compose UI Test) en la JVM, sin emulador: Robolectric.
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("org.robolectric:robolectric:4.17")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

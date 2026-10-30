@@ -21,30 +21,35 @@ permissions:
 jobs:
   build:
     name: Lint + pruebas unitarias + build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       # gradle/gradle-daemon-jvm.properties pide JetBrains 21 para el daemon de Gradle.
       - name: JDK 21 (JetBrains)
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: jetbrains
           java-version: "21"
 
-      # El repo no versiona gradlew: se usa la misma versión que gradle-wrapper.properties.
-      - name: Gradle 9.6.0
-        uses: gradle/actions/setup-gradle@v6
+      # El wrapper fija versión y checksum; setup-gradle valida sus JAR y configura caché.
+      - name: Preparar Gradle Wrapper
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
         with:
-          gradle-version: "9.6.0"
+          validate-wrappers: true
+
+      - name: Permiso del wrapper
+        run: chmod +x gradlew
 
       - name: Lint
-        run: gradle :app:lintDebug --console=plain
+        run: ./gradlew :app:lintDebug --console=plain
 
       - name: Pruebas unitarias
-        run: gradle :app:testDebugUnitTest --console=plain
+        run: ./gradlew :app:testDebugUnitTest --console=plain
 
       - name: Verificar que no haya pruebas omitidas
         run: |
@@ -57,21 +62,39 @@ jobs:
           assert skipped == 0, f'Hay {skipped} pruebas omitidas'
           PY
 
+      # Cobertura de las pruebas unitarias con JaCoCo (T088). Las pruebas ya corrieron arriba, así que Gradle solo
+      # junta los datos y genera el reporte. Se publica en el resumen del job y como artefacto; no hay umbral que
+      # falle porque casi toda la app es interfaz Compose y la cobertura medida es baja.
+      - name: Cobertura (JaCoCo)
+        run: |
+          ./gradlew :app:createDebugUnitTestCoverageReport --console=plain
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          root = ET.parse('app/build/reports/coverage/test/debug/report.xml').getroot()
+          print('### Cobertura de las pruebas unitarias (JaCoCo)\n')
+          print('| Métrica | Cubierto | Total | % |\n|---|---|---|---|')
+          for kind, label in (('LINE', 'Líneas'), ('BRANCH', 'Ramas'), ('METHOD', 'Métodos'), ('CLASS', 'Clases')):
+              c = next(x for x in root.findall('counter') if x.get('type') == kind)
+              cov, miss = int(c.get('covered')), int(c.get('missed'))
+              print(f'| {label} | {cov} | {cov + miss} | {100 * cov / (cov + miss):.1f} % |')
+          PY
+
       - name: Build de debug
-        run: gradle :app:assembleDebug --console=plain
+        run: ./gradlew :app:assembleDebug --console=plain
 
       # R8 solo corre en release: sin este paso una regla de proguard-rules.pro rota (o un DTO
       # que R8 renombra) no se vería hasta publicar. La URL es pública y solo se compila.
       - name: Build de release (R8)
-        run: gradle :app:assembleRelease -PRELEASE_API_BASE_URL=https://api.urbanblade.com.mx/api/v1/ --console=plain
+        run: ./gradlew :app:assembleRelease -PRELEASE_API_BASE_URL=https://api.urbanblade.com.mx/api/v1/ --console=plain
 
       - name: Reportes de lint y pruebas
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: reportes-android
           path: |
             app/build/reports/lint-results-debug.html
             app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/coverage/test/debug/
           if-no-files-found: ignore
           retention-days: 14
