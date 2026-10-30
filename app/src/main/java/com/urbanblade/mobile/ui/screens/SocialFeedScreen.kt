@@ -151,7 +151,8 @@ private fun WorkPost(
                         Text(comment.comment.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
                     }
                     if (!comment.isMine && comment.id != null) {
-                        IconButton(onClick = { moderating = comment }, enabled = enabled, modifier = Modifier.size(32.dp)) {
+                        // 48 dp explícitos (el mínimo de Material); con 32 dp solo la ampliación automática de Compose cubría el toque.
+                        IconButton(onClick = { moderating = comment }, enabled = enabled, modifier = Modifier.size(48.dp)) {
                             Icon(Icons.Default.MoreVert, "Reportar o bloquear a $author", tint = UrbanColors.Muted)
                         }
                     }

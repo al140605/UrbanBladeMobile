@@ -273,7 +273,8 @@ private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit, onBook:
                     Text(
                         "Reservar ${service.nombre} · ${UrbanFormat.moneyShort(service.precio)}",
                         style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
+                        // Dos líneas: con fuente grande una sola cortaría el precio, que va al final.
+                        maxLines = 2,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
@@ -283,12 +284,7 @@ private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit, onBook:
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
                 if (bubble.helpful == null) {
                     Text("¿Te sirvió?", style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
-                    IconButton(onClick = { onRate(true) }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Outlined.ThumbUp, "Me sirvió", tint = UrbanColors.Muted, modifier = Modifier.size(16.dp))
-                    }
-                    IconButton(onClick = { onRate(false) }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Outlined.ThumbDown, "No me sirvió", tint = UrbanColors.Muted, modifier = Modifier.size(16.dp))
-                    }
+                    ChatRatingButtons(onRate)
                 } else {
                     Icon(
                         if (bubble.helpful) Icons.Default.ThumbUp else Icons.Default.ThumbDown,
@@ -301,6 +297,21 @@ private fun ChatBubbleRow(bubble: ChatBubble, onRate: (Boolean) -> Unit, onBook:
                 }
             }
         }
+    }
+}
+
+/**
+ * «Me sirvió» / «No me sirvió». El icono es pequeño, pero el botón mide 48 dp (el mínimo de Material y de
+ * accesibilidad). Con `Modifier.size` menor el botón se dibujaba de 36 dp y solo la ampliación automática de Compose
+ * cubría el área del toque; así no se depende de ella.
+ */
+@Composable
+internal fun ChatRatingButtons(onRate: (Boolean) -> Unit) {
+    IconButton(onClick = { onRate(true) }, modifier = Modifier.size(48.dp)) {
+        Icon(Icons.Outlined.ThumbUp, "Me sirvió", tint = UrbanColors.Muted, modifier = Modifier.size(16.dp))
+    }
+    IconButton(onClick = { onRate(false) }, modifier = Modifier.size(48.dp)) {
+        Icon(Icons.Outlined.ThumbDown, "No me sirvió", tint = UrbanColors.Muted, modifier = Modifier.size(16.dp))
     }
 }
 

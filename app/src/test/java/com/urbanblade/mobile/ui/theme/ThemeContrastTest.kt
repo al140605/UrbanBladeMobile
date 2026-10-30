@@ -24,6 +24,20 @@ class ThemeContrastTest {
         } finally { UrbanColors.applyTheme(UrbanTheme.NOIR) }
     }
 
+    // Éxito, aviso, error e información dicen el estado con texto de color: deben leerse en los cuatro temas.
+    @Test fun `estados legibles sobre las tarjetas de los cuatro temas`() {
+        try {
+            UrbanTheme.entries.forEach { theme ->
+                UrbanColors.applyTheme(theme)
+                listOf(UrbanColors.Card, UrbanColors.CardAlt).forEach { bg ->
+                    listOf(UrbanColors.Success, UrbanColors.Warning, UrbanColors.Danger, UrbanColors.Info).forEach { fg ->
+                        assertTrue("${theme.key}: estado sobre tarjeta ${contrast(fg, bg)}", contrast(fg, bg) >= 4.5f)
+                    }
+                }
+            }
+        } finally { UrbanColors.applyTheme(UrbanTheme.NOIR) }
+    }
+
     @Test fun `estados del tema claro legibles sobre tarjetas`() {
         try {
             UrbanColors.applyTheme(UrbanTheme.LIBRETA)

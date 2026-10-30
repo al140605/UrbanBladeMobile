@@ -89,6 +89,18 @@ El bloqueo es local al ViewModel, no una clave de idempotencia del servidor. La 
 
 `lintDebug`, `testDebugUnitTest` y `assembleDebug`: BUILD SUCCESSFUL. Suite completa: 375 pruebas, cero fallos, errores u omisiones; incluye seis regresiones nuevas de reserva. Gitleaks sobre los cuatro archivos cambiados: cero hallazgos. Enlaces documentales y `git diff --check`: correctos. No se ejecutó CI, build release, instalación en dispositivo ni prueba funcional con API real para este incremento.
 
+## Accesibilidad (30 de octubre de 2026)
+
+Revisión estática de las pantallas principales y pruebas automáticas con Robolectric. No sustituye a TalkBack en el teléfono.
+
+- **Contraste:** los cuatro temas cumplen AA (4,5:1) en todas las combinaciones de texto, acento y estados sobre fondo, superficie y tarjetas; el valor más bajo medido es 4,8:1. `ThemeContrastTest` lo vigila, ahora también para los estados (éxito, aviso, error, información) en los cuatro temas.
+- **320 dp y fuente al 200 %:** `AccesibilidadEscalaTest` ejecuta los pasos de servicio y de resumen de la reserva con ese peor caso: la información sigue en pantalla, se puede elegir y el área táctil es de al menos 48 dp.
+- **Cambios:** valoración del chatbot extraída a `ChatRatingButtons` con botones de 48 dp (`ChatRatingButtonsTest`), botón de moderación del muro de 48 dp y botón «Reservar» del chatbot a dos líneas para que el precio no se corte con fuente grande.
+- **Hallazgos que no son defecto:** un `IconButton` con `Modifier.size` menor ya tenía un área táctil efectiva de 48 dp, porque Compose la amplía; los 48 dp explícitos evitan depender de eso. Los chips de filtro de Material miden 38 dp con fuente al 200 % por diseño y también se amplían al tocar.
+- **Pendiente:** recorrido con TalkBack en el teléfono, revisión visual de Mis citas, Cuenta, barbero y administración en los cuatro temas, y comprobar que el teclado no tape acciones en los formularios.
+
+Validación local: `lintDebug`, `assembleDebug` y 381 pruebas JVM, sin fallos ni omisiones.
+
 ## QA con datos poblados
 
 El [informe del 30 de octubre](QA_DATOS_POBLADOS_2026-10-30.md) registra las pruebas físicas con cliente, barbero y administración, la reserva local en efectivo y el doble toque sin duplicado. La recuperación de tarjeta/transferencia y la matriz completa de accesibilidad siguen pendientes.
