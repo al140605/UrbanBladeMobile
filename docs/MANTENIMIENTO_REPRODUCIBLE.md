@@ -44,3 +44,11 @@ La comprobación en vivo usa /up y no sigue redirecciones. La raíz / redirige a
 frontend y acoplaba una prueba del certificado de la API a la disponibilidad de
 otro servicio. Se conservan los pins de producción, la validación TLS y el rechazo
 del pin falso; la respuesta correcta debe ser 200 y permanecer en el host de la API.
+
+## Compilación para CodeQL
+
+CodeQL compila debug de forma explícita, sin build cache, con dos workers y Kotlin
+en el proceso de Gradle. El autobuild anterior intentaba varias variantes y falló
+por Java heap space. Se conserva el análisis de las fuentes Java/Kotlin compartidas;
+Android CI sigue compilando release con R8. El resultado de CodeQL debe comprobarse
+en GitHub y no se deduce de una compilación local sin instrumentación.
