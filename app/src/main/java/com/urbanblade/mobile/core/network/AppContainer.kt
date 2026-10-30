@@ -46,6 +46,7 @@ object AppContainer {
             if (response.code == 401 && !token.isNullOrBlank() && !isAccessCall) {
                 SessionEvents.notifyExpired()
             }
+            if (response.isSuccessful) SessionEvents.notifyReachable()
             response
         }
 

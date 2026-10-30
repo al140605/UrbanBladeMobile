@@ -15,4 +15,12 @@ object SessionEvents {
     fun notifyExpired() {
         _expired.tryEmit(Unit)
     }
+
+    private val _reachable = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    /** El servidor contestó bien a una llamada: ya hay conexión, aunque se haya entrado con datos guardados. */
+    val reachable: SharedFlow<Unit> = _reachable.asSharedFlow()
+
+    fun notifyReachable() {
+        _reachable.tryEmit(Unit)
+    }
 }

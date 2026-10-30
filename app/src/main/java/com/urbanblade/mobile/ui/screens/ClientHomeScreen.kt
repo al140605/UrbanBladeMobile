@@ -125,7 +125,8 @@ fun ClientHomeScreen(
         }
     }
     val homeNotice by com.urbanblade.mobile.core.config.UrbanRemoteConfig.homeNotice.collectAsState()
-    val next = response.next
+    // Misma regla que en Mis citas: una cita de hoy que ya terminó no es «tu próxima visita».
+    val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }
     val failed = error != null && next == null
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
     val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -236,7 +237,16 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                         }
                                     },
                                     icon = { Icon(item.icon, item.label) },
-                                    label = { Text(item.label, style = MaterialTheme.typography.labelMedium) },
+                                    // Una sola línea: con letra grande una palabra como «Cuenta» se partía a media palabra.
+                                    label = {
+                                        Text(
+                                            item.label,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = UrbanColors.OnGold,
                                         selectedTextColor = UrbanColors.GoldText,

@@ -136,6 +136,18 @@ class AppointmentsViewModel @JvmOverloads constructor(
         _savedCards.value = try { repo.savedCards() } catch (_: Exception) { emptyList() }
     }
 
+    /** Datos bancarios para transferir; null mientras cargan. Si fallan, se muestran como «sin configurar». */
+    private val _transferInfo = MutableStateFlow<TransferInfo?>(null)
+    val transferInfo = _transferInfo.asStateFlow()
+
+    fun loadTransferInfo() = viewModelScope.launch {
+        if (_transferInfo.value?.configurado == true) return@launch
+        _transferInfo.value = try { repo.transferInfo() } catch (_: Exception) { TransferInfo() }
+    }
+
+    /** Quita un error anterior (p. ej. al cambiar de método de pago) para que no parezca del paso actual. */
+    fun clearError() { _error.value = null }
+
     fun clearSavedCardConfirm() { _savedCardConfirm.value = null }
 
     /**

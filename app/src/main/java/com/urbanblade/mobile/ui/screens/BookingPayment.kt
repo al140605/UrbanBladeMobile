@@ -241,6 +241,30 @@ fun BookingPaymentSection(
 /** Datos bancarios del negocio con botón de copiar; el comprobante es opcional y puede subirse después. */
 @Composable
 private fun TransferDetails(info: TransferInfo?, total: Double, receiptPicked: Boolean, onPickReceipt: () -> Unit) {
+    TransferAccount(info, total)
+    if (info?.configurado == true) {
+        Spacer(Modifier.height(12.dp))
+        UrbanOutlineButton(
+            text = if (receiptPicked) "Comprobante listo · cambiar" else "Adjuntar comprobante (opcional)",
+            onClick = onPickReceipt,
+            icon = if (receiptPicked) Icons.Default.CheckCircle else Icons.Default.Upload,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "¿Aún no transfieres? Reserva ahora y sube el comprobante después desde Mis citas.",
+            style = MaterialTheme.typography.bodySmall,
+            color = UrbanColors.Muted
+        )
+    }
+}
+
+/**
+ * Cuenta a la que se transfiere, con sus tres estados: cargando, sin configurar (aviso claro en vez de una
+ * pantalla vacía) y con datos. La comparten la reserva y el pago desde Mis citas.
+ */
+@Composable
+internal fun TransferAccount(info: TransferInfo?, total: Double) {
     when {
         info == null -> Row(verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
@@ -251,29 +275,14 @@ private fun TransferDetails(info: TransferInfo?, total: Double, receiptPicked: B
             "La barbería todavía no registra sus datos bancarios. Elige otro método o pregunta en recepción.",
             Icons.Default.Info
         )
-        else -> {
-            UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                Text("Transfiere a esta cuenta", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(12.dp))
-                info.banco?.takeIf { it.isNotBlank() }?.let { BankRow("Banco", it, copyable = false) }
-                info.beneficiario?.takeIf { it.isNotBlank() }?.let { BankRow("Beneficiario", it, copyable = false) }
-                info.clabe?.let { BankRow("CLABE", it.chunked(4).joinToString(" "), copyValue = it, mono = true) }
-                info.concepto?.takeIf { it.isNotBlank() }?.let { BankRow("Concepto", it) }
-                BankRow("Monto", money(total), copyable = false, highlight = true)
-            }
+        else -> UrbanPremiumCard(Modifier.fillMaxWidth()) {
+            Text("Transfiere a esta cuenta", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(12.dp))
-            UrbanOutlineButton(
-                text = if (receiptPicked) "Comprobante listo · cambiar" else "Adjuntar comprobante (opcional)",
-                onClick = onPickReceipt,
-                icon = if (receiptPicked) Icons.Default.CheckCircle else Icons.Default.Upload,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "¿Aún no transfieres? Reserva ahora y sube el comprobante después desde Mis citas.",
-                style = MaterialTheme.typography.bodySmall,
-                color = UrbanColors.Muted
-            )
+            info.banco?.takeIf { it.isNotBlank() }?.let { BankRow("Banco", it, copyable = false) }
+            info.beneficiario?.takeIf { it.isNotBlank() }?.let { BankRow("Beneficiario", it, copyable = false) }
+            info.clabe?.let { BankRow("CLABE", it.chunked(4).joinToString(" "), copyValue = it, mono = true) }
+            info.concepto?.takeIf { it.isNotBlank() }?.let { BankRow("Concepto", it) }
+            BankRow("Monto", money(total), copyable = false, highlight = true)
         }
     }
 }

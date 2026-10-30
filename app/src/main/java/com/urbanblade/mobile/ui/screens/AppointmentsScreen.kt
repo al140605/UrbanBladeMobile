@@ -928,6 +928,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
     val cardAvailable = remember { isStripeConfigured() }
     val response by vm.data.collectAsState()
     val error by vm.error.collectAsState()
+    val transferInfo by vm.transferInfo.collectAsState()
     val context = LocalContext.current
 
     var method by remember { mutableStateOf<PaymentMethodChoice?>(null) }
@@ -1074,7 +1075,11 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                     UrbanChoice(PaymentMethodChoice.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance)
                 ),
                 selected = method,
-                onSelect = { method = it }
+                onSelect = {
+                    method = it
+                    vm.clearError()
+                    if (it == PaymentMethodChoice.TRANSFERENCIA) vm.loadTransferInfo()
+                }
             )
             Text(
                 "¿Prefieres pagar en efectivo? Puedes hacerlo directamente en la barbería.",
@@ -1115,6 +1120,8 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                 }
                 PaymentMethodChoice.TRANSFERENCIA -> {
                     Spacer(Modifier.height(16.dp))
+                    TransferAccount(transferInfo, basePrice + tipAmount)
+                    Spacer(Modifier.height(14.dp))
                     UrbanOutlineButton(
                         text = if (receiptUri != null) "Comprobante seleccionado" else "Elegir comprobante",
                         onClick = pickReceipt,

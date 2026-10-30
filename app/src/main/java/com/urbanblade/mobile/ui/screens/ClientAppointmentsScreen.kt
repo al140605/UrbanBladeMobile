@@ -75,6 +75,21 @@ import java.time.LocalDate
 private val ACTIVE = listOf("pendiente", "confirmada", "en_proceso")
 
 /**
+ * Una cita es «próxima» si sigue activa y no ha terminado. Una pendiente o confirmada de hoy cuya hora de fin ya
+ * pasó (sin hora de fin, la de inicio) se va al historial: antes se destacaba como «Tu próxima cita» todo el día.
+ * Una en proceso se queda mientras dure.
+ */
+internal fun isStillUpcoming(appt: AppointmentRow, now: java.time.LocalDateTime): Boolean {
+    if (appt.estado !in ACTIVE) return false
+    val date = runCatching { LocalDate.parse(appt.fecha.take(10)) }.getOrNull() ?: return false
+    if (date.isBefore(now.toLocalDate())) return false
+    if (date.isAfter(now.toLocalDate()) || appt.estado == "en_proceso") return true
+    val end = (appt.horaFin ?: appt.horaInicio).take(5).padStart(5, '0')
+    val endTime = runCatching { java.time.LocalTime.parse(end) }.getOrNull() ?: return true
+    return endTime.isAfter(now.toLocalTime())
+}
+
+/**
  * Mis citas del cliente: "Próximas" (la siguiente destacada, lo que falta pagar y la lista de
  * espera) e "Historial" (pasadas y canceladas, con "Reservar de nuevo"). El personal usa
  * AppointmentsScreen; las hojas de reagendar y de pago son las mismas de esa pantalla.
@@ -108,13 +123,10 @@ fun ClientAppointmentsScreen(
         vm.loadDebt()
     }
 
-    val todayDate = LocalDate.now()
-    
+    val now = java.time.LocalDateTime.now()
+
     val upcoming = response.data
-        .filter { 
-            it.estado in ACTIVE && 
-            (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= todayDate 
-        }
+        .filter { isStillUpcoming(it, now) }
         .sortedWith(
             compareBy<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MAX }
                 .thenBy { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX }
@@ -186,10 +198,7 @@ fun ClientAppointmentsScreen(
                 }
 
                 if (tab == 0) {
-                    val serverNext = response.next?.takeIf {
-                        it.estado in ACTIVE &&
-                            (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= todayDate
-                    }
+                    val serverNext = response.next?.takeIf { isStillUpcoming(it, now) }
                     val next = serverNext ?: upcoming.firstOrNull()
                     if (next == null) {
                         item {
@@ -326,8 +335,14 @@ private fun AppointmentRow.isPayable() = isChargeable && !hasPayment && code != 
 @Composable
 private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, onPay: (() -> Unit)?, onReschedule: (() -> Unit)?, onCancel: (() -> Unit)?) {
     UrbanHeroCard {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { UrbanHeroLabel(if (completeList) "Tu próxima cita" else "Una de tus próximas citas") }
+        // FlowRow: con letra grande o una etiqueta larga el estado baja a la línea siguiente en vez de apretar el texto.
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            itemVerticalAlignment = Alignment.CenterVertically
+        ) {
+            UrbanHeroLabel(if (completeList) "Tu próxima cita" else "Una de tus próximas citas")
             UrbanStatusPill(appt.estado)
         }
         Spacer(Modifier.height(8.dp))
