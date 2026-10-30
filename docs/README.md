@@ -43,3 +43,7 @@ Actualizar una guía cuando cambia su implementación; conservar procedimientos 
 ## Políticas del proyecto
 
 [Seguridad](../SECURITY.md) · [Contribución](../CONTRIBUTING.md) · [Código de conducta](../CODE_OF_CONDUCT.md) · [GPL-3.0-only](../LICENSE) · [Alcance de licencia](../LICENSING.md).
+
+## Trabajo en curso
+
+[Plan de mejoras UI/UX y compatibilidad con API](PLAN_MEJORAS_UI_UX.md): referencias, prioridades, contratos observados y criterios previos al PR. Las propuestas no se consideran implementadas.

@@ -1,0 +1,67 @@
+# Mejoras de UI/UX y compatibilidad con la API
+
+Revisión: 30 de octubre de 2026. Trabajo asociado a TT32 / HT-12.
+Rama de trabajo: `feat/mejoras-interfaz-mobile`. No abrir PR hasta completar los cambios y su validación; no fusionar ni publicar en Google Play durante esta fase.
+
+## Punto de partida
+
+La rama conserva el rediseño editorial, la opción 2 del cliente y la opción A del barbero. Integra main publicado `3173e34839517145c1708f86f56320da0c6e9f1a`; la combinación `100ac0ca76182b9d4b4b20bbe0224abaf10e8035` pasó lint, build debug y 369 pruebas JVM sin errores u omisiones. Esta evidencia no reemplaza la revisión visual e integración de los próximos cambios.
+
+Conservar imágenes, cuatro temas, componentes compartidos y navegación vigente. Una mejora compacta debe mantener legibilidad, objetivos táctiles y todas las funciones existentes. No añadir dependencias por imitar una referencia.
+
+## Referencias consultadas
+
+| Fuente primaria | Qué aporta | Aplicación propuesta |
+|---|---|---|
+| [Jetsnack y muestras oficiales Compose](https://github.com/android/compose-samples) | Sistema de diseño propio, catálogo y composiciones | Jerarquía de catálogo, separación de contenido y controles; conservar marca e imágenes UrbanBlade |
+| [Reply](https://github.com/android/compose-samples/tree/main/Reply) | Navegación y diseño adaptable | Estudiar el comportamiento en anchos mayores sin cambiar destinos por rol |
+| [Now in Android](https://github.com/android/nowinandroid) | Componentes, pruebas y datos de demostración separados de red | Estados reproducibles para auditoría; una captura sintética no acredita integración |
+| [Accesibilidad Compose](https://developer.android.com/develop/ui/compose/accessibility/api-defaults) | Semántica y espacio táctil mínimo de 48 dp | Revisar acciones compactas, TalkBack y superposición de zonas táctiles |
+| [Arquitectura Compose](https://developer.android.com/develop/ui/compose/architecture) | Estado descendente y eventos ascendentes | Conservar ViewModel y repositorio; evitar llamadas HTTP desde componentes visuales |
+| [Navegación adaptable](https://developer.android.com/develop/adaptive-apps/guides/build-adaptive-navigation) | Barra inferior o lateral según espacio disponible | Evaluación posterior al recorrido principal de teléfono; no requiere migración inmediata |
+
+Son referencias para decisiones, no material para copiar pantallas, recursos o identidad visual. El diseño de una app de noticias o correo no acredita un flujo de reservas o pagos. Si se reutiliza código de terceros, revisar su licencia y avisos por separado.
+
+## Orden de trabajo propuesto
+
+| Prioridad | Área | Mejora propuesta | Criterio de aceptación |
+|---|---|---|---|
+| P0 | Reserva | Resumen claro de servicio, profesional, fecha, hora e importe estimado; progreso y retorno coherentes | No confirmar con horarios de otra consulta; doble toque no duplica reserva; error conserva contexto |
+| P0 | Reserva y pago | Distinguir cita creada de pago confirmado y ofrecer recuperación de la cita existente | Si falla o se cancela el pago después de crear, no volver a crear la cita para reintentar |
+| P0 | Mis citas | Priorizar próxima visita, acciones válidas y mensajes de estado/pago | No inferir deuda solo por estado; revisar listas vacías, nombres largos y paginación |
+| P0 | Accesibilidad | Revisar componentes compartidos y formularios en cuatro temas | Controles alcanzables, espacio táctil de 48 dp, fuente 200 %, ancho 320 dp y teclado sin tapar acciones |
+| P1 | Barbero | Consolidar opción A: siguiente servicio y accesos operativos antes de gráficas | Revisar con citas y trabajos cargados, horario activo y estados vacíos; conservar medios |
+| P1 | Cuenta y Beneficios | Resumir identidad y actividad; distinguir información de acciones | Cambios de perfil se reflejan al volver; un beneficio visible no promete elegibilidad no confirmada |
+| P2 | Adaptación | Evaluar lista/detalle y navegación lateral en pantallas amplias | Mismos destinos, selección y permisos al cambiar tamaño; teléfono primero |
+
+Presentar las variantes visuales antes de implementar una propuesta nueva. Las opciones ya aprobadas del cliente y barbero siguen siendo la base. No introducir animaciones decorativas en tareas frecuentes.
+
+## Contraste estático con el backend
+
+Fuentes locales: Android en la rama indicada y Barber en `a38eb33c61056a42ec952dfc91c6b19af9f612b5`. Se leyeron rutas, modelos y controladores; no se invocaron operaciones de negocio ni se modificó Barber. Los archivos locales no versionados de otro trabajo quedan fuera de esta revisión. No se afirma que este SHA sea la versión desplegada del servidor.
+
+| Flujo | Contrato observado | Regla para la mejora |
+|---|---|---|
+| Horarios | `GET availability/slots`: `barber_id`, `service_id`, `date`; fecha desde hoy, IDs existentes | Conservar carga/error/vacío separados y selección ligada a servicio, barbero y fecha; el servidor valida al reservar |
+| Crear cita | `POST appointments`; `AppointmentRequest` usa `barber_id`, `service_id`, `fecha`, `hora_inicio` y opciones existentes | No añadir campos ni totales inventados. El móvil ya contempla `pagar_ahora`, propina y productos; verificar cada opción en integración |
+| Pagar al reservar | `POST appointments/{code}/deposit/stripe-intent` y carga de comprobante | No sustituirlo indiscriminadamente por el cobro de citas completadas. La reserva se crea antes del pago |
+| Cobro de cita | `POST payments/stripe-intent` valida rol/pertenencia, cita completada y ausencia de pago; calcula importe en servidor | La UI no decide precio final ni habilita el mismo flujo para cualquier estado |
+| Próximas e historial | `GET appointments` admite `page`, `per_page`, `desde`, `hasta`; Android tiene esos parámetros | Contrastar orden, varias páginas y límites de fechas antes de declarar que «no hay citas» |
+| Estado de pago | Modelo Android recibe `pago_resuelto`; Mis citas usa `pagoResuelto` | Conservar la semántica del servidor; no deducir deuda únicamente de `confirmada` o `completada` |
+| Barbero | Rutas `barber/agenda`, `barber/portfolio` y `barber/schedule` bajo middleware de barbero | Conservar permisos y propiedad de recursos; un cambio visual no amplía acceso |
+| Perfil y favorito | `GET/PUT profile` y `PUT profile/favorite-barber` | Mostrar lo confirmado por la API y refrescar el usuario tras una actualización |
+
+Fuentes en Android: `core/network/UrbanBladeApi.kt`, `data/model/Models.kt`, `ui/viewmodel/UrbanViewModels.kt` y `ui/screens/ClientAppointmentsScreen.kt`. Fuentes Barber: `routes/api.php`, `Api/Appointment/AvailabilityController.php`, `Api/Appointment/AppointmentController.php` y `Api/Payment/PaymentController.php` bajo `app/Http/Controllers/`.
+
+El [inventario anterior de rutas](AUDITORIA_CONTRATOS_API.md) sigue siendo evidencia de su fecha. Una coincidencia de método y ruta no prueba payload, permisos, concurrencia ni funcionamiento con el backend desplegado.
+
+## Validación antes del PR
+
+1. Recorrido visual con datos sintéticos: 0, 1 y muchos elementos; nombres largos; cuatro temas; 320 dp y fuente 200 %. Reutilizar la variante `.audit` y conservar separada la sesión habitual.
+2. Recorridos con API local aislada y usuarios ficticios por rol: carga, 401/403/422/429/503, timeout, doble toque, cambio de servicio durante consulta y reintento.
+3. Reserva en efectivo; cancelación o fallo de pago con cita ya creada; cobro/deposito correspondiente al estado. No usar dinero, cuentas o comprobantes reales.
+4. Confirmar actualización posterior a reservar, cancelar, reagendar y editar perfil. Revisar paginación y el límite de fecha del negocio frente al dispositivo.
+5. Pruebas JVM pertinentes, lint y builds; registrar commit, API y datos efectivos. Agregar pruebas de regresión para errores reproducidos y corregidos.
+6. Registrar evidencia y pendientes resueltos; solo entonces abrir PR cuando el alcance acordado esté cubierto. Subir avances a esta rama no equivale a aprobación del producto ni distribución.
+
+Estado actual: investigación y contraste estático completados. La implementación de propuestas nuevas y la integración funcional con la API local quedan pendientes; no se declaran certificadas por esta investigación.
