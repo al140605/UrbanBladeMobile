@@ -123,6 +123,12 @@ fun BookingScreen(
     var notes by rememberSaveable { mutableStateOf("") }
     var slotsRequested by rememberSaveable { mutableStateOf(false) }
     var confirmed by rememberSaveable { mutableStateOf(false) }
+    val reservationCompleted by vm.reservationCompleted.collectAsState()
+    // El ViewModel sobrevive a una recreación durante Stripe; el callback anterior puede
+    // pertenecer a la composición destruida. La nueva pantalla observa el resultado vigente.
+    LaunchedEffect(reservationCompleted) {
+        if (reservationCompleted) confirmed = true
+    }
     // El cliente acepta el cargo por inasistencia en el último paso (el backend guarda cuándo lo aceptó).
     var acceptsNoShowFee by rememberSaveable { mutableStateOf(false) }
     val pay = rememberBookingPaymentState()

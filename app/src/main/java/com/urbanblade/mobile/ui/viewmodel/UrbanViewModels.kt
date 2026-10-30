@@ -474,6 +474,10 @@ class BookingViewModel @JvmOverloads constructor(
     private val _paymentNote = MutableStateFlow<String?>(null)
     val paymentNote = _paymentNote.asStateFlow()
 
+    /** Flujo finalizado con cita creada; no significa que el backend haya confirmado el pago. */
+    private val _reservationCompleted = MutableStateFlow(false)
+    val reservationCompleted = _reservationCompleted.asStateFlow()
+
     private var pendingDone: ((String?) -> Unit)? = null
     private var pendingId: String? = null
 
@@ -553,12 +557,15 @@ class BookingViewModel @JvmOverloads constructor(
         aceptaCargo: Boolean = false,
         onDone: (String?) -> Unit
     ) {
+        // El bloqueo se toma antes de lanzar: dos eventos en el mismo frame no crean dos citas.
+        if (_busy.value || _reservationCompleted.value) return
         if (barberId.isBlank() || serviceId.isBlank() || date.isBlank() || time.isBlank()) {
             _error.value = "Selecciona barbero, servicio, fecha y horario."
             return
         }
+        _busy.value = true
         viewModelScope.launch {
-            _busy.value = true; _error.value = null; _message.value = null; _paymentNote.value = null
+            _error.value = null; _message.value = null; _paymentNote.value = null
             val res = try {
                 // Igual que la web: "pagar ahora" (tarjeta, o transferencia con comprobante) le pide a barber
                 // que fije el cobro completo con el descuento real del cliente; se cobra por el endpoint de depósito.
@@ -589,7 +596,7 @@ class BookingViewModel @JvmOverloads constructor(
             when (method) {
                 BookingPayMethod.EFECTIVO -> {
                     _paymentNote.value = "Pagas en el salón el día de tu cita."
-                    _busy.value = false; onDone(id)
+                    finishReservation(id, onDone)
                 }
                 BookingPayMethod.TRANSFERENCIA -> {
                     // El comprobante es opcional al reservar: si no lo trae, lo sube después desde Mis citas.
@@ -602,7 +609,7 @@ class BookingViewModel @JvmOverloads constructor(
                     } catch (e: Exception) {
                         "Tu cita quedó reservada, pero no se pudo subir el comprobante. Súbelo desde Mis citas."
                     }
-                    _busy.value = false; onDone(id)
+                    finishReservation(id, onDone)
                 }
                 BookingPayMethod.TARJETA -> {
                     try {
@@ -617,9 +624,9 @@ class BookingViewModel @JvmOverloads constructor(
                         ).clientSecret
                         _cardConfirm.value = CardConfirm(secret, savedCardId)
                     } catch (e: Exception) {
-                        pendingDone = null
+                        pendingDone = null; pendingId = null
                         _paymentNote.value = "Tu cita quedó reservada, pero no pudimos iniciar el pago con tarjeta. Págala desde Mis citas."
-                        _busy.value = false; onDone(id)
+                        finishReservation(id, onDone)
                     }
                 }
             }
@@ -628,15 +635,23 @@ class BookingViewModel @JvmOverloads constructor(
 
     /** Resultado de confirmar la tarjeta con Stripe. El cobro real lo confirma el webhook de barber. */
     fun onCardResult(completed: Boolean, canceled: Boolean, reason: String?) {
+        // El launcher puede volver a entregar un resultado; solo se consume el pendiente actual.
+        val done = pendingDone ?: return
+        val id = pendingId
+        pendingDone = null; pendingId = null
         _cardConfirm.value = null
         _paymentNote.value = when {
             completed -> "Pago con tarjeta enviado. UrbanBlade lo está confirmando."
             canceled -> "Cancelaste el pago. Tu cita quedó reservada y puedes pagarla desde Mis citas."
             else -> "El pago con tarjeta no se completó${reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""}. Tu cita quedó reservada; págala desde Mis citas."
         }
+        finishReservation(id, done)
+    }
+
+    private fun finishReservation(id: String?, onDone: (String?) -> Unit) {
+        _reservationCompleted.value = true
         _busy.value = false
-        pendingDone?.invoke(pendingId)
-        pendingDone = null
+        onDone(id)
     }
 
     fun defaultDate(): String = LocalDate.now().toString()

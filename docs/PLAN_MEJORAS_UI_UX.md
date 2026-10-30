@@ -64,4 +64,27 @@ El [inventario anterior de rutas](AUDITORIA_CONTRATOS_API.md) sigue siendo evide
 5. Pruebas JVM pertinentes, lint y builds; registrar commit, API y datos efectivos. Agregar pruebas de regresión para errores reproducidos y corregidos.
 6. Registrar evidencia y pendientes resueltos; solo entonces abrir PR cuando el alcance acordado esté cubierto. Subir avances a esta rama no equivale a aprobación del producto ni distribución.
 
-Estado actual: investigación y contraste estático completados. La implementación de propuestas nuevas y la integración funcional con la API local quedan pendientes; no se declaran certificadas por esta investigación.
+Estado actual: investigación y contraste estático completados; primer incremento de reserva implementado, descrito abajo. La integración funcional con API local y la revisión visual siguen pendientes.
+
+
+## Primer incremento: reserva y resultado de pago
+
+Implementado el 30 de octubre de 2026, sin modificar rutas, payloads o reglas del backend:
+
+- La reserva toma el bloqueo antes de iniciar su corrutina: dos eventos consecutivos no lanzan dos solicitudes de creación.
+- La misma instancia del flujo no vuelve a reservar mientras espera Stripe ni tras haber creado una cita y finalizado el resultado de pago. La salida sigue siendo Mis citas, donde se recupera el pago existente.
+- El resultado final se expone como estado del ViewModel, además de la confirmación guardada de la pantalla. Una composición nueva puede observarlo cuando el ViewModel sobrevivió a la recreación; no depende únicamente del callback de la composición anterior.
+- Los callbacks repetidos o ajenos a un pago pendiente no sobrescriben el primer resultado ni repiten la finalización.
+- Un rechazo de creación por validación permite corregir y volver a intentar; no se bloquea un formulario cuya cita no se creó.
+
+Se reprodujeron primero tres fallos con pruebas JVM: creación duplicada, nueva reserva después de cancelar el pago y resultado sobrescrito por callback repetido. Después se verificaron también el fallo al iniciar el intento, el rechazo 422 recuperable y el reenvío tras éxito.
+
+El estado «flujo finalizado» significa que existe una cita y terminó este paso del cliente; no acredita un cobro confirmado. Se conserva la confirmación del servidor y la separación entre depósito al reservar y cobro de cita completada.
+
+### Límites de este incremento
+
+El bloqueo es local al ViewModel, no una clave de idempotencia del servidor. La muerte del proceso y una respuesta perdida después de crear en Laravel requieren reconciliación del lado servidor antes de automatizar reintentos; no se garantiza deduplicación entre procesos o dispositivos. No se modificó Barber ni se enviaron reservas, comprobantes o pagos reales. Pendientes: recreación durante el pago en dispositivo, recorridos de recuperación en Mis citas e integración con API local aislada.
+
+### Validación local del incremento
+
+`lintDebug`, `testDebugUnitTest` y `assembleDebug`: BUILD SUCCESSFUL. Suite completa: 375 pruebas, cero fallos, errores u omisiones; incluye seis regresiones nuevas de reserva. Gitleaks sobre los cuatro archivos cambiados: cero hallazgos. Enlaces documentales y `git diff --check`: correctos. No se ejecutó CI, build release, instalación en dispositivo ni prueba funcional con API real para este incremento.
