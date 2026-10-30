@@ -322,7 +322,7 @@ internal fun clientStateHint(estado: String, paymentResolved: Boolean? = null): 
 private fun AppointmentRow.isManageable() = estado in listOf("pendiente", "confirmada") && code != null
 private fun AppointmentRow.isPayable() = isChargeable && !hasPayment && code != null
 
-/** La siguiente cita, en la tarjeta con foto, con sus acciones a la vista. */
+/** Próxima visita: fecha, identidad y pago separados, con las acciones existentes a la vista. */
 @Composable
 private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, onPay: (() -> Unit)?, onReschedule: (() -> Unit)?, onCancel: (() -> Unit)?) {
     UrbanHeroCard {
@@ -331,22 +331,19 @@ private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, o
             UrbanStatusPill(appt.estado)
         }
         Spacer(Modifier.height(8.dp))
-        Text(UrbanFormat.time(appt.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Muted)
-        Spacer(Modifier.height(14.dp))
+        Text("${UrbanFormat.dateShort(appt.fecha)} · ${UrbanFormat.time(appt.horaInicio)}",
+            style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+        Spacer(Modifier.height(10.dp))
         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
         Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            UrbanAvatar(appt.barber?.user?.name ?: "Barbero", Modifier.size(42.dp), imageUrl = rememberBarberPhoto(appt.barber))
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(appt.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-                Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            }
-            (appt.precioCobrado ?: appt.service?.precio)?.let {
-                Text("${UrbanFormat.moneyShort(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-            }
-        }
+        com.urbanblade.mobile.ui.components.UrbanVisitSummary(
+            service = appt.service?.nombre ?: "Servicio",
+            barber = appt.barber?.user?.name ?: "Barbero por confirmar",
+            photo = rememberBarberPhoto(appt.barber),
+            amount = (appt.precioCobrado ?: appt.service?.precio)?.let(UrbanFormat::money),
+            amountLabel = if (appt.precioCobrado != null) "Importe de la cita" else "Precio del servicio",
+            compact = true
+        )
         clientStateHint(appt.estado, appt.pagoResuelto)?.let {
             Spacer(Modifier.height(10.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)

@@ -53,16 +53,14 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
     ) {
         item {
             UrbanHeroCard {
-                UrbanHeroLabel("Tu vitrina")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     UrbanFormat.count(portfolio.stats.totalWorks, "trabajo publicado", "trabajos publicados"),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = UrbanColors.Ink
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Reacciones", portfolio.stats.totalReactions.toString(), Icons.Default.Favorite, Modifier.weight(1f))
                     UrbanHeroStat("Guardados", portfolio.stats.totalSaves.toString(), Icons.Default.Bookmark, Modifier.weight(1f))

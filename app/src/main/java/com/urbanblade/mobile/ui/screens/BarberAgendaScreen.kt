@@ -84,10 +84,11 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = period == "day", onClick = { period = "day"; offset = 0 }, label = { Text("Día") })
-                    FilterChip(selected = period == "week", onClick = { period = "week"; offset = 0 }, label = { Text("Semana") })
-                }
+                UrbanPillTabs(
+                    tabs = listOf("Día" to Icons.Default.Today, "Semana" to Icons.Default.DateRange),
+                    selected = if (period == "day") 0 else 1,
+                    onSelect = { period = if (it == 0) "day" else "week"; offset = 0 }
+                )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { offset -= 1 }) { Icon(Icons.Default.ChevronLeft, "Anterior") }
                     Text(
@@ -103,17 +104,15 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
 
         item {
             UrbanHeroCard {
-                UrbanHeroLabel(if (period == "day") "Tu día" else "Tu semana")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     UrbanFormat.count(agenda.stats.totalPeriod, "cita", "citas"),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.titleLarge,
                     color = UrbanColors.Ink
                 )
                 Text("Productividad ${agenda.stats.productivity}%", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Terminadas", agenda.stats.completedPeriod.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
                     UrbanHeroStat("Tus ingresos", UrbanFormat.moneyShort(agenda.stats.incomeTotal), Icons.Default.Payments, Modifier.weight(1f))

@@ -87,14 +87,17 @@ fun AccountMemberCard(
     uploading: Boolean,
     onChangePhoto: () -> Unit,
     stats: List<Triple<String, String, ImageVector>>,
-    footnote: String? = null
+    footnote: String? = null,
+    compact: Boolean = false
 ) {
     UrbanHeroCard {
-        UrbanHeroLabel("Miembro UrbanBlade")
-        Spacer(Modifier.height(14.dp))
+        if (!compact) {
+            UrbanHeroLabel("Miembro UrbanBlade")
+            Spacer(Modifier.height(14.dp))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             // La insignia de cámara va fuera del recorte circular de la foto para verse completa.
-            Box(Modifier.size(76.dp)) {
+            Box(Modifier.size(if (compact) 60.dp else 76.dp)) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -122,7 +125,7 @@ fun AccountMemberCard(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(name, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -131,9 +134,9 @@ fun AccountMemberCard(
             }
         }
         if (stats.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
             Box(Modifier.fillMaxWidth().height(1.dp).background(UrbanColors.Gold.copy(alpha = 0.22f)))
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (compact) 10.dp else 14.dp))
             // En pantallas angostas (menos de ~340 dp de tarjeta) los datos van uno debajo del otro:
             // lado a lado, "Caballero" se cortaba en "Caball…" (checklist CN-095).
             BoxWithConstraints(Modifier.fillMaxWidth()) {

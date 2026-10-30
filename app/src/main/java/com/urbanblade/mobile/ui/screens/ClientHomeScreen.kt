@@ -136,12 +136,13 @@ fun ClientHomeScreen(
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
+            UrbanHeroCard {
             UrbanPageHeader(
                 title = firstName,
-                subtitle = "¿Listo para tu próximo corte?",
+                subtitle = "Tu estilo, siempre contigo.",
                 eyebrow = greeting.uppercase(),
                 trailing = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -156,6 +157,7 @@ fun ClientHomeScreen(
                     }
                 }
             )
+            }
         }
 
         // Aviso para todos los clientes desde Firebase Remote Config (vacío = no se muestra).
@@ -226,7 +228,7 @@ fun ClientHomeScreen(
         }
 
         // Pagos y pedidos viven en Cuenta; aquí solo lo que se descubre.
-        item { UrbanSectionTitle("Descubre", "Inspiración para tu próximo corte y productos.") }
+        item { UrbanSectionTitle("Inspírate", "Trabajos del equipo y productos para tu cuidado.") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
@@ -244,22 +246,23 @@ fun ClientHomeScreen(
 
 @Composable
 private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
-    UrbanHeroCard {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
         UrbanHeroLabel("Tu próxima visita")
         Spacer(Modifier.height(8.dp))
         UrbanStatusPill(next.estado)
         Spacer(Modifier.height(8.dp))
-        Text(UrbanFormat.time(next.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        Text(UrbanFormat.date(next.fecha), style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
-        Spacer(Modifier.height(16.dp))
+        Text("${UrbanFormat.dateShort(next.fecha)} · ${UrbanFormat.time(next.horaInicio)}",
+            style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+        Spacer(Modifier.height(10.dp))
         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
         UrbanVisitSummary(
             service = next.service?.nombre ?: "Servicio",
             barber = next.barber?.user?.name ?: "Barbero por confirmar",
             photo = rememberBarberPhoto(next.barber),
             amount = (next.precioCobrado ?: next.service?.precio)?.let(UrbanFormat::money),
-            amountLabel = if (next.precioCobrado != null) "Importe de la cita" else "Precio del servicio"
+            amountLabel = if (next.precioCobrado != null) "Importe de la cita" else "Precio del servicio",
+            compact = true
         )
         Spacer(Modifier.height(16.dp))
         UrbanOutlineButton("Ver mi cita", onClick, modifier = Modifier.fillMaxWidth(), icon = Icons.Default.CalendarMonth)

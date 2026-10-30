@@ -18,8 +18,23 @@ fun UrbanVisitSummary(
     modifier: Modifier = Modifier,
     photo: String? = null,
     amount: String? = null,
-    amountLabel: String = "Precio del servicio"
+    amountLabel: String = "Precio del servicio",
+    compact: Boolean = false
 ) {
+    if (compact) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                UrbanAvatar(barber, Modifier.size(48.dp), imageUrl = photo)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(service, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                    Text(barber, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
+            }
+            amount?.let { UrbanKeyValue(amountLabel, it) }
+        }
+        return
+    }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(service, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
         Row(verticalAlignment = Alignment.Top) {

@@ -64,13 +64,14 @@ fun BarberHomeScreen(
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             UrbanPageHeader(
                 title = "Hola, ${user.name.substringBefore(' ')}",
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "BARBERO",
+                compact = true,
                 trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )
         }
@@ -87,7 +88,7 @@ fun BarberHomeScreen(
                         Spacer(Modifier.height(6.dp))
                         val focus = day.inProcess ?: day.next
                         if (focus != null) {
-                            Text(UrbanFormat.time(focus.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                            Text(UrbanFormat.time(focus.horaInicio), style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
                             Text(
                                 listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
                                 style = MaterialTheme.typography.titleMedium,
@@ -97,9 +98,9 @@ fun BarberHomeScreen(
                             Text("Sin citas pendientes hoy", style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
                             Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                         }
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(10.dp))
                         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(10.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                             UrbanHeroStat("Por atender", day.remaining.toString(), Icons.Default.Event, Modifier.weight(1f))
                             UrbanHeroStat("Terminadas", day.done.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
@@ -121,13 +122,6 @@ fun BarberHomeScreen(
             }
         }
 
-        dashboard?.data.chartSeries("performanceChart")?.let { week ->
-            item { UrbanDashboardChart("Tu semana", "Citas de los últimos 7 días", week) }
-        }
-        dashboard?.data.chartSeries("servicesChart")?.let { services ->
-            item { UrbanDashboardChart("Tus servicios más pedidos", "Último año", services, categories = true) }
-        }
-
         item { UrbanSectionTitle("Tu trabajo", "Agenda, portafolio y horario.") }
         item {
             UrbanModuleGrid(
@@ -141,5 +135,13 @@ fun BarberHomeScreen(
                 onNavigate = onNavigate
             )
         }
+
+        dashboard?.data.chartSeries("performanceChart")?.let { week ->
+            item { UrbanDashboardChart("Tu semana", "Citas de los últimos 7 días", week) }
+        }
+        dashboard?.data.chartSeries("servicesChart")?.let { services ->
+            item { UrbanDashboardChart("Tus servicios más pedidos", "Último año", services, categories = true) }
+        }
+
     }
 }

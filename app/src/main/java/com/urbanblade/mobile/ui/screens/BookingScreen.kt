@@ -464,14 +464,16 @@ private fun BookingHeader(step: BookingStep, summary: String?) {
         UrbanPageHeader(
             title = step.title,
             subtitle = step.hint,
-            eyebrow = "Reserva · paso ${step.ordinal + 1} de ${BookingStep.entries.size}"
+            eyebrow = "Reserva · paso ${step.ordinal + 1} de ${BookingStep.entries.size}",
+            compact = true
         )
         Spacer(Modifier.height(12.dp))
         UrbanStepProgress(BookingStep.entries.map { it.label }, step.ordinal)
         summary?.let {
             Spacer(Modifier.height(10.dp))
-            Surface(shape = MaterialTheme.shapes.small, color = UrbanColors.Gold.copy(alpha = 0.10f), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = MaterialTheme.shapes.medium, color = UrbanColors.Card,
+                border = androidx.compose.foundation.BorderStroke(1.dp, UrbanColors.Line), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, null, tint = UrbanColors.Gold, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)

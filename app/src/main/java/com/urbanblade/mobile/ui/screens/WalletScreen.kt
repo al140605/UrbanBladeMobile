@@ -98,7 +98,6 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
             )
         }
         message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-        item { BenefitShop(onRefresh = { vm.load() }) }
 
         when {
             error != null && !data.hasContent && !loading -> item {
@@ -119,12 +118,26 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                             )
                         }
                     }
-                    if (loyalty.levels.size > 1) {
-                        item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
-                        item { LevelLadder(loyalty) }
+                }
+
+                if (nothingYet) {
+                    item {
+                        UrbanAttentionRow(
+                            Icons.Default.Redeem,
+                            "Aún no tienes paquetes ni tarjetas regalo",
+                            "Consulta los paquetes y tarjetas regalo en Descubre más.",
+                            UrbanColors.Gold
+                        )
                     }
-                    item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
-                    item { PointsCard(loyalty, onBook) }
+                } else {
+                    if (data.packages.isNotEmpty()) {
+                        item { UrbanSectionTitle("Mis paquetes", null) }
+                        items(data.packages, key = { it.id }) { PackageCard(it) }
+                    }
+                    if (data.giftCards.isNotEmpty()) {
+                        item { UrbanSectionTitle("Mis tarjetas regalo", null) }
+                        items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
+                    }
                 }
 
                 val membership = data.membership
@@ -148,26 +161,16 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                     }
                 }
 
-                if (nothingYet) {
-                    item {
-                        UrbanAttentionRow(
-                            Icons.Default.Redeem,
-                            "Aún no tienes paquetes ni tarjetas regalo",
-                            "Consulta los paquetes o compra una tarjeta regalo desde las opciones de arriba.",
-                            UrbanColors.Gold
-                        )
+                item { UrbanSectionTitle("Descubre más", "Planes y opciones para tu próxima visita.") }
+                item { BenefitShop(onRefresh = { vm.load() }) }
+                data.loyalty?.let { loyalty ->
+                    if (loyalty.levels.size > 1) {
+                        item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
+                        item { LevelLadder(loyalty) }
                     }
-                } else {
-                    if (data.packages.isNotEmpty()) {
-                        item { UrbanSectionTitle("Mis paquetes", null) }
-                        items(data.packages, key = { it.id }) { PackageCard(it) }
-                    }
-                    if (data.giftCards.isNotEmpty()) {
-                        item { UrbanSectionTitle("Mis tarjetas regalo", null) }
-                        items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
-                    }
+                    item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
+                    item { PointsCard(loyalty, onBook) }
                 }
-
                 data.referrals?.let { referrals ->
                     item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
                     item {

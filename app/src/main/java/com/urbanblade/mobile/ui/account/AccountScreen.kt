@@ -84,13 +84,14 @@ fun AccountScreen(
 ) {
     val state by vm.state.collectAsState()
     val isClient = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
+    val compactMember = isClient || accountRoleLabel(user.roles) == "Barbero"
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pickPhoto = rememberSingleImagePicker { uri -> vm.uploadAvatar(context, uri, onUserChanged) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    // Una sección abierta a la vez por pestaña: la primera empieza abierta para no llegar a una lista vacía.
-    var openData by rememberSaveable { mutableStateOf("personal") }
+    // Cliente y barbero ven primero el resumen; el resto del personal conserva su sección inicial.
+    var openData by rememberSaveable { mutableStateOf(if (compactMember) "" else "personal") }
     var openSecurity by rememberSaveable { mutableStateOf("password") }
     var openPrefs by rememberSaveable { mutableStateOf("") }
     fun toggle(current: String, key: String) = if (current == key) "" else key
@@ -144,6 +145,7 @@ fun AccountScreen(
                         uploading = state.uploadingAvatar,
                         onChangePhoto = pickPhoto,
                         stats = stats,
+                        compact = compactMember,
                         footnote = when {
                             isClient && discount > 0 -> "Tu descuento activo: ${discount.toInt()} % en cada servicio."
                             isClient && (loyalty?.citasFaltan ?: 0) > 0 && loyalty?.nextNivelLabel != null ->
@@ -154,11 +156,15 @@ fun AccountScreen(
                     if (notice?.section == AccountSection.AVATAR) AccountNoticeBanner(notice) }
                 }
 
+                item {
+                    UrbanPillTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
+                }
+
                 // Lo del cliente que antes estaba repartido entre la pestaña Wallet y el Inicio.
                 if (isClient) {
                     item { UrbanSectionTitle("Tu actividad", "Beneficios, pagos y compras.") }
                     item {
-                        UrbanRowGroup(listOf("wallet", "payments", "orders")) { route ->
+                        UrbanRowGroup(listOf("wallet", "orders", "payments")) { route ->
                             when (route) {
                                 "wallet" -> UrbanActionRow("Beneficios", "Nivel, puntos, membresía y tu código para invitar.", Icons.Default.Stars) { onNavigate(route) }
                                 "payments" -> UrbanActionRow("Mis facturas", "Comprobantes de tus citas y compras.", Icons.Default.ReceiptLong) { onNavigate(route) }
@@ -166,10 +172,6 @@ fun AccountScreen(
                             }
                         }
                     }
-                }
-
-                item {
-                    UrbanPillTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
                 }
 
                 when (AccountTab.entries[tab]) {

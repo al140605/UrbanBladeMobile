@@ -395,11 +395,9 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
 
         item {
             UrbanHeroCard {
-                UrbanHeroLabel("Tu semana")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     if (activeDays.isEmpty()) "Sin días activos" else UrbanFormat.count(activeDays.size, "día de trabajo", "días de trabajo"),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = UrbanColors.Ink
                 )
                 Text(
@@ -407,9 +405,9 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
                     style = MaterialTheme.typography.bodySmall,
                     color = UrbanColors.Muted
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Horas a la semana", "%.0f".format(weeklyMinutes / 60.0), Icons.Default.Schedule, Modifier.weight(1f))
                     UrbanHeroStat("Días libres", (7 - activeDays.size).toString(), Icons.Default.EventBusy, Modifier.weight(1f))
