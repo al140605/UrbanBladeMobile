@@ -13,7 +13,7 @@
 <br/>
 
 [![Android](https://img.shields.io/badge/Android-Native-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Compose](https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 [![Laravel](https://img.shields.io/badge/API-Laravel_13-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com/)
 [![MVVM](https://img.shields.io/badge/Arquitectura-MVVM-D4AF37?style=for-the-badge)](#-arquitectura)
@@ -346,7 +346,7 @@ probar la app contra datos reales de pruebas sin levantar Laravel local:
 
 ```powershell
 # Android Studio: Build Variants -> app -> staging, o por línea de comandos:
-gradle assembleStaging
+.\gradlew.bat assembleStaging
 ```
 
 - Usa el mismo `applicationId` que debug (el login con Google sigue funcionando) y **no**
@@ -620,13 +620,24 @@ cd ..\barber\scripts\verificacion
 .\verificar.ps1 -Proyecto mobile
 ```
 
-Ejecuta, en este orden: `gradle :app:lintDebug`, `:app:testDebugUnitTest` (suite JVM del repositorio) y `:app:assembleDebug`. Necesita el **Android SDK** y **Gradle 9.6.0** — el
-repo no versiona `gradlew` a propósito, se usa la misma versión declarada en
-`gradle-wrapper.properties`. Si falta alguno, el sandbox lo reporta como **omitido** con
-el motivo, en vez de darlo por bueno.
+Desde la raíz del checkout, con Android SDK y JDK JetBrains 21:
 
-> El sandbox avisa además de una trampa conocida: `local.properties` define `sdk.dir`,
-> y ese archivo **no se versiona**. Sin él, Gradle no encuentra el SDK.
+```powershell
+.\gradlew.bat :app:lintDebug :app:testDebugUnitTest :app:assembleDebug --console=plain
+```
+
+En Linux/macOS usar `./gradlew`. El wrapper versionado selecciona Gradle 9.6.0 y
+verifica el SHA-256 oficial de la distribución; no hace falta instalar Gradle global.
+Configurar ANDROID_HOME o sdk.dir en local.properties (privado, fuera de Git).
+No se requieren credenciales de Firebase o de firma para estas comprobaciones.
+
+La suite incluye una comprobación HTTPS contra el certificado público de la API,
+sin token ni datos de usuarios. Necesita conectividad al host real; un timeout no
+prueba por sí solo un pin incorrecto. No omitirla, cambiar pins o desactivar TLS
+para presentar un resultado verde. Los demás casos de pinning usan un servidor
+TLS local con certificados controlados. CI mantiene el rechazo de pruebas omitidas.
+
+Ver [mantenimiento reproducible](docs/MANTENIMIENTO_REPRODUCIBLE.md).
 
 ---
 
@@ -652,3 +663,10 @@ el motivo, en vez de darlo por bueno.
 Desarrollado como parte del ecosistema **UrbanBlade**.
 
 </div>
+
+
+## Políticas y licencia
+
+- [GPL-3.0-only](LICENSE) y [alcance de la licencia](LICENSING.md).
+- [Seguridad y reporte privado](SECURITY.md).
+- [Contribución](CONTRIBUTING.md) y [código de conducta](CODE_OF_CONDUCT.md).
