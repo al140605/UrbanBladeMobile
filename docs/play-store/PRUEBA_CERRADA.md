@@ -1,5 +1,8 @@
 # Prueba cerrada: 12 testers durante 14 días
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Requisito de Google para **cuentas personales**: antes de pedir producción, la app debe estar en una pista de **prueba
 cerrada con al menos 12 testers que se mantengan suscritos 14 días seguidos**. Verificar las cifras vigentes en la
 consola (*Pruebas → Prueba cerrada*), porque Google puede cambiarlas.

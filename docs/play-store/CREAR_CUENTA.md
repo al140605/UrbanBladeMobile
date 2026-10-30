@@ -1,5 +1,8 @@
 # Crear la cuenta de Google Play Console (paso a paso)
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 **Enlace oficial para empezar:** <https://play.google.com/console/signup>
 (si Google cambió la ruta: entra a <https://play.google.com/console> y pulsa **Crear cuenta**).
 Ayuda oficial de Google sobre este trámite: <https://support.google.com/googleplay/android-developer/answer/6112435>

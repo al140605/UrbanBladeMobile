@@ -1,5 +1,11 @@
 # Publicar UrbanBlade en Google Play — guía y estado
 
+Estado de distribución consultado el 30 de octubre de 2026: [verificación directa de Play Console](play-store/ESTADO.md).
+
+
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](CONFIGURACION.md).
+
+
 Costo: **$25 USD**, pago único (cuenta de Play Console). Sin comisión de Google: los cobros son servicios y productos
 físicos vía Stripe, no Play Billing. Todo el material para la ficha, las declaraciones y los scripts está en
 [`docs/play-store/`](play-store/README.md); aquí está el estado y el orden de los pasos.

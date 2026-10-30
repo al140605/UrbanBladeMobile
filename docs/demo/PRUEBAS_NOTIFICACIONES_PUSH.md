@@ -35,13 +35,13 @@ Enviadas solo al token del celular de prueba (no a la base de usuarios).
 
 | # | Escenario | Resultado | Evidencia |
 |---|---|---|---|
-| 1 | App en segundo plano, canal `pagos`, `route=payments` | ✅ Llegó «Pago recibido» en el canal **pagos** (importancia alta). Al tocarla abrió **Cobros y pagos**. | `push_pagos_bandeja.png`, `push_pagos_destino.png` |
-| 2 | App abierta, canal `pedidos`, `route=orders` | ✅ Notificación creada por la app en canal **pedidos**, color dorado, categoría evento, agrupada, con versión pública. Al tocarla abrió **Pedidos**. | `push_pedidos_destino.png` |
-| 3 | «Atrás» tras abrir dos avisos seguidos | ✅ Regresa a Inicio (antes volvía al aviso anterior; corregido). | — |
-| 4 | Los 6 canales existen en el teléfono con la importancia esperada (4=alta: citas, pagos, operación; 3=normal: pedidos, beneficios, promociones) | ✅ | `dumpsys notification` |
+| 1 | App en segundo plano, canal `pagos`, `route=payments` | Aprobado Llegó «Pago recibido» en el canal **pagos** (importancia alta). Al tocarla abrió **Cobros y pagos**. | `push_pagos_bandeja.png`, `push_pagos_destino.png` |
+| 2 | App abierta, canal `pedidos`, `route=orders` | Aprobado Notificación creada por la app en canal **pedidos**, color dorado, categoría evento, agrupada, con versión pública. Al tocarla abrió **Pedidos**. | `push_pedidos_destino.png` |
+| 3 | «Atrás» tras abrir dos avisos seguidos | Aprobado Regresa a Inicio (antes volvía al aviso anterior; corregido). | — |
+| 4 | Los 6 canales existen en el teléfono con la importancia esperada (4=alta: citas, pagos, operación; 3=normal: pedidos, beneficios, promociones) | Aprobado | `dumpsys notification` |
 
-| 5 | Borrador **DEMO 1 (Cita)** guardado en Firebase y enviado como mensaje de prueba, app en segundo plano | ✅ Llegó en el canal **citas** (importancia alta). Flujo «abrir borrador → Probar» validado (ver `GUIA_FIREBASE_DEMO.md`). | — |
-| 6 | Bandeja de avisos de la app (campana): tocar «Pedido cancelado» | ✅ Marca el aviso como leído **y abre Mis pedidos**; al volver, el aviso queda en gris (28 sin leer). Cada aviso con destino muestra una flecha. 14 tipos → pantalla (prueba unitaria `NotificationRouteTest`). | — |
+| 5 | Borrador **DEMO 1 (Cita)** guardado en Firebase y enviado como mensaje de prueba, app en segundo plano | Aprobado Llegó en el canal **citas** (importancia alta). Flujo «abrir borrador → Probar» validado (ver `GUIA_FIREBASE_DEMO.md`). | — |
+| 6 | Bandeja de avisos de la app (campana): tocar «Pedido cancelado» | Aprobado Marca el aviso como leído **y abre Mis pedidos**; al volver, el aviso queda en gris (28 sin leer). Cada aviso con destino muestra una flecha. 14 tipos → pantalla (prueba unitaria `NotificationRouteTest`). | — |
 
 ## 5. Cobro con tarjeta — diseño (cliente, reserva → paso Pago)
 Revisado en el celular con sesión de cliente, sin confirmar ninguna reserva.
