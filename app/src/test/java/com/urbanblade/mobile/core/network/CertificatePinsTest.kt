@@ -100,13 +100,19 @@ class CertificatePinsTest {
     // Comprobación obligatoria del certificado público de producción, sin token ni datos de usuario.
     @Test
     fun `en vivo - la API real coincide con los pins y un pin falso se rechaza`() {
-        val request = Request.Builder().url("https://${CertificatePins.API_HOST}/").build()
+        val request = Request.Builder().url("https://${CertificatePins.API_HOST}/up").build()
 
-        val good = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).callTimeout(30, TimeUnit.SECONDS)
+        // La raíz redirige al frontend: no debe formar parte de una prueba TLS de la API.
+        val good = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
+            .connectTimeout(15, TimeUnit.SECONDS).callTimeout(30, TimeUnit.SECONDS)
             .certificatePinner(CertificatePins.forApiHost(CertificatePins.API_HOST)!!).build()
-        good.newCall(request).execute().use { assertTrue(it.code < 600) }
+        good.newCall(request).execute().use {
+            assertEquals(200, it.code)
+            assertEquals(CertificatePins.API_HOST, it.request.url.host)
+            assertNotNull(it.handshake)
+        }
 
-        val bad = OkHttpClient.Builder()
+        val bad = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
             .connectTimeout(15, TimeUnit.SECONDS).callTimeout(30, TimeUnit.SECONDS)
             .certificatePinner(CertificatePins.build(CertificatePins.API_HOST, listOf("sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")))
             .build()
