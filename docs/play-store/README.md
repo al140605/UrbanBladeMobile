@@ -1,5 +1,11 @@
 # Material para Google Play
 
+Estado de distribución consultado el 30 de octubre de 2026: [verificación directa de Play Console](ESTADO.md).
+
+
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Todo lo que se pega o se sube en Play Console, listo para copiar. El estado general y el orden de los pasos están en
 [`../PUBLICAR_PLAY_STORE.md`](../PUBLICAR_PLAY_STORE.md). **Léelo primero**: hay una decisión pendiente (Stripe en modo de
 prueba o real) que cambia varios textos.

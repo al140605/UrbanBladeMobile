@@ -1,7 +1,10 @@
 # Declaraciones de Play Console (contenido de la app)
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Respuestas propuestas para *Contenido de la app*, cruzadas con el código, el manifiesto final de release y el Aviso de
-Privacidad el 2026-10-19. Los formularios cambian: contrastar con la consola. Los puntos ⚠️ necesitan una confirmación del equipo.
+Privacidad el 2026-10-19. Los formularios cambian: contrastar con la consola. Los puntos marcados como «Atención» necesitan una confirmación del equipo.
 
 ## 1. Respuestas directas
 
@@ -28,12 +31,12 @@ Categoría: *Utilidad / productividad / comunicación* (la app es de reservas y 
 | Contenido sexual o desnudos | No |
 | Lenguaje vulgar | No (ver contenido de usuarios abajo) |
 | Sustancias controladas | No |
-| Juegos de azar con dinero real | No (ver ⚠️ sorteos) |
+| Juegos de azar con dinero real | No (ver Atención sorteos) |
 | ¿Los usuarios pueden interactuar o compartir contenido? | **Sí** (comentarios, reseñas) |
 | ¿Se comparte la ubicación? | No |
 | ¿Compras de bienes físicos o servicios? | Sí (servicios de barbería y productos; sin Play Billing) |
 
-⚠️ **Sorteos:** la app tiene sorteos como beneficio de lealtad ("Niveles, puntos, sorteos y cumpleaños"). Solo se declara "sin
+Atención: **Sorteos:** la app tiene sorteos como beneficio de lealtad ("Niveles, puntos, sorteos y cumpleaños"). Solo se declara "sin
 juegos de azar" si **participar no exige pagar** (los puntos o el nivel no se compran con dinero para entrar). Si hay un costo de
 entrada o un premio en dinero, la política de juegos de azar de Google aplica y habría que reformular la función.
 
@@ -41,7 +44,7 @@ entrada o un premio en dinero, la política de juegos de azar de Google aplica y
 Los cobros son por **servicios y productos físicos** (cortes, tienda con recogida en sucursal), así que Google permite un
 procesador externo (Stripe) y **no hace falta Play Billing**.
 
-⚠️ **Membresías, paquetes y tarjetas de regalo:** para seguir fuera de Play Billing deben canjearse **solo por servicios o
+Atención: **Membresías, paquetes y tarjetas de regalo:** para seguir fuera de Play Billing deben canjearse **solo por servicios o
 productos físicos** de la barbería. Si alguna membresía desbloqueara funciones digitales dentro de la app, esa compra tendría
 que pasar por Play Billing. Confirmar con el equipo qué da exactamente cada una.
 
@@ -63,16 +66,16 @@ La app permite reservar citas de barbería. Para probarla:
 [Solo Camino A:] Los pagos con tarjeta usan el modo de prueba de Stripe (tarjeta 4242 4242 4242 4242, cualquier fecha futura y CVC): no se cobra dinero real.
 ```
 
-- ⚠️ Antes de enviar, comprobar que la cuenta demo tenga **horarios libres** en los próximos días y que la API del entorno esté arriba.
+- Atención: antes de enviar, comprobar que la cuenta demo tenga **horarios libres** en los próximos días y que la API del entorno esté arriba.
 
 ## 5. Eliminación de cuenta (obligatoria)
 Google pide dos cosas: que se pueda eliminar **dentro de la app** y una **URL web** que explique cómo pedirlo sin instalar la app.
 
 | | Dónde | Estado |
 | --- | --- | --- |
-| En la app | Cuenta → Seguridad → **Eliminar mi cuenta** (con contraseña, o escribiendo ELIMINAR si entró con Google) | ✅ existe |
-| En la web | Mi perfil → Zona de peligro | ✅ existe, pero exige iniciar sesión |
-| Explicación pública | `https://urbanblade.com.mx/privacidad`, sección 6 (también por correo, desde el correo de la cuenta) | ✅ existe |
+| En la app | Cuenta → Seguridad → **Eliminar mi cuenta** (con contraseña, o escribiendo ELIMINAR si entró con Google) | Implementado: existe |
+| En la web | Mi perfil → Zona de peligro | Implementado: existe, pero exige iniciar sesión |
+| Explicación pública | `https://urbanblade.com.mx/privacidad`, sección 6 (también por correo, desde el correo de la cuenta) | Implementado: existe |
 
 URL para la consola: `https://urbanblade.com.mx/privacidad`. La página no tiene anclas por sección, así que Google llegará
 al inicio del documento. **Mejora pequeña recomendada** (en `frontend-urban`): ponerle `id="derechos"` al título de la sección 6

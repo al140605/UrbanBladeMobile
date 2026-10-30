@@ -1,94 +1,50 @@
-# Arquitectura — UrbanBlade Mobile
+# Arquitectura de UrbanBlade Mobile
 
-## Flujo
+## Contexto
 
-```text
-┌───────────────────────────────────┐
-│ Android / Jetpack Compose         │
-│ Screens + Navigation por rol      │
-└────────────────┬──────────────────┘
-                 │ StateFlow
-┌────────────────▼──────────────────┐
-│ ViewModels                         │
-│ Auth / Citas / Store / Pedidos    │
-│ Pagos / Módulos / Chatbot         │
-└────────────────┬──────────────────┘
-                 │
-┌────────────────▼──────────────────┐
-│ Repositories                       │
-│ Reglas de interacción con API     │
-└────────────────┬──────────────────┘
-                 │
-┌────────────────▼──────────────────┐
-│ Retrofit + OkHttp                  │
-│ Authorization: Bearer <token>     │
-└────────────────┬──────────────────┘
-                 │ HTTPS / JSON
-┌────────────────▼──────────────────┐
-│ Laravel 13 — /api/v1              │
-│ mobile.auth + roles + permisos    │
-└─────────┬───────────────┬─────────┘
-          │               │
-      MongoDB           Redis
-          │               │
-          └──── Stripe / servicios externos
+Cliente Android nativo con Compose y organización MVVM. Consume la API HTTP de UrbanBlade; el backend conserva las reglas de negocio y la autorización. El módulo `app` contiene la aplicación: esta organización no implica módulos Gradle separados ni una capa de dominio independiente.
+
+```mermaid
+flowchart TD
+    UI[Compose y navegación por rol] --> VM[ViewModels y estado de interfaz]
+    VM --> R[Repositorios]
+    R --> API[UrbanBladeApi: Retrofit y OkHttp]
+    API --> B[API Laravel]
+    API --> S[Sesión: token cifrado en DataStore]
+    S --> K[Android Keystore]
+    UI --> P[Stripe PaymentSheet]
+    F[Firebase Messaging] --> UI
 ```
 
-## Separación de responsabilidades
+## Responsabilidades
 
-- **Screens**: representación visual, inputs y navegación.
-- **ViewModels**: estado de pantalla, loading/error y ejecución de casos de uso.
-- **Repositories**: punto de acceso al dominio remoto.
-- **UrbanBladeApi**: contrato HTTP con Laravel.
-- **SessionManager**: persistencia del Bearer token.
-- **Laravel**: validación, autorización, precios, stock, estados de citas y reglas de negocio.
-
-## Roles
-
-| Rol | Android |
+| Ubicación | Responsabilidad |
 |---|---|
-| cliente | citas, tienda, pedidos, pagos, perfil, social |
-| recepcionista | operación, clientes, inventario, pagos, pedidos, caja |
-| barbero | agenda, portafolio, horario, perfil |
-| administrador | operación + gestión + análisis + sistema |
-| ingeniero | lectura de reportes/logs/métricas/sistema |
+| `ui/` | Composición, entrada del usuario, navegación y estado de pantalla |
+| `data/model/` | Representación de respuestas y solicitudes |
+| `data/repository/` | Coordinación del acceso remoto |
+| `core/network/UrbanBladeApi.kt` | Declaraciones de endpoints Retrofit |
+| `core/network/AppContainer.kt` | Construcción de dependencias y cliente HTTP |
+| `core/session/` | Sesión, eventos y persistencia del token |
+| `core/access/` | Experiencia visible según el usuario |
+| `core/payment/` | Integración cliente de Stripe |
+| `core/push/` | Recepción, registro y navegación de notificaciones |
 
-La visibilidad de UI reduce ruido, pero **no reemplaza** los middleware de Laravel.
+Las rutas son relativas a la raíz Java/Kotlin indicada en el README. Ver [auditoría de contratos](AUDITORIA_CONTRATOS_API.md); verificar una ruta no acredita el payload, los permisos ni el flujo completo.
 
-## Pedidos
+## Sesión y límites de confianza
 
-El carrito existe en memoria del cliente Android. En checkout se manda:
+La API devuelve el token tras la autenticación. El cliente lo incorpora a las solicitudes protegidas. `TokenCipher` implementa AES-256-GCM antes de persistirlo en DataStore y obtiene la clave mediante Android Keystore. El fallo de descifrado devuelve un resultado nulo; no debe tratarse como una sesión válida.
 
-```json
-{
-  "items": [
-    { "product_id": "...", "cantidad": 2 }
-  ]
-}
-```
+La navegación adapta acciones al rol, pero la interfaz no es una barrera de autorización. El servidor debe validar cada operación, identidad, precio, inventario y transición de estado. Las contraseñas y claves secretas de Stripe no forman parte de la configuración de la app.
 
-No se manda precio; Laravel vuelve a consultar el producto y valida stock.
+## Integraciones
 
-## Citas
+- Retrofit y OkHttp gestionan HTTP, autenticación y pinning. Los cambios de certificados requieren revisar la prueba TLS y el plan de rotación; no desactivar la comprobación.
+- Stripe PaymentSheet presenta el pago. El servidor crea y confirma los intentos conforme a sus reglas; un resultado de interfaz no sustituye la confirmación del backend.
+- Firebase se habilita según la configuración privada disponible. Sin `google-services.json`, las compilaciones de verificación siguen disponibles y no acreditan funcionamiento de push o telemetría.
+- Las variantes separan la configuración de red y compilación. Los datos del entorno deben comprobarse antes de cualquier prueba que escriba.
 
-Antes de crear una cita se consulta:
+## Evolución y límites
 
-```text
-GET availability/slots?barber_id=...&service_id=...&date=YYYY-MM-DD
-```
-
-Después se crea con:
-
-```text
-POST appointments
-```
-
-El backend conserva la validación final ante condiciones de carrera.
-
-## Producción
-
-- Cambiar la URL base a HTTPS.
-- Desactivar tráfico cleartext en `AndroidManifest.xml`.
-- Configurar certificado y dominio reales.
-- Integrar FCM si se desea push nativo además del backend actual.
-- Configurar Stripe Android con clave publicable; nunca incluir secret keys.
+Las pruebas JVM incluyen lógica, contratos de componentes y TLS; no sustituyen la validación en Android real. No se declara soporte offline completo ni paridad integral con la web. Revisar [decisiones](DECISIONES.md), [configuración](CONFIGURACION.md) y [pruebas](PRUEBAS.md) antes de ampliar un módulo.

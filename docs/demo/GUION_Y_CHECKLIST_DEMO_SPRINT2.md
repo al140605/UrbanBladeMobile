@@ -8,16 +8,16 @@ Estado verificado el 7-oct-2026 en un Samsung SM-S731B (Android 16), build `stag
 
 | # | Verificación | Estado |
 |---|---|---|
-| 1 | La app compila y se instala (`installStaging`) con SDK 36 | ✅ Hecho |
-| 2 | La app abre sin fallos (logcat limpio) | ✅ Hecho |
-| 3 | La sesión de Recepción carga Inicio, Citas, Más y Cuenta con datos reales | ✅ Hecho (capturas en esta carpeta) |
-| 4 | API de staging responde (`/services`, `/barbers`) | ✅ Hecho |
-| 5 | Pruebas unitarias JVM pasan | ✅ Hecho |
+| 1 | La app compila y se instala (`installStaging`) con SDK 36 | Aprobado Hecho |
+| 2 | La app abre sin fallos (logcat limpio) | Aprobado Hecho |
+| 3 | La sesión de Recepción carga Inicio, Citas, Más y Cuenta con datos reales | Aprobado Hecho (capturas en esta carpeta) |
+| 4 | API de staging responde (`/services`, `/barbers`) | Aprobado Hecho |
+| 5 | Pruebas unitarias JVM pasan | Aprobado Hecho |
 | 6 | Celular cargado (≥ 80 %) y **modo No molestar apagado** (hoy estaba en silencio, y no se oiría el push) | ⬜ Tuyo |
 | 7 | Wi-Fi del salón probado o **hotspot del celular** como plan B | ⬜ Tuyo |
 | 8 | Cerrar Spotify y otras apps (en las capturas aparece una pestaña de música) | ⬜ Tuyo |
 | 9 | Activar «Mostrar toques» y poner brillo alto | ⬜ Tuyo |
-| 10 | Push probado desde Firebase (citas, pagos y pedidos llegaron y abren su pantalla) | ✅ Hecho 7-oct; repetir una vez antes de entrar |
+| 10 | Push probado desde Firebase (citas, pagos y pedidos llegaron y abren su pantalla) | Aprobado Hecho 7-oct; repetir una vez antes de entrar |
 | 10b | Chrome con la consola de Firebase abierta y sesión iniciada; token del celular visible en el diálogo de prueba | ⬜ Tuyo |
 | 11 | Plan B: video o capturas de cada paso si falla la red (se pueden grabar con la grabación de pantalla del celular) | ⬜ Tuyo |
 | 12 | Web abierta en `/system` (mapa 3D) en el navegador de la laptop | ⬜ Tuyo |

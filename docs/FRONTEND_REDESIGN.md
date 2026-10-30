@@ -1,5 +1,8 @@
 # UrbanBlade Mobile — Rediseño visual v3
 
+> Referencia histórica. Describe una revisión o propuesta anterior; no usar como inventario vigente ni requisito de instalación. La referencia vigente es [interfaz Android](INTERFAZ.md); consultar también el [índice de documentación](README.md).
+
+
 La interfaz Android toma como base el tema **Sastrería Nocturna** del frontend web.
 
 ## Tokens principales

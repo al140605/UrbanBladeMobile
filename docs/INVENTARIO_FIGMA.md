@@ -1,5 +1,8 @@
 # Inventario de pantallas y componentes — base para mockups en Figma
 
+> Referencia histórica. Describe una revisión o propuesta anterior; no usar como inventario vigente ni requisito de instalación. La referencia vigente es [interfaz Android](INTERFAZ.md); consultar también el [índice de documentación](README.md).
+
+
 Extraído directamente del código Compose ya construido (`ui/theme/Theme.kt`,
 `ui/components/UrbanComponents.kt`, `ui/navigation/UrbanBladeRoot.kt`,
 `ui/screens/*.kt`, commit `e1533b9` "interfaz completa de UrbanBlade Mobile").

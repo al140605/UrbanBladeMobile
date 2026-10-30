@@ -1,5 +1,8 @@
 # Bitácora de Play Console (2026-10-19 a 2026-10-21)
 
+> Registro y procedimiento de publicación con información histórica. Los estados de cuenta, distribución, testers y políticas citados deben reconfirmarse antes de actuar. Esta renovación documental no verifica Play Console ni autoriza publicar. Ver [configuración técnica vigente](../CONFIGURACION.md).
+
+
 Lo que se llenó, en orden, y las trampas que conviene conocer. No incluye correos, contraseñas ni la cuenta demo.
 
 ## Resultado final
