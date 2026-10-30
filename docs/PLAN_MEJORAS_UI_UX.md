@@ -88,3 +88,7 @@ El bloqueo es local al ViewModel, no una clave de idempotencia del servidor. La 
 ### Validación local del incremento
 
 `lintDebug`, `testDebugUnitTest` y `assembleDebug`: BUILD SUCCESSFUL. Suite completa: 375 pruebas, cero fallos, errores u omisiones; incluye seis regresiones nuevas de reserva. Gitleaks sobre los cuatro archivos cambiados: cero hallazgos. Enlaces documentales y `git diff --check`: correctos. No se ejecutó CI, build release, instalación en dispositivo ni prueba funcional con API real para este incremento.
+
+## QA con datos poblados
+
+El [informe del 30 de octubre](QA_DATOS_POBLADOS_2026-10-30.md) registra las pruebas físicas con cliente, barbero y administración, la reserva local en efectivo y el doble toque sin duplicado. La recuperación de tarjeta/transferencia y la matriz completa de accesibilidad siguen pendientes.
