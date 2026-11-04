@@ -282,7 +282,12 @@ internal fun TransferAccount(info: TransferInfo?, total: Double) {
             info.beneficiario?.takeIf { it.isNotBlank() }?.let { BankRow("Beneficiario", it, copyable = false) }
             info.clabe?.let { BankRow("CLABE", it.chunked(4).joinToString(" "), copyValue = it, mono = true) }
             info.concepto?.takeIf { it.isNotBlank() }?.let { BankRow("Concepto", it) }
-            BankRow("Monto", money(total), copyable = false, highlight = true)
+            BankRow("Monto estimado", money(total), copyable = false, highlight = true)
+            Text(
+                "Confirma el importe final con la barbería antes de transferir: puede cambiar por descuentos.",
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
     }
 }

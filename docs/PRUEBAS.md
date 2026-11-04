@@ -41,6 +41,8 @@ Estos resultados corresponden a ese commit. No acreditan cambios posteriores, in
 
 Usar [verificación manual](VERIFICACION_MANUAL_P0.md) y [contrato de experiencia](UI_UX_CONTRATO_MOVIL.md). Registrar commit, variante, API efectiva, rol, dispositivo, datos de prueba y resultado. Comprobar estados vacíos, errores, reconexión, permisos y accesibilidad. Las capturas históricas ilustran la interfaz, no reemplazan esa ejecución.
 
+La [validación local de pagos del 4 de noviembre de 2026](QA_PAGOS_2026-11-04.md) distingue las pruebas de backend, API, dispositivo y los pendientes del proveedor.
+
 ## Criterio de entrega
 
 Revisar el diff y secretos, ejecutar las comprobaciones acordes al cambio y abrir PR desde una rama específica. Confirmar checks del SHA revisado antes de fusionar, conservar la rama y verificar las ejecuciones del commit resultante en main. La protección automática de la rama depende de la configuración que aplique el propietario; seguir este procedimiento aunque no esté habilitada.

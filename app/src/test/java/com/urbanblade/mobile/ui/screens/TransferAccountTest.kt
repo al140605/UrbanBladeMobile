@@ -35,7 +35,7 @@ class TransferAccountTest {
     }
 
     @Test
-    fun `con datos muestra cuenta y monto a transferir`() {
+    fun `con datos identifica el monto como estimacion y pide confirmar descuentos`() {
         val info = TransferInfo(
             configurado = true, banco = "BBVA", beneficiario = "UrbanBlade", clabe = "012345678901234567", concepto = "Cita"
         )
@@ -44,6 +44,8 @@ class TransferAccountTest {
         compose.onNodeWithText("Transfiere a esta cuenta").assertExists()
         compose.onNodeWithText("BBVA").assertExists()
         compose.onNodeWithText("0123 4567 8901 2345 67").assertExists()
-        compose.onNodeWithText("Monto").assertExists()
+        compose.onNodeWithText("Monto estimado").assertExists()
+        compose.onNodeWithText("Confirma el importe final con la barbería antes de transferir: puede cambiar por descuentos.").assertExists()
+        compose.onNodeWithText("Monto").assertDoesNotExist()
     }
 }
