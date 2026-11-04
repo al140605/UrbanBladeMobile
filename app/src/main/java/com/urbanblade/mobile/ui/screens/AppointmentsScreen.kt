@@ -957,7 +957,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
 
     val pickReceipt = rememberSingleImagePicker { receiptUri = it }
 
-    val presentPaymentSheet = rememberUrbanPaymentSheet { result ->
+    val presentPaymentSheet = rememberUrbanPaymentSheet(onAuthorizationDenied = { vm.onStripeCanceled() }) { result ->
         when (result) {
             is PaymentSheetResult.Completed -> {
                 vm.clearStripeClientSecret()
@@ -980,10 +980,11 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
             is PaymentResult.Failed -> vm.onStripeFailed(result.throwable.localizedMessage)
         }
     }
+    val authorizeSavedPayment = com.urbanblade.mobile.core.payment.rememberPaymentAuthorization { vm.onStripeCanceled() }
     LaunchedEffect(savedCardConfirm) {
         val confirm = savedCardConfirm ?: return@LaunchedEffect
         vm.clearSavedCardConfirm()
-        confirm.paymentMethodId?.let { paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(it, confirm.clientSecret)) }
+        confirm.paymentMethodId?.let { id -> authorizeSavedPayment { paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(id, confirm.clientSecret)) } }
     }
     LaunchedEffect(cardAvailable) { if (cardAvailable) vm.loadSavedCards() }
 

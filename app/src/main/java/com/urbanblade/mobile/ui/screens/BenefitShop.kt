@@ -38,7 +38,7 @@ internal fun BenefitShop(onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = v
     var shop by rememberSaveable { mutableStateOf<String?>(null) }
     var amount by rememberSaveable { mutableStateOf("") }
     var recipient by rememberSaveable { mutableStateOf("") }
-    val openPayment = rememberUrbanPaymentSheet { result ->
+    val openPayment = rememberUrbanPaymentSheet(onAuthorizationDenied = { vm.paymentResult(false, true) }) { result ->
         val completed = result is PaymentSheetResult.Completed
         vm.paymentResult(completed, result is PaymentSheetResult.Canceled)
         if (completed) { shop = null; onRefresh() }

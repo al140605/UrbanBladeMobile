@@ -148,17 +148,20 @@ fun BookingScreen(
         }
     }
     // Con la cita ya creada, confirma el cobro con la tarjeta guardada o con lo que el cliente escribió.
+    val authorizePayment = com.urbanblade.mobile.core.payment.rememberPaymentAuthorization { vm.onCardResult(false, true, null) }
     LaunchedEffect(cardConfirm) {
         val confirm = cardConfirm ?: return@LaunchedEffect
-        val savedId = confirm.paymentMethodId
-        if (savedId != null) {
-            paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
-        } else {
-            val params = pay.paymentMethodParams()
-            if (params != null) {
-                paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+        authorizePayment {
+            val savedId = confirm.paymentMethodId
+            if (savedId != null) {
+                paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
             } else {
-                vm.onCardResult(false, false, "no se pudieron leer los datos de la tarjeta")
+                val params = pay.paymentMethodParams()
+                if (params != null) {
+                    paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+                } else {
+                    vm.onCardResult(false, false, "no se pudieron leer los datos de la tarjeta")
+                }
             }
         }
     }

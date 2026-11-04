@@ -68,14 +68,17 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
         }
     }
     // Con la suscripción creada en barber, confirma el primer cobro con la tarjeta elegida.
+    val authorizePayment = com.urbanblade.mobile.core.payment.rememberPaymentAuthorization { vm.onCheckoutResult(false, true, null) }
     LaunchedEffect(checkout) {
         val confirm = checkout ?: return@LaunchedEffect
-        val savedId = confirm.savedCardId
-        val params = payState.paymentMethodParams()
-        when {
-            savedId != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
-            params != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
-            else -> vm.onCheckoutResult(false, false, "no se pudieron leer los datos de la tarjeta")
+        authorizePayment {
+            val savedId = confirm.savedCardId
+            val params = payState.paymentMethodParams()
+            when {
+                savedId != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
+                params != null -> paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+                else -> vm.onCheckoutResult(false, false, "no se pudieron leer los datos de la tarjeta")
+            }
         }
     }
 

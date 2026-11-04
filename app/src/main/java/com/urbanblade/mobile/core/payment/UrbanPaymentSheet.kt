@@ -65,12 +65,14 @@ private fun urbanStripeColors() = PaymentSheet.Colors(
 @Composable
 fun rememberUrbanPaymentSheet(
     merchantDisplayName: String = "UrbanBlade",
+    onAuthorizationDenied: () -> Unit,
     onResult: (PaymentSheetResult) -> Unit
 ): (String) -> Unit {
     rememberStripeReady()
     val paymentSheet = rememberPaymentSheet(onResult)
 
-    return remember(paymentSheet) {
+    val authorize = rememberPaymentAuthorization(onAuthorizationDenied)
+    return remember(paymentSheet, authorize, merchantDisplayName) {
         { clientSecret: String ->
             // Los colores se leen al abrir la hoja: si el cliente cambió de tema, ya salen con el nuevo.
             val appearance = PaymentSheet.Appearance(
@@ -78,10 +80,12 @@ fun rememberUrbanPaymentSheet(
                 colorsDark = urbanStripeColors(),
                 shapes = PaymentSheet.Shapes(cornerRadiusDp = 16f, borderStrokeWidthDp = 1f)
             )
-            paymentSheet.presentWithPaymentIntent(
-                clientSecret,
-                PaymentSheet.Configuration(merchantDisplayName = merchantDisplayName, appearance = appearance)
-            )
+            authorize {
+                paymentSheet.presentWithPaymentIntent(
+                    clientSecret,
+                    PaymentSheet.Configuration(merchantDisplayName = merchantDisplayName, appearance = appearance)
+                )
+            }
         }
     }
 }

@@ -43,6 +43,8 @@ Usar [verificación manual](VERIFICACION_MANUAL_P0.md) y [contrato de experienci
 
 La [validación local de pagos del 4 de noviembre de 2026](QA_PAGOS_2026-11-04.md) distingue las pruebas de backend, API, dispositivo y los pendientes del proveedor.
 
+La [verificación local por huella o PIN](QA_AUTORIZACION_PAGOS_2026-11-04.md) registra las regresiones, la confirmación física del propietario y los límites de cobertura.
+
 ## Criterio de entrega
 
 Revisar el diff y secretos, ejecutar las comprobaciones acordes al cambio y abrir PR desde una rama específica. Confirmar checks del SHA revisado antes de fusionar, conservar la rama y verificar las ejecuciones del commit resultante en main. La protección automática de la rama depende de la configuración que aplique el propietario; seguir este procedimiento aunque no esté habilitada.
