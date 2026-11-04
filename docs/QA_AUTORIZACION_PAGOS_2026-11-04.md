@@ -1,5 +1,8 @@
 # Autorización local de pagos — 4 de noviembre de 2026
 
+> Registro de la primera implementación. La ubicación de la verificación se ajustó
+> después para pedirla al confirmar el pago; ver [flujo final](INVESTIGACION_UX_PAGO_FINAL_2026-11-04.md).
+
 ## Función
 
 Se solicita verificar la identidad mediante el bloqueo del dispositivo antes de

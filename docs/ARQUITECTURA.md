@@ -47,7 +47,7 @@ La navegación adapta acciones al rol, pero la interfaz no es una barrera de aut
 
 ## Autorización local de pagos con tarjeta
 
-Antes de presentar el checkout de Stripe o confirmar una tarjeta guardada, Android
+Después de revisar el pago y al confirmar una tarjeta, Android
 solicita verificar el bloqueo del dispositivo. `PaymentAuthorization.kt` concentra
 esta verificación para citas, reservas, membresías y beneficios. No se aplica al
 efectivo ni al envío de comprobantes, porque esas acciones no confirman un cargo
@@ -64,15 +64,18 @@ con tarjeta desde el SDK.
   Al salir de la pantalla o recrearla se cancela la autorización pendiente.
 
 La app no recibe ni almacena la huella o el PIN. Se usa la respuesta del sistema;
-no se persiste una marca de «ya autorizado». En el flujo de tarjeta nueva, esta
-verificación permite abrir el checkout: Stripe conserva su propia confirmación
-final y puede exigir además 3DS. La creación de un intento en backend puede ocurrir
+no se persiste una marca de «ya autorizado». En el flujo de tarjeta nueva, Stripe recoge primero la tarjeta mediante
+FlowController. UrbanBlade muestra el importe del PaymentIntent y solicita esta
+verificación solo al pulsar Pagar; después confirma el intento. Stripe puede exigir
+además 3DS. La creación de un intento en backend puede ocurrir
 antes del diálogo; cancelar la verificación no confirma ese intento.
 
 Es una protección de experiencia local, no una prueba criptográfica enviada al
 servidor ni una defensa contra un cliente modificado. El servidor conserva la
 autoridad del importe y la conciliación por webhook. Esta verificación no sustituye
 la identidad de la cuenta, los permisos de API ni la autenticación de Stripe.
+
+Ver [investigación de experiencia y decisión del flujo final](INVESTIGACION_UX_PAGO_FINAL_2026-11-04.md).
 
 Referencia: [autenticación biométrica de Android](https://developer.android.com/identity/sign-in/biometric-auth).
 

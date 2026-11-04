@@ -957,7 +957,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
 
     val pickReceipt = rememberSingleImagePicker { receiptUri = it }
 
-    val presentPaymentSheet = rememberUrbanPaymentSheet(onAuthorizationDenied = { vm.onStripeCanceled() }) { result ->
+    val presentPaymentSheet = rememberUrbanPaymentSheet(onAuthorizationDenied = { vm.onStripeCanceled() }, onPreparationFailed = { vm.onStripeFailed(it.localizedMessage) }) { result ->
         when (result) {
             is PaymentSheetResult.Completed -> {
                 vm.clearStripeClientSecret()
