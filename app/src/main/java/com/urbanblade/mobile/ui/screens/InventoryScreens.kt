@@ -32,6 +32,7 @@ private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_tra
 fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Unit = {}, vm: InventoryViewModel = viewModel()) {
     val response by vm.products.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val saving by vm.saving.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
@@ -77,6 +78,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
         ) {
             item {
                 val subtitle = when {
+                    !hasLoaded -> "Consulta las existencias y sus movimientos."
                     response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
                     else -> "Existencias de la tienda al día."
                 }
@@ -86,16 +88,13 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             error?.let { item { UrbanErrorBanner(it) } }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
-            item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Text("RESUMEN DE EXISTENCIAS", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
-                    Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        InventorySummaryValue("Productos", response.meta.stats.total.toString(), Modifier.weight(1f))
-                        InventorySummaryValue("Por reponer", response.meta.stats.bajoStock.toString(), Modifier.weight(1f), response.meta.stats.bajoStock > 0)
-                        InventorySummaryValue("Valor inventario", "${UrbanFormat.moneyShort(response.meta.stats.valorTotal)}", Modifier.weight(1f))
-                    }
-                }
+            if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+            if (hasLoaded) item {
+                UrbanStatStrip(listOf(
+                    Triple("Productos", response.meta.stats.total.toString(), UrbanColors.Ink),
+                    Triple("Por reponer", response.meta.stats.bajoStock.toString(), if (response.meta.stats.bajoStock > 0) UrbanColors.Warning else UrbanColors.Ink),
+                    Triple("Valor inventario", UrbanFormat.moneyShort(response.meta.stats.valorTotal), UrbanColors.Ink)
+                ))
             }
 
             if (response.meta.categorias.isNotEmpty()) {
@@ -112,7 +111,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
                 }
             }
 
-            if (visibleProducts.isEmpty() && !busy) {
+            if (visibleProducts.isEmpty() && hasLoaded && !busy && error == null) {
                 item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
             }
 
@@ -179,14 +178,6 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("Cancelar") } }
         )
-    }
-}
-
-@Composable
-private fun InventorySummaryValue(label: String, value: String, modifier: Modifier = Modifier, alert: Boolean = false) {
-    Column(modifier) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, style = MaterialTheme.typography.titleMedium, color = if (alert) UrbanColors.Warning else UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

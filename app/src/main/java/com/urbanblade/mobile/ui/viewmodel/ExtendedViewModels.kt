@@ -268,8 +268,8 @@ class ClientsViewModel : ViewModel() {
     }
 }
 
-class InventoryViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class InventoryViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _products = MutableStateFlow(InventoryResponse()); val products = _products.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
@@ -278,7 +278,8 @@ class InventoryViewModel : ViewModel() {
 
     fun load() = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _products.value = repo.inventoryProducts() }
+        try { _products.value = repo.inventoryProducts(); _hasLoaded.value = true }
+        catch (e: CancellationException) { throw e }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el inventario.") }
         finally { _busy.value = false }
     }
@@ -312,8 +313,8 @@ class InventoryViewModel : ViewModel() {
     }
 }
 
-class PortfolioViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class PortfolioViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _portfolio = MutableStateFlow(PortfolioResponse()); val portfolio = _portfolio.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _uploading = MutableStateFlow(false); val uploading = _uploading.asStateFlow()
@@ -322,7 +323,8 @@ class PortfolioViewModel : ViewModel() {
 
     fun load() = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _portfolio.value = repo.portfolio() }
+        try { _portfolio.value = repo.portfolio(); _hasLoaded.value = true }
+        catch (e: CancellationException) { throw e }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu portafolio.") }
         finally { _busy.value = false }
     }
@@ -347,8 +349,8 @@ class PortfolioViewModel : ViewModel() {
 }
 
 
-class BarberAgendaViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class BarberAgendaViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _agenda = MutableStateFlow(BarberAgendaResponse()); val agenda = _agenda.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _updating = MutableStateFlow<String?>(null); val updating = _updating.asStateFlow()
@@ -356,7 +358,8 @@ class BarberAgendaViewModel : ViewModel() {
 
     fun load(period: String = "day", estado: String? = null, offset: Int = 0) = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _agenda.value = repo.barberAgenda(period, estado, offset) }
+        try { _agenda.value = repo.barberAgenda(period, estado, offset); _hasLoaded.value = true }
+        catch (e: CancellationException) { throw e }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar tu agenda.") }
         finally { _busy.value = false }
     }

@@ -44,6 +44,7 @@ private fun nextStatesFor(estado: String): List<String> = when (estado) {
 fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel()) {
     val agenda by vm.agenda.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val updating by vm.updating.collectAsState()
     val error by vm.error.collectAsState()
     val ticket by vm.ticket.collectAsState()
@@ -92,7 +93,7 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { offset -= 1 }) { Icon(Icons.Default.ChevronLeft, "Anterior") }
                     Text(
-                        agenda.range.label ?: "—",
+                        agenda.range.label ?: "Consultando periodo…",
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
@@ -102,7 +103,8 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             }
         }
 
-        item {
+        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+        if (hasLoaded) item {
             UrbanHeroCard {
                 Text(
                     UrbanFormat.count(agenda.stats.totalPeriod, "cita", "citas"),
@@ -138,7 +140,7 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             error != null && agenda.data.isEmpty() -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu agenda", error, "Reintentar") { reload() }
             }
-            agenda.data.isEmpty() && !busy -> item {
+            agenda.data.isEmpty() && hasLoaded && !busy -> item {
                 UrbanMascotState(
                     UrbanStateKind.EMPTY,
                     if (estadoFilter == null) "Sin citas en este periodo" else "Sin citas con este estado",

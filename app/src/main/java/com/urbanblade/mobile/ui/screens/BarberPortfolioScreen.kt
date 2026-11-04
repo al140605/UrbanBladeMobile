@@ -33,6 +33,7 @@ import com.urbanblade.mobile.ui.viewmodel.PortfolioViewModel
 fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel()) {
     val portfolio by vm.portfolio.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val uploading by vm.uploading.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
@@ -51,7 +52,8 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
         onRefresh = { vm.load() },
         refreshing = busy
     ) {
-        item {
+        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+        if (hasLoaded) item {
             UrbanHeroCard {
                 Text(
                     UrbanFormat.count(portfolio.stats.totalWorks, "trabajo publicado", "trabajos publicados"),
@@ -81,7 +83,7 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
             error != null && portfolio.works.isEmpty() -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu portafolio", error, "Reintentar") { vm.load() }
             }
-            portfolio.works.isEmpty() && !busy -> item {
+            portfolio.works.isEmpty() && hasLoaded && !busy -> item {
                 UrbanMascotState(
                     UrbanStateKind.EMPTY,
                     "Sin trabajos todavía",

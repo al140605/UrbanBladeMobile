@@ -59,7 +59,7 @@ fun BarberHomeScreen(
 
     val now = remember { LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) }
     val day = barberDay(agenda.data, now)
-    val loadedOnce = agenda.range.label != null
+    val loadedOnce by vm.hasLoaded.collectAsState()
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -80,7 +80,7 @@ fun BarberHomeScreen(
             error != null && !loadedOnce -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu día", error, "Reintentar") { vm.load("day", null, 0) }
             }
-            busy && !loadedOnce -> item { UrbanSkeletonList(1) }
+            !loadedOnce -> item { UrbanSkeletonList(1) }
             else -> {
                 item {
                     UrbanHeroCard(Modifier.clickable { onNavigate("barber_agenda") }) {

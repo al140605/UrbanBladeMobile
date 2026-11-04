@@ -68,3 +68,35 @@ No se detectó `FATAL EXCEPTION` en el proceso Android consultado. Esto no acred
 ## Continuar la prueba
 
 Mantener Docker y el USB conectados. Si se pierde el enlace, reenviar los puertos 8001 (API) y 18766 (imágenes). El servidor de imágenes solo escucha en loopback y sus archivos están separados de los accesos privados. No copiar respaldos, contraseñas o sesiones en Git ni importar los fixtures a un entorno operativo.
+
+
+## Seguimiento del 4 de noviembre de 2026
+
+La rama Android diferencia ahora la carga inicial de una respuesta vacía confirmada
+mediante estado explícito en inventario, agenda y portafolio. El inicio del barbero
+usa ese mismo estado: no presenta «sin citas» antes de recibir la primera respuesta.
+Un error inicial no confirma cifras en cero; al fallar una actualización se conserva
+el último resultado obtenido. Los errores siguen ofreciendo las acciones existentes
+de actualización o reintento.
+
+El resumen de inventario reutiliza `UrbanStatStrip`: las métricas se apilan en ancho
+reducido o con fuente grande, conservando etiquetas e importes. Se elimina el
+componente anterior que truncaba los valores a una sola línea. La advertencia de
+reposición mantiene su color semántico.
+
+Se añaden pruebas de estado para inventario, agenda y portafolio, y una comprobación
+Compose del resumen a 320 dp con fuente al 200 %. Esto no sustituye TalkBack ni
+una revisión física de los cuatro temas.
+
+El código actual de Barber ya filtra las visitas completadas y ocurridas en el
+listado de clientes e incluye las dos regresiones de ese contrato. No se modificó
+ese repositorio en este seguimiento. Docker no estaba activo y ADB no detectaba
+un dispositivo conectado: no se repitieron las pruebas integradas ni se instaló
+esta versión en el teléfono. Los pagos y webhooks continúan pendientes de un
+entorno de proveedor de pruebas confirmado. No se modificó producción.
+
+Validación Android del seguimiento: `:app:testDebugUnitTest :app:lintDebug
+:app:assembleDebug` finalizó correctamente. Se contabilizaron 399 pruebas, sin
+fallos, errores ni omisiones; las seis nuevas comprobaciones forman parte de esa
+suite. `git diff --check` no detectó problemas. El APK generado es de desarrollo;
+no se instaló ni publicó en este seguimiento.

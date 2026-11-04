@@ -92,4 +92,18 @@ class AccesibilidadEscalaTest {
         compose.onNodeWithText("Corte clásico").assertIsDisplayed()
         compose.onNodeWithText("Nava Panther").assertIsDisplayed()
     }
+
+    @Test
+    fun `resumen de inventario conserva importes y etiquetas con fuente grande`() {
+        conFuenteAl200 {
+            com.urbanblade.mobile.ui.components.UrbanStatStrip(listOf(
+                Triple("Productos", "1250", com.urbanblade.mobile.ui.theme.UrbanColors.Ink),
+                Triple("Por reponer", "180", com.urbanblade.mobile.ui.theme.UrbanColors.Warning),
+                Triple("Valor inventario", "$1,250,000.00", com.urbanblade.mobile.ui.theme.UrbanColors.Ink)
+            ))
+        }
+        listOf("Productos", "1250", "Por reponer", "180", "Valor inventario", "$1,250,000.00").forEach {
+            compose.onNodeWithText(it).assertIsDisplayed()
+        }
+    }
 }
