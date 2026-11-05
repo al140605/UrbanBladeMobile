@@ -1,10 +1,6 @@
 package com.urbanblade.mobile.core.payment
 
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -15,7 +11,6 @@ import com.stripe.android.model.PaymentIntent
 import com.stripe.android.paymentsheet.PaymentOptionCallback
 import com.stripe.android.paymentsheet.PaymentSheetResultCallback
 import com.stripe.android.paymentsheet.rememberPaymentSheetFlowController
-import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
@@ -167,7 +162,10 @@ fun rememberUrbanPaymentSheet(
                         shapes = PaymentSheet.Shapes(cornerRadiusDp = 16f, borderStrokeWidthDp = 1f)
                     )
                     controller.configureWithPaymentIntent(clientSecret,
-                        PaymentSheet.Configuration(merchantDisplayName = merchantDisplayName, appearance = appearance)
+                        PaymentSheet.Configuration.Builder(merchantDisplayName)
+                            .appearance(appearance)
+                            .link(PaymentSheet.LinkConfiguration(display = PaymentSheet.LinkConfiguration.Display.Never))
+                            .build()
                     ) { success, error ->
                         if (alive && flow.isCurrent(id)) {
                             if (success && flow.loaded(id)) controller.presentPaymentOptions()
@@ -186,26 +184,7 @@ internal fun FinalPaymentReview(
     merchant: String, card: String, amount: String, verifying: Boolean,
     onPay: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = { if (!verifying) onCancel() },
-        title = { Text("Confirmar pago") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(merchant)
-                Text(card)
-                Text("Total a pagar: $amount")
-                Text("Al pulsar Pagar verificarás tu identidad con huella o bloqueo del teléfono.")
-                TextButton(enabled = !verifying, onClick = onEdit) { Text("Cambiar tarjeta") }
-            }
-        },
-        confirmButton = {
-            UrbanPrimaryButton(
-                text = "Pagar $amount", onClick = onPay, enabled = !verifying,
-                loading = verifying, modifier = Modifier.fillMaxWidth()
-            )
-        },
-        dismissButton = {
-            TextButton(enabled = !verifying, onClick = onCancel) { Text("Cancelar") }
-        }
+    com.urbanblade.mobile.ui.components.UrbanPaymentReviewDialog(
+        merchant, card, amount, verifying, onPay, onEdit, onCancel
     )
 }

@@ -47,6 +47,8 @@ La [verificación local por huella o PIN](QA_AUTORIZACION_PAGOS_2026-11-04.md) r
 
 Ver también la [investigación y decisión de revisión final del pago](INVESTIGACION_UX_PAGO_FINAL_2026-11-04.md).
 
+La [revisión del modal y eliminación de Link](QA_MODAL_PAGO_2026-11-04.md) registra las pruebas automatizadas y los recorridos físicos de pago y cancelación.
+
 ## Criterio de entrega
 
 Revisar el diff y secretos, ejecutar las comprobaciones acordes al cambio y abrir PR desde una rama específica. Confirmar checks del SHA revisado antes de fusionar, conservar la rama y verificar las ejecuciones del commit resultante en main. La protección automática de la rama depende de la configuración que aplique el propietario; seguir este procedimiento aunque no esté habilitada.

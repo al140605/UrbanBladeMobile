@@ -25,6 +25,7 @@ actual es **TT32, HT-12**).
 | `UrbanStatStrip` | 3–4 números en una sola tarjeta (en vez de varias `UrbanMetricCard` angostas). |
 | `UrbanModuleTile` / `UrbanModuleGrid` | Accesos rápidos en dos columnas. |
 | `UrbanPillTabs(tabs, selected, onSelect)` | 2 o 3 pestañas en píldora dorada (Mi cuenta, Mis citas del cliente). No usar `FilterChip` sueltos para cambiar de vista. |
+| `UrbanPaymentReviewDialog` | Revisión final de tarjeta e importe real; acciones verticales y verificación solo al pagar. |
 | `UrbanMascotState(kind, title, subtitle, actionLabel, onAction)` | Estados vacíos y de error. |
 
 Otras piezas compartidas:

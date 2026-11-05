@@ -28,10 +28,11 @@ class FinalPaymentReviewTest {
                 }
             }
         }
-        compose.onNodeWithText("Total a pagar: $95.00 MXN").assertIsDisplayed()
+        compose.onNodeWithText("Total a pagar").assertIsDisplayed()
+        compose.onNodeWithText("$95.00 MXN").assertIsDisplayed()
         compose.onNodeWithText("Visa 4242").assertIsDisplayed()
         assertEquals(0, pay)
-        compose.onNodeWithText("Pagar $95.00 MXN").performClick()
+        compose.onNodeWithText("Pagar $95.00 MXN").performScrollTo().performClick()
         assertEquals(1, pay)
     }
     @Test fun `edit and cancel never confirm a charge`() {
@@ -41,7 +42,7 @@ class FinalPaymentReviewTest {
                 { pay++ }, { edit++ }, { cancel++ })
         } }
         compose.onNodeWithText("Cambiar tarjeta").performClick()
-        compose.onNodeWithText("Cancelar").performClick()
+        compose.onNodeWithText("Cancelar").performScrollTo().performClick()
         assertEquals(0, pay); assertEquals(1, edit); assertEquals(1, cancel)
     }
     @Test fun `review cannot change operation during system authorization`() {
