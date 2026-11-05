@@ -297,3 +297,37 @@ todavía») y membresías muestra el plan existente. Sin cierres. Un fallo al en
 desactivar no se provocó en el teléfono; lo cubren las pruebas.
 
 Pendiente: cobros.
+
+### Incremento 3b, tanda 5: cobros y pagos (5 de noviembre de 2026)
+
+Hallazgo previo al cambio: las listas de comprobantes por revisar, anticipos y adeudos se
+pedían con `runCatching { … }.getOrDefault(lo anterior)`. Si esa consulta fallaba en la primera
+carga, el valor anterior era una lista vacía y la pantalla decía «Todo al día» aunque hubiera
+comprobantes pendientes sin consultar; además `runCatching` también capturaba las cancelaciones.
+Una prueba existente fijaba como deseado que el historial se mostrara aunque fallaran los
+anticipos; esa decisión se mantiene.
+
+`PaymentsStaffViewModel` registra `loaded`, cancela la consulta anterior y la paginación en curso,
+y publica el error de la consulta del historial y de «cargar más» en `listError`, separado de
+`error`, que queda para aprobar, rechazar, cobrar, condonar y abrir un comprobante. Las tres
+listas de revisión se piden con una función propia que no se traga las cancelaciones. Si alguna
+falla, el historial se muestra igual, se conserva la lista anterior y se publica un aviso de
+fallo parcial (`reviewListsError`) que nombra cuáles fallaron; `reviewUnknown` marca el fallo de
+comprobantes o anticipos, que es lo que impide afirmar que todo está al día. Un fallo solo de
+adeudos avisa, pero no vuelve desconocido el subtítulo. La pantalla dice «Consulta los
+comprobantes por revisar y el historial» antes de la primera consulta, «No pudimos confirmar
+los comprobantes por revisar» si fallaron y «Todo al día» solo cuando es cierto; muestra el
+aviso parcial con «Reintentar»; no muestra «Cobrado hoy» hasta tener datos confirmados; y usa
+`urbanListFeedback` para el historial. La barra de progreso queda para aprobar, rechazar y
+cobrar. Siete pruebas nuevas (`PaymentsListLoadStateTest`) y refuerzo de la existente de fallo
+parcial.
+
+Validación: 485 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, quitando el túnel USB y abriendo la pantalla por primera vez:
+muestra «No pudimos cargar los pagos», el motivo y «Reintentar», y el subtítulo no dice «Todo al
+día»; con la red restaurada y tras «Reintentar» carga el historial y el subtítulo dice «Todo al
+día» (en la demo no hay comprobantes pendientes). El fallo parcial no se pudo aislar en el
+teléfono, porque cortar la red falla todas las consultas a la vez: lo cubren las pruebas. Sin
+cierres.
+
+Con esta tanda las doce listas de administración y operación usan los estados únicos.

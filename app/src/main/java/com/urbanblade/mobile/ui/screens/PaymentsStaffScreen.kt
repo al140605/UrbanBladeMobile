@@ -67,16 +67,14 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.PaymentMethodFilter
 import com.urbanblade.mobile.ui.viewmodel.PaymentsStaffViewModel
 import com.urbanblade.mobile.ui.viewmodel.REJECT_REASON_MAX
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanTextButton
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private fun money(value: Double) = UrbanFormat.money(value)
 private fun moneyShort(value: Double) = UrbanFormat.moneyShort(value)
@@ -112,16 +110,33 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
     UrbanModuleScreen(
         eyebrow = "OPERACIÓN",
         title = "Cobros y pagos",
-        subtitle = if (toReview > 0) pendingLabel else "Todo al día. Consulta el historial cuando lo necesites.",
+        subtitle = when {
+            !state.loaded -> "Consulta los comprobantes por revisar y el historial."
+            toReview > 0 -> pendingLabel
+            // Si la consulta de comprobantes o anticipos falló, «todo al día» sería una afirmación sin base.
+            state.reviewUnknown -> "No pudimos confirmar los comprobantes por revisar."
+            else -> "Todo al día. Consulta el historial cuando lo necesites."
+        },
         onBack = onBack,
         onRefresh = { vm.load() },
         refreshing = state.loading || state.loadingMore || state.busyPaymentId != null || state.busyFeeId != null
     ) {
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        // El progreso de la consulta lo muestra urbanListFeedback; aquí solo el de aprobar, rechazar o cobrar.
+        if (state.busyPaymentId != null || state.busyFeeId != null) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Errores de aprobar, rechazar, cobrar o condonar; con el diálogo de rechazo abierto se muestran dentro de él.
         if (rejecting == null) state.error?.let { item { UrbanErrorBanner(it) } }
+        // Fallo parcial: el historial cargó, pero alguna lista de revisión puede estar incompleta.
+        state.reviewListsError?.let { msg ->
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    UrbanErrorBanner(msg)
+                    UrbanTextButton(onClick = { vm.load() }) { Text("Reintentar") }
+                }
+            }
+        }
 
-        item {
+        if (state.loaded) item {
             UrbanHeroCard {
                 UrbanHeroLabel("Cobrado hoy")
                 Spacer(Modifier.height(6.dp))
@@ -216,10 +231,10 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
                 }
             }
         }
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item { UrbanMascotState(UrbanStateKind.EMPTY, "No hay pagos con estos filtros", "Prueba con otro método o rango de fechas.") }
-        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los pagos", "No hay pagos con estos filtros", "Prueba con otro método o rango de fechas."
+        ) { vm.load() }
         items(state.items, key = { it.id }) { payment ->
             PaymentCard(payment, onReceipt = { vm.receiptUrl(payment.id, ::openUrl) })
         }
