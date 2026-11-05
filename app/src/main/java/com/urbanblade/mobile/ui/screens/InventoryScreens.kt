@@ -25,6 +25,7 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_trabajo" to "Insumo de trabajo")
 
@@ -36,6 +37,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
     val saving by vm.saving.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
+    val listError by vm.listError.collectAsState()
     val isAdmin = user.roles.contains("administrador")
 
     val context = LocalContext.current
@@ -75,11 +77,10 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
                 IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
                 UrbanRefreshButton(busy) { vm.load() } }
     ) {
-        if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        // Errores de guardar, editar, eliminar o registrar un movimiento; el de la consulta sale más abajo.
         error?.let { item { UrbanErrorBanner(it) } }
         message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
-        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
         if (hasLoaded) item {
             UrbanStatStrip(listOf(
                 Triple("Productos", response.meta.stats.total.toString(), UrbanColors.Ink),
@@ -102,9 +103,10 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             }
         }
 
-        if (visibleProducts.isEmpty() && hasLoaded && !busy && error == null) {
-            item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
-        }
+        urbanListFeedback(
+            hasLoaded, busy, visibleProducts.isNotEmpty(), listError,
+            "No pudimos cargar el inventario", "Sin productos", "No hay productos en esta categoría."
+        ) { vm.load() }
 
         if (attentionProducts.isNotEmpty()) {
             item {

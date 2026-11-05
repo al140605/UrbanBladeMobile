@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanTextButton
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private val SEGMENT_LABEL = mapOf(
     "vip" to "VIP",
@@ -40,6 +41,8 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
     val clients by vm.clients.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
+    val listError by vm.listError.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val hasMore by vm.hasMore.collectAsState()
     val loadingMore by vm.loadingMore.collectAsState()
     val saving by vm.saving.collectAsState()
@@ -83,47 +86,49 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
             }
         }
     ) {
-            urbanLoadingItem(busy, clients.data.isEmpty())
-            error?.let { item { UrbanErrorBanner(it) } }
-            if (clients.data.isNotEmpty()) {
-                item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
-            }
-            if (clients.data.isEmpty() && !busy && error == null) {
-                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin clientes", "No hay clientes que coincidan con la búsqueda.", "Registrar cliente", Icons.Default.PersonAdd) { showCreate = true } }
-            }
-            items(clients.data) { client ->
-                UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(client.name ?: "Sin nombre", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(client.email ?: client.telefono ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                client.lastAppointment?.let { "Última visita: ${UrbanFormat.dateShort(it)}" } ?: "Aún sin visitas",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = UrbanColors.Muted
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            client.segment?.let { SimpleStatusPill(SEGMENT_LABEL[it] ?: it, color = if (it == "vip") UrbanColors.Gold else null) }
-                            Spacer(Modifier.height(4.dp))
-                            Text(UrbanFormat.moneyShort(client.totalSpent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                            Text(UrbanFormat.count(client.totalAppointments, "cita", "citas"), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
-                        }
+        // Errores de crear, editar o eliminar; el de la consulta sale con su reintento en urbanListFeedback.
+        error?.let { item { UrbanErrorBanner(it) } }
+        urbanListFeedback(
+            hasLoaded, busy, clients.data.isNotEmpty(), listError,
+            "No pudimos cargar los clientes", "Sin clientes", "No hay clientes que coincidan con la búsqueda.",
+            emptyActionLabel = "Registrar cliente", emptyActionIcon = Icons.Default.PersonAdd, onEmptyAction = { showCreate = true }
+        ) { vm.load(search.takeIf { it.isNotBlank() }, segment) }
+        if (clients.data.isNotEmpty()) {
+            item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
+        }
+        items(clients.data) { client ->
+            UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(client.name ?: "Sin nombre", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(client.email ?: client.telefono ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            client.lastAppointment?.let { "Última visita: ${UrbanFormat.dateShort(it)}" } ?: "Aún sin visitas",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = UrbanColors.Muted
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        client.segment?.let { SimpleStatusPill(SEGMENT_LABEL[it] ?: it, color = if (it == "vip") UrbanColors.Gold else null) }
+                        Spacer(Modifier.height(4.dp))
+                        Text(UrbanFormat.moneyShort(client.totalSpent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                        Text(UrbanFormat.count(client.totalAppointments, "cita", "citas"), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
                     }
                 }
             }
-            if (hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (loadingMore) "Cargando…" else "Cargar más clientes",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        }
+        if (hasMore) {
+            item {
+                UrbanOutlineButton(
+                    text = if (loadingMore) "Cargando…" else "Cargar más clientes",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+        }
     }
 
     if (showCreate) {

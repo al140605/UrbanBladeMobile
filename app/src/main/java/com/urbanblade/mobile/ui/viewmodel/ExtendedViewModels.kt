@@ -207,14 +207,19 @@ class RafflesViewModel @JvmOverloads constructor(private val repo: UrbanReposito
     }
 }
 
-class ClientsViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class ClientsViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _clients = MutableStateFlow(ClientsResponse()); val clients = _clients.asStateFlow()
     private val _detail = MutableStateFlow<ClientDetail?>(null); val detail = _detail.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
     private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    /** Errores del detalle y de crear, editar o eliminar; la lista usa [listError]. */
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    /** Error de la consulta de la lista: no se mezcla con los de las acciones. */
+    private val _listError = MutableStateFlow<String?>(null); val listError = _listError.asStateFlow()
+    private var loadRequest: Job? = null
+    private var moreRequest: Job? = null
 
     private val _hasMore = MutableStateFlow(false); val hasMore = _hasMore.asStateFlow()
     private val _loadingMore = MutableStateFlow(false); val loadingMore = _loadingMore.asStateFlow()
@@ -222,32 +227,55 @@ class ClientsViewModel : ViewModel() {
     private var lastSearch: String? = null
     private var lastSegment: String? = null
 
-    fun load(search: String? = null, segment: String? = null) = viewModelScope.launch {
-        _busy.value = true; _error.value = null
+    /** Cada consulta cancela la anterior (y la paginación en curso): buscar rápido no deja pasar una respuesta vieja. */
+    fun load(search: String? = null, segment: String? = null): Job {
+        loadRequest?.cancel()
+        moreRequest?.cancel()
+        _loadingMore.value = false
+        _busy.value = true; _error.value = null; _listError.value = null
         lastSearch = search; lastSegment = segment
-        try {
-            val response = repo.clients(search, segment, 1)
-            page = 1
-            _clients.value = response
-            _hasMore.value = (response.currentPage ?: 1) < (response.lastPage ?: 1)
+        val request = viewModelScope.launch {
+            try {
+                val response = repo.clients(search, segment, 1)
+                coroutineContext.ensureActive()
+                page = 1
+                _clients.value = response
+                _hasMore.value = (response.currentPage ?: 1) < (response.lastPage ?: 1)
+                _hasLoaded.value = true
+            }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _listError.value = e.toFriendlyMessage("No se pudieron cargar los clientes.")
+            }
+            finally { if (coroutineContext.isActive) _busy.value = false }
         }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los clientes.") }
-        finally { _busy.value = false }
+        loadRequest = request
+        return request
     }
 
     /** El servidor entrega 15 clientes por página: esto trae la siguiente y la agrega al final. */
-    fun loadMore() = viewModelScope.launch {
-        if (_loadingMore.value || !_hasMore.value) return@launch
+    fun loadMore(): Job {
+        if (_loadingMore.value || !_hasMore.value) return viewModelScope.launch { }
         _loadingMore.value = true
-        try {
-            val response = repo.clients(lastSearch, lastSegment, page + 1)
-            page += 1
-            val known = _clients.value.data.map { it.id }.toSet()
-            _clients.value = _clients.value.copy(data = _clients.value.data + response.data.filter { it.id !in known })
-            _hasMore.value = (response.currentPage ?: page) < (response.lastPage ?: page)
+        val request = viewModelScope.launch {
+            try {
+                val response = repo.clients(lastSearch, lastSegment, page + 1)
+                coroutineContext.ensureActive()
+                page += 1
+                val known = _clients.value.data.map { it.id }.toSet()
+                _clients.value = _clients.value.copy(data = _clients.value.data + response.data.filter { it.id !in known })
+                _hasMore.value = (response.currentPage ?: page) < (response.lastPage ?: page)
+            }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _listError.value = e.toFriendlyMessage("No se pudieron cargar más clientes.")
+            }
+            finally { if (coroutineContext.isActive) _loadingMore.value = false }
         }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar más clientes.") }
-        finally { _loadingMore.value = false }
+        moreRequest = request
+        return request
     }
 
     fun loadDetail(id: String) = viewModelScope.launch {
@@ -293,14 +321,31 @@ class InventoryViewModel @JvmOverloads constructor(private val repo: UrbanReposi
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _saving = MutableStateFlow(false); val saving = _saving.asStateFlow()
     private val _message = MutableStateFlow<String?>(null); val message = _message.asStateFlow()
+    /** Errores de guardar, editar, eliminar o registrar un movimiento; la consulta usa [listError]. */
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
+    /** Error de la consulta de la lista: no se mezcla con los de las acciones. */
+    private val _listError = MutableStateFlow<String?>(null); val listError = _listError.asStateFlow()
+    private var loadRequest: Job? = null
 
-    fun load() = viewModelScope.launch {
-        _busy.value = true; _error.value = null
-        try { _products.value = repo.inventoryProducts(); _hasLoaded.value = true }
-        catch (e: CancellationException) { throw e }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el inventario.") }
-        finally { _busy.value = false }
+    /** Cada consulta cancela la anterior: una respuesta tardía no pisa la última. */
+    fun load(): Job {
+        loadRequest?.cancel()
+        _busy.value = true; _error.value = null; _listError.value = null
+        val request = viewModelScope.launch {
+            try {
+                val result = repo.inventoryProducts()
+                coroutineContext.ensureActive()
+                _products.value = result; _hasLoaded.value = true
+            }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _listError.value = e.toFriendlyMessage("No se pudo cargar el inventario.")
+            }
+            finally { if (coroutineContext.isActive) _busy.value = false }
+        }
+        loadRequest = request
+        return request
     }
 
     fun createProduct(context: android.content.Context, body: CreateProductRequest, imageUri: android.net.Uri?, onDone: () -> Unit) = viewModelScope.launch {

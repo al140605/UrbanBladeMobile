@@ -22,7 +22,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,8 +44,6 @@ import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
@@ -55,7 +52,6 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -63,6 +59,7 @@ import com.urbanblade.mobile.ui.viewmodel.ORDER_PAYMENT_METHODS
 import com.urbanblade.mobile.ui.viewmodel.OrderFilter
 import com.urbanblade.mobile.ui.viewmodel.OrdersViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private fun money(value: Double) = UrbanFormat.money(value)
 private fun moneyShort(value: Double) = UrbanFormat.moneyShort(value)
@@ -94,13 +91,9 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
         onRefresh = { vm.load() },
         refreshing = state.loading || state.loadingMore || state.busyOrderId != null
     ) {
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-        if (state.error != null && state.items.isEmpty() && !state.loading) {
-            item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los pedidos", state.error, "Reintentar") { vm.load() } }
-        } else {
-            state.error?.let { item { UrbanErrorBanner(it) } }
-        }
+        // Errores de entregar o cancelar: el de la consulta de la lista sale más abajo, con su reintento.
+        state.error?.let { item { UrbanErrorBanner(it) } }
 
         if (staff) {
             state.stats?.let { stats ->
@@ -138,16 +131,12 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
             }
         }
 
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item {
-                UrbanMascotState(
-                    UrbanStateKind.EMPTY,
-                    if (state.filter == OrderFilter.Todos && state.query.isBlank()) "Aún no hay pedidos" else "Sin resultados",
-                    if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras de la tienda aparecerán aquí."
-                )
-            }
-        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los pedidos",
+            if (state.filter == OrderFilter.Todos && state.query.isBlank()) "Aún no hay pedidos" else "Sin resultados",
+            if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras de la tienda aparecerán aquí."
+        ) { vm.load() }
         if (priorityOrders.isNotEmpty()) {
             item { UrbanSectionTitle("Por entregar ahora", UrbanFormat.count(priorityOrders.size, "pedido pendiente", "pedidos pendientes")) }
             items(priorityOrders, key = { it.id }) { order ->

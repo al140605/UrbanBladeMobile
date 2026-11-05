@@ -34,7 +34,7 @@ class SummaryLoadingTest {
         val vm = InventoryViewModel(repo)
         vm.load(); advanceUntilIdle()
         assertFalse(vm.hasLoaded.value)
-        assertNotNull(vm.error.value)
+        assertNotNull(vm.listError.value)
         assertFalse(vm.busy.value)
     }
 
@@ -46,7 +46,7 @@ class SummaryLoadingTest {
         vm.load(); advanceUntilIdle()
         assertTrue(vm.hasLoaded.value)
         assertSame(previous, vm.products.value)
-        assertNotNull(vm.error.value)
+        assertNotNull(vm.listError.value)
     }
 
     @Test fun `agenda vacia confirmada deja de ser carga inicial`() = runTest(dispatcher) {

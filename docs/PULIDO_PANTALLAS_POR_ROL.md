@@ -233,5 +233,28 @@ La demo no tiene entradas ni movimientos, de modo que la conservación de filas 
 pruebas y no el recorrido físico.
 
 Pendiente: extender el método a las demás listas por tandas. Las que mezclan consultar y guardar
-en un mismo campo `error` (cobros, pedidos, clientes, inventario, servicios, barberos, campañas,
-membresías y usuarios) necesitan primero separar ambos errores en su ViewModel.
+en un mismo campo `error` (cobros, servicios, barberos, campañas, membresías y usuarios)
+necesitan primero separar ambos errores en su ViewModel.
+
+### Incremento 3b, tanda 2: clientes, pedidos e inventario (5 de noviembre de 2026)
+
+Los tres ViewModels registran `loaded` (`hasLoaded` en clientes e inventario), cancelan la
+consulta anterior y publican el error de la consulta en `listError`, separado de `error`, que
+queda para el detalle y para crear, editar, eliminar, entregar, cancelar o registrar un
+movimiento. Un fallo al guardar ya no se presenta como «no se pudo cargar», ni una primera
+consulta fallida como lista vacía. `ClientsViewModel` recibe ahora el repositorio por
+constructor, con el mismo valor por defecto, para poder probarlo. `urbanListFeedback` admite un
+vacío con acción opcional: clientes conserva «Registrar cliente». Las tres pantallas sustituyen
+sus bloques de carga, error y vacío por `urbanListFeedback` y conservan sus avisos de acción.
+Siete pruebas nuevas (`ListErrorSeparationTest`) y cuatro aserciones antiguas actualizadas: un
+fallo de consulta ahora está en `listError`, no en `error`.
+
+Validación: 463 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, quitando el túnel USB y abriendo cada lista por primera vez:
+las tres muestran «No pudimos cargar …», el motivo («Sin conexión. Revisa tu red e inténtalo de
+nuevo.») y «Reintentar»; con la red restaurada y tras pulsar «Reintentar» cargan sus datos
+(128 clientes, pedidos por entregar, productos con stock bajo). Clientes conserva el buscador y
+los filtros durante el error, y los resúmenes de pedidos e inventario no aparecen hasta tener
+datos confirmados. Sin cierres en el registro del dispositivo.
+
+Pendiente: cobros, servicios, barberos, campañas, membresías y usuarios.

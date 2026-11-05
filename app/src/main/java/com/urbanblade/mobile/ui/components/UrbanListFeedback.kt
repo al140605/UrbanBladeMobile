@@ -2,6 +2,9 @@ package com.urbanblade.mobile.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,21 +23,27 @@ internal fun listFeedbackState(loaded: Boolean, loading: Boolean, hasItems: Bool
     else -> ListFeedbackState.CONTENT
 }
 
-/** Solo para consultas: los errores de guardar o ejecutar acciones mantienen su aviso propio. */
+/**
+ * Solo para consultas: los errores de guardar o ejecutar acciones mantienen su aviso propio.
+ * [emptyActionLabel] añade una acción al vacío confirmado (por ejemplo «Registrar cliente»).
+ */
 internal fun LazyListScope.urbanListFeedback(
     loaded: Boolean, loading: Boolean, hasItems: Boolean, error: String?,
-    errorTitle: String, emptyTitle: String, emptySubtitle: String, onRetry: () -> Unit
+    errorTitle: String, emptyTitle: String, emptySubtitle: String,
+    emptyActionLabel: String? = null, emptyActionIcon: ImageVector = Icons.Default.Refresh, onEmptyAction: (() -> Unit)? = null,
+    onRetry: () -> Unit
 ) {
     val state = listFeedbackState(loaded, loading, hasItems, error)
     if (state != ListFeedbackState.CONTENT) item {
-        UrbanListFeedback(state, error, errorTitle, emptyTitle, emptySubtitle, onRetry)
+        UrbanListFeedback(state, error, errorTitle, emptyTitle, emptySubtitle, onRetry, emptyActionLabel, emptyActionIcon, onEmptyAction)
     }
 }
 
 @Composable
 internal fun UrbanListFeedback(
     state: ListFeedbackState, error: String?, errorTitle: String,
-    emptyTitle: String, emptySubtitle: String, onRetry: () -> Unit
+    emptyTitle: String, emptySubtitle: String, onRetry: () -> Unit,
+    emptyActionLabel: String? = null, emptyActionIcon: ImageVector = Icons.Default.Refresh, onEmptyAction: (() -> Unit)? = null
 ) {
     when (state) {
         ListFeedbackState.INITIAL_LOADING -> UrbanSkeletonList(1)
@@ -43,7 +52,7 @@ internal fun UrbanListFeedback(
         ListFeedbackState.REFRESHING -> LinearProgressIndicator(
             Modifier.fillMaxWidth().semantics { contentDescription = "Actualizando resultados" }, color = UrbanColors.Gold
         )
-        ListFeedbackState.EMPTY -> UrbanMascotState(UrbanStateKind.EMPTY, emptyTitle, emptySubtitle)
+        ListFeedbackState.EMPTY -> UrbanMascotState(UrbanStateKind.EMPTY, emptyTitle, emptySubtitle, emptyActionLabel, emptyActionIcon, onEmptyAction)
         ListFeedbackState.CONTENT -> Unit
     }
 }
