@@ -258,3 +258,23 @@ los filtros durante el error, y los resúmenes de pedidos e inventario no aparec
 datos confirmados. Sin cierres en el registro del dispositivo.
 
 Pendiente: cobros, servicios, barberos, campañas, membresías y usuarios.
+
+### Incremento 3b, tanda 3: servicios, barberos y usuarios (5 de noviembre de 2026)
+
+Los tres ViewModels registran `loaded`, cancelan la consulta anterior y la paginación en curso, y
+publican el error de la consulta en `listError`, separado de `error`, que queda para guardar,
+activar, editar y eliminar. Las pantallas conservan su barra de progreso mientras guardan, dejan
+la consulta a `urbanListFeedback` y mantienen el error de guardar dentro de su hoja o formulario.
+Servicios conserva «Nuevo servicio» en el primer uso; usuarios pasa del vacío con icono al
+mismo vacío con mascota que el resto. Nueve pruebas nuevas (`AdminListLoadStateTest`): primera
+consulta fallida y reintento, un fallo de acción que no se presenta como fallo de consulta, y la
+respuesta tardía de un filtro anterior descartada. Las pruebas existentes de estos ViewModels
+solo comprobaban `error` para fallos de acciones, que siguen en `error`.
+
+Validación: 472 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, quitando el túnel USB y abriendo cada lista por primera vez:
+las tres muestran «No pudimos cargar …», el motivo y «Reintentar»; con la red restaurada y tras
+pulsar «Reintentar» cargan sus datos. Sin cierres. Un fallo al guardar o eliminar no se
+provocó en el teléfono (sería destructivo); lo cubren las pruebas.
+
+Pendiente: cobros, campañas y membresías y paquetes.

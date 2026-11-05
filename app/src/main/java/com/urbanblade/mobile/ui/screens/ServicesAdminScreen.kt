@@ -60,10 +60,7 @@ import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
@@ -71,6 +68,7 @@ import com.urbanblade.mobile.ui.viewmodel.ServicesAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
 import com.urbanblade.mobile.ui.components.UrbanTextButton
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Catálogo de servicios del administrador: buscar, filtrar, crear, editar, activar y eliminar. */
 @Composable
@@ -111,31 +109,21 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
                 }
             }
         }
-        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-        // Con el formulario abierto el error se muestra dentro de la hoja, no aquí.
-        if (editing == null && !creating) state.error?.let { msg ->
-            item {
-                if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los servicios", msg, "Reintentar") { vm.load() }
-                else UrbanErrorBanner(msg)
-            }
-        }
+        // Con el formulario abierto el error de guardar se muestra dentro de la hoja, no aquí.
+        if (editing == null && !creating) state.error?.let { item { UrbanErrorBanner(it) } }
 
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
-
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item {
-                val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
-                UrbanMascotState(
-                    UrbanStateKind.EMPTY,
-                    if (firstTime) "Aún no hay servicios" else "Sin resultados",
-                    if (firstTime) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
-                    actionLabel = if (firstTime) "Nuevo servicio" else null,
-                    actionIcon = Icons.Default.Add,
-                    onAction = if (firstTime) { { creating = true } } else null
-                )
-            }
-        }
+        val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los servicios",
+            if (firstTime) "Aún no hay servicios" else "Sin resultados",
+            if (firstTime) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
+            emptyActionLabel = if (firstTime) "Nuevo servicio" else null,
+            emptyActionIcon = Icons.Default.Add,
+            onEmptyAction = if (firstTime) { { creating = true } } else null
+        ) { vm.load() }
 
         if (state.items.isNotEmpty()) {
             item { UrbanSectionTitle("Catálogo", UrbanFormat.count(state.total, "servicio", "servicios")) }

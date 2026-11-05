@@ -58,15 +58,13 @@ import com.urbanblade.mobile.ui.components.UrbanKeyValue
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarbersAdminViewModel
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Equipo de barberos del administrador: buscar, activar, editar perfil y comisión, ver rendimiento. */
 @Composable
@@ -102,27 +100,18 @@ fun BarbersAdminScreen(onBack: () -> Unit, vm: BarbersAdminViewModel = viewModel
                 }
             }
         }
-        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-        if (editing == null) state.error?.let { msg ->
-            item {
-                if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el equipo", msg, "Reintentar") { vm.load() }
-                else UrbanErrorBanner(msg)
-            }
-        }
+        // Con la hoja de edición abierta el error de guardar se muestra dentro de ella, no aquí.
+        if (editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
 
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
-
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item {
-                val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
-                UrbanMascotState(
-                    UrbanStateKind.EMPTY,
-                    if (firstTime) "Aún no hay barberos" else "Sin resultados",
-                    if (firstTime) "Los barberos se dan de alta desde Usuarios, asignándoles ese rol." else "Prueba con otra búsqueda o filtro."
-                )
-            }
-        }
+        val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar el equipo",
+            if (firstTime) "Aún no hay barberos" else "Sin resultados",
+            if (firstTime) "Los barberos se dan de alta desde Usuarios, asignándoles ese rol." else "Prueba con otra búsqueda o filtro."
+        ) { vm.load() }
 
         if (state.items.isNotEmpty()) {
             item { UrbanSectionTitle("Equipo", UrbanFormat.count(state.total, "barbero", "barberos")) }

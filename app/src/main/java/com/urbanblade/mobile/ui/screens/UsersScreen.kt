@@ -52,7 +52,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.SystemUserRow
 import com.urbanblade.mobile.ui.components.UrbanAvatar
 import com.urbanblade.mobile.ui.components.UrbanCard
-import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
@@ -62,7 +61,6 @@ import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanRolePill
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanRefreshButton
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -70,6 +68,7 @@ import com.urbanblade.mobile.ui.viewmodel.UsersAdminViewModel
 import com.urbanblade.mobile.ui.viewmodel.passwordProblem
 import kotlinx.coroutines.delay
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Cuentas de acceso al sistema (solo administrador): buscar, filtrar por rol, crear, editar y eliminar. */
 @Composable
@@ -118,10 +117,10 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
                 }
             }
         }
-        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con el formulario abierto el error de guardar se muestra dentro de la hoja, no aquí.
         if (!creating && editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
 
         if (state.items.isNotEmpty()) {
             item {
@@ -142,9 +141,10 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
             }
         }
 
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item { UrbanEmptyState("Sin usuarios", "No hay cuentas que coincidan con la búsqueda.", Icons.Default.ManageAccounts) }
-        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los usuarios", "Sin usuarios", "No hay cuentas que coincidan con la búsqueda."
+        ) { vm.load() }
         if (state.items.isNotEmpty()) {
             item { UrbanSectionTitle("Cuentas", UrbanFormat.count(state.total, "usuario", "usuarios")) }
         }
