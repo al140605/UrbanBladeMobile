@@ -114,3 +114,27 @@ recorrido visual físico. No se repitió release/R8 para este cambio de interfaz
 los controles del incremento de seguridad continúan en el CI. Pendientes:
 recorridos completos, formularios, acciones de creación y validación en los cuatro
 temas y TalkBack. No se abre PR ni se despliega.
+
+### Recorrido físico del incremento de unificación (4 de noviembre de 2026)
+
+Entorno: Samsung SM-S731B con la variante `.audit` 3.0.0 (APK debug compilada el
+4 de noviembre a las 21:36), API local por `adb reverse` al puerto 8001 y base
+`urbanblade_dev` de `mongo-dev`. Se usaron cuentas ficticias de los cinco roles;
+las contraseñas permanecen fuera del repositorio. La app habitual no se reemplazó.
+
+| Rol | Pantallas revisadas | Resultado |
+| --- | --- | --- |
+| Administración | Pagos, pedidos, clientes, inventario, lista de espera, bitácora, campañas, sorteos, usuarios, barberos, servicios, reseñas, membresías | Trece módulos con el control de actualización compartido; sin errores tras actualizar |
+| Recepción | Cobros, pedidos, clientes, inventario, movimientos, lista de espera, tarjetas regalo, corte | Siete con actualización compartida; tarjetas regalo es un formulario de venta y consulta y no la lleva |
+| Barbero | Mi agenda, portafolio, horario | Cargan sin errores; portafolio y horario no tienen listado que actualizar |
+| Ingeniería | Reportes, bitácora, métricas, insights, estado del sistema | Cinco módulos con actualización y sin errores |
+| Cliente | Inicio, Mis citas, hoja de pago con transferencia | La cotización mostró servicio con descuento 95.00, propina 15.00 y total 110.00 |
+
+El menú «Más» de cada rol coincide con la matriz: recepción sin análisis ni
+administración e ingeniería sin operación.
+
+Límites: solo se consultó y se actualizó. No se crearon, editaron ni borraron
+datos, no se confirmó ningún cobro ni se subió un comprobante, y la base local no
+registró pagos nuevos. El registro del dispositivo no mostró cierres inesperados.
+No acredita formularios, acciones de creación, cuatro temas, 320 dp, TalkBack,
+cuentas con varios roles ni el perfil público del barbero; siguen pendientes.
