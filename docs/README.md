@@ -51,3 +51,5 @@ Actualizar una guía cuando cambia su implementación; conservar procedimientos 
 [matriz de pantallas por rol](PULIDO_PANTALLAS_POR_ROL.md): referencias, prioridades,
 incrementos implementados y recorridos pendientes antes del PR. Una propuesta no
 se considera implementada sin su evidencia correspondiente.
+[Auditoría de coherencia visual](AUDITORIA_COHERENCIA_UI_2026-11-05.md): diagnóstico
+de unificación entre roles y plan por incrementos.
