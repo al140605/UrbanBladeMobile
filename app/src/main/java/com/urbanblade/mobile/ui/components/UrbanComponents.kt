@@ -189,13 +189,13 @@ fun UrbanSectionTitle(
         if (actionLabel != null && onAction != null && (maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f)) {
             Column(Modifier.fillMaxWidth()) {
                 copy(Modifier.fillMaxWidth())
-                TextButton(onClick = onAction, modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) { Text(actionLabel) }
+                UrbanTextButton(onClick = onAction, modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) { Text(actionLabel) }
             }
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 copy(Modifier.weight(1f))
                 if (actionLabel != null && onAction != null) {
-                    TextButton(onClick = onAction, modifier = Modifier.heightIn(min = 48.dp)) { Text(actionLabel) }
+                    UrbanTextButton(onClick = onAction, modifier = Modifier.heightIn(min = 48.dp)) { Text(actionLabel) }
                 }
             }
         }

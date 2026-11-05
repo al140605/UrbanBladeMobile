@@ -43,7 +43,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -89,6 +88,7 @@ import com.urbanblade.mobile.ui.theme.mascot
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private fun isValidEmail(value: String) = Patterns.EMAIL_ADDRESS.matcher(value.trim()).matches()
 
@@ -184,7 +184,7 @@ fun LoginScreen(
                     onImeAction = ::submit
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onForgot, modifier = Modifier.heightIn(min = 48.dp)) {
+                    UrbanTextButton(onClick = onForgot, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text("¿Olvidaste tu contraseña?", color = UrbanColors.GoldText, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -457,7 +457,7 @@ private fun SwitchAuthRow(prompt: String, action: String, onClick: () -> Unit) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(prompt, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
+            UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(action, color = UrbanColors.GoldText, fontWeight = FontWeight.Bold)
             }
         }
@@ -469,7 +469,7 @@ private fun SwitchAuthRow(prompt: String, action: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(prompt, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-        TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
+        UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(action, color = UrbanColors.GoldText, fontWeight = FontWeight.Bold)
         }
     }

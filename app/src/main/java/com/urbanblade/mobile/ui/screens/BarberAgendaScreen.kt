@@ -27,6 +27,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarberAgendaViewModel
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val ESTADOS = listOf("pendiente", "confirmada", "en_proceso", "completada", "cancelada", "no_asistio")
 
@@ -286,7 +287,7 @@ private fun AgendaCard(
             if (next.size > 1) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     next.drop(1).forEach { estado ->
-                        TextButton(onClick = { onChangeStatus(estado) }, enabled = !updating) {
+                        UrbanTextButton(onClick = { onChangeStatus(estado) }, enabled = !updating) {
                             Text(statusActionLabel(estado), color = if (isDestructiveStatus(estado)) UrbanColors.Danger else UrbanColors.Gold)
                         }
                     }

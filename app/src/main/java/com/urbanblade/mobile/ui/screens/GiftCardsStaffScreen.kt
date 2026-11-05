@@ -54,6 +54,7 @@ import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MAX
 import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MIN
 import com.urbanblade.mobile.ui.viewmodel.GiftCardsStaffViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val PRESETS = listOf(200, 500, 1000, 2000)
 
@@ -242,6 +243,6 @@ private fun SoldCard(code: String, saldo: Double, onNew: () -> Unit) {
             )
         }
         Spacer(Modifier.height(4.dp))
-        TextButton(onClick = onNew, modifier = Modifier.fillMaxWidth()) { Text("Vender otra") }
+        UrbanTextButton(onClick = onNew, modifier = Modifier.fillMaxWidth()) { Text("Vender otra") }
     }
 }

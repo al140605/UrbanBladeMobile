@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,6 +69,8 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
 import com.urbanblade.mobile.ui.viewmodel.ServicesAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 /** Catálogo de servicios del administrador: buscar, filtrar, crear, editar, activar y eliminar. */
 @Composable
@@ -88,14 +89,8 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
         onBack = onBack,
         onRefresh = { vm.load() },
         refreshing = state.loading || state.loadingMore || state.saving,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { vm.clearMessages(); creating = true },
-                containerColor = UrbanColors.Gold,
-                contentColor = UrbanColors.OnGold,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text("Nuevo servicio", fontWeight = FontWeight.Bold) }
-            )
+        floatingActionButton = { expanded ->
+            UrbanFab("Nuevo servicio", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
         }
     ) {
         item {
@@ -327,7 +322,7 @@ private fun ServiceFormSheet(
                 modifier = Modifier.fillMaxWidth()
             )
             onDelete?.let {
-                TextButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
+                UrbanTextButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.DeleteOutline, null, Modifier.size(18.dp), tint = UrbanColors.Danger)
                     Text("  Eliminar servicio", color = UrbanColors.Danger)
                 }

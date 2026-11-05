@@ -76,7 +76,8 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
  * encabezado, el margen, el ritmo vertical y la posición de «Actualizar» sean idénticos.
  *
  * @param actions acciones extra de la barra (por ejemplo «Agregar»), a la derecha de actualizar.
- * @param floatingActionButton botón flotante del módulo; reserva espacio al final de la lista.
+ * @param floatingActionButton botón flotante del módulo (`UrbanFab`); recibe si debe ir expandido, y
+ * reserva espacio al final de la lista.
  * @param listState estado de la lista, para módulos con paginación o desplazamiento controlado.
  * @param pinned contenido fijo bajo el encabezado (buscador, filtros): el encabezado y este
  * bloque no se desplazan con la lista.
@@ -90,7 +91,7 @@ fun UrbanModuleScreen(
     onRefresh: (() -> Unit)? = null,
     refreshing: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
-    floatingActionButton: (@Composable () -> Unit)? = null,
+    floatingActionButton: (@Composable (expanded: Boolean) -> Unit)? = null,
     listState: LazyListState = rememberLazyListState(),
     pinned: (@Composable ColumnScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit
@@ -105,7 +106,7 @@ fun UrbanModuleScreen(
                 actions()
             }
         },
-        floatingActionButton = { floatingActionButton?.invoke() }
+        floatingActionButton = { floatingActionButton?.invoke(rememberFabExpanded(listState)) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.

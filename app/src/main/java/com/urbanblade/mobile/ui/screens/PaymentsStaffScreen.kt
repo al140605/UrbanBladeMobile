@@ -76,6 +76,7 @@ import com.urbanblade.mobile.ui.viewmodel.PaymentMethodFilter
 import com.urbanblade.mobile.ui.viewmodel.PaymentsStaffViewModel
 import com.urbanblade.mobile.ui.viewmodel.REJECT_REASON_MAX
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private fun money(value: Double) = UrbanFormat.money(value)
 private fun moneyShort(value: Double) = UrbanFormat.moneyShort(value)
@@ -357,7 +358,7 @@ private fun FeeCard(fee: NoShowFeeItem, busy: Boolean, onPay: (String) -> Unit, 
             UrbanPrimaryButton("Efectivo", { onPay("efectivo") }, Modifier.weight(1f), enabled = !busy, icon = Icons.Default.Payments, loading = busy)
             UrbanOutlineButton("Transferencia", { onPay("transferencia") }, Modifier.weight(1f))
         }
-        TextButton(onClick = onWaive, enabled = !busy) { Text("Condonar (solo administración)", color = UrbanColors.Muted) }
+        UrbanTextButton(onClick = onWaive, enabled = !busy) { Text("Condonar (solo administración)", color = UrbanColors.Muted) }
     }
 }
 

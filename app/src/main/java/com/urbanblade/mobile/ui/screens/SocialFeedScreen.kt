@@ -21,6 +21,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.SocialFeedViewModel
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 /** Muro de trabajos reales: carruseles, perfil público, reacciones y comentarios recientes. */
 @Composable
@@ -121,7 +122,7 @@ private fun WorkPost(
             text = {
                 Column {
                     REPORT_REASONS.forEach { (code, label) ->
-                        TextButton(onClick = { target.id?.let { onReportComment(it, code) }; reporting = null }, modifier = Modifier.fillMaxWidth()) {
+                        UrbanTextButton(onClick = { target.id?.let { onReportComment(it, code) }; reporting = null }, modifier = Modifier.fillMaxWidth()) {
                             Text(label, Modifier.fillMaxWidth(), color = UrbanColors.Ink)
                         }
                     }
@@ -203,7 +204,7 @@ private fun WorkPost(
                 }
                 work.title?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink) }
                 work.description?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink) }
-                if (work.commentsCount > 0) TextButton(onClick = { commenting = true }, contentPadding = PaddingValues(0.dp)) {
+                if (work.commentsCount > 0) UrbanTextButton(onClick = { commenting = true }, contentPadding = PaddingValues(0.dp)) {
                     Text("Ver comentarios recientes (${work.commentsCount})", color = UrbanColors.Muted)
                 }
                 if (work.isSaved) Text("Guardado en tu inspiración", style = MaterialTheme.typography.labelSmall, color = UrbanColors.GoldText)

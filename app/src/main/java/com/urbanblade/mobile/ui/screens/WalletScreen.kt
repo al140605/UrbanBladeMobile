@@ -35,6 +35,7 @@ import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import com.urbanblade.mobile.ui.viewmodel.WalletViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 /**
  * Beneficios del cliente: puntos/nivel, membresía, paquetes, gift cards y referidos (endpoints
@@ -517,7 +518,7 @@ private fun MembershipCard(membership: MyMembership, busy: Boolean, onCancel: ()
             UrbanPrimaryButton(text = "Completar pago", onClick = onCompletePayment, enabled = !busy, icon = Icons.Default.Lock, modifier = Modifier.fillMaxWidth())
         } else if (!membership.cancelarAlFinalizar) {
             Spacer(Modifier.height(10.dp))
-            TextButton(onClick = onCancel, enabled = !busy) {
+            UrbanTextButton(onClick = onCancel, enabled = !busy) {
                 Text(if (busy) "Cancelando…" else "Cancelar membresía", color = UrbanColors.Danger)
             }
         }

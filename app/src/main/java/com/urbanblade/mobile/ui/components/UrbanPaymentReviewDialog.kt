@@ -62,7 +62,7 @@ fun UrbanPaymentReviewDialog(
                                 Text(card, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
                             }
                         }
-                        TextButton(onClick = onEdit, enabled = !verifying, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                        UrbanTextButton(onClick = onEdit, enabled = !verifying, contentPadding = PaddingValues(horizontal = 0.dp)) {
                             Text("Cambiar tarjeta", color = if (verifying) UrbanColors.Muted else UrbanColors.GoldText)
                         }
                     }
@@ -72,7 +72,7 @@ fun UrbanPaymentReviewDialog(
                 Spacer(Modifier.height(20.dp))
                 UrbanPrimaryButton("Pagar $amount", onPay, Modifier.fillMaxWidth(), enabled = !verifying, loading = verifying)
                 Spacer(Modifier.height(4.dp))
-                TextButton(onClick = onCancel, enabled = !verifying, modifier = Modifier.fillMaxWidth()) {
+                UrbanTextButton(onClick = onCancel, enabled = !verifying, modifier = Modifier.fillMaxWidth()) {
                     Text("Cancelar", color = UrbanColors.Muted)
                 }
             }

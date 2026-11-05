@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +67,7 @@ import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.OffersAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanFab
 
 private enum class OffersTab(val label: String) { Membresias("Membresías"), Paquetes("Paquetes") }
 
@@ -93,17 +93,11 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
         onBack = onBack,
         onRefresh = { vm.load() },
         refreshing = state.loading || state.saving,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    vm.clearMessages()
-                    if (tab == OffersTab.Membresias) creatingPlan = true else creatingPackage = true
-                },
-                containerColor = UrbanColors.Gold,
-                contentColor = UrbanColors.OnGold,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text(if (tab == OffersTab.Membresias) "Nuevo plan" else "Nuevo paquete", fontWeight = FontWeight.Bold) }
-            )
+        floatingActionButton = { expanded ->
+            UrbanFab(if (tab == OffersTab.Membresias) "Nuevo plan" else "Nuevo paquete", Icons.Default.Add, expanded) {
+                vm.clearMessages()
+                if (tab == OffersTab.Membresias) creatingPlan = true else creatingPackage = true
+            }
         }
     ) {
         item {

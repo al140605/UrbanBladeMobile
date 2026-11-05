@@ -24,7 +24,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +78,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanFab
 
 /** Campañas de marketing por segmento (solo administrador): historial y envío inmediato o programado. */
 @Composable
@@ -97,14 +97,8 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
         onBack = onBack,
         onRefresh = { vm.load() },
         refreshing = state.loading || state.sending,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { vm.clearMessages(); creating = true },
-                containerColor = UrbanColors.Gold,
-                contentColor = UrbanColors.OnGold,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text("Nueva campaña", fontWeight = FontWeight.Bold) }
-            )
+        floatingActionButton = { expanded ->
+            UrbanFab("Nueva campaña", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
         }
     ) {
         if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }

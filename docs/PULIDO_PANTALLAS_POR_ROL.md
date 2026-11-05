@@ -188,3 +188,23 @@ sistema) se leyeron en pantalla. Sin cierres inesperados en el registro del disp
 
 Pendiente: revisar los cuatro temas, 320 dp y TalkBack con los nombres nuevos; los nombres
 internos de rutas (`logs`, `payments`) no cambian a propósito.
+
+### Incremento 3 de coherencia: botón flotante y acción terciaria únicos (5 de noviembre de 2026)
+
+`UrbanFab` sustituye a los cuatro botones flotantes copiados (Citas, Campañas, Membresías y
+paquetes, Servicios): mismo color y forma, y se contrae a solo el icono en cuanto la lista se
+desplaza, de modo que no tapa la última tarjeta; el icono conserva el nombre de la acción para
+los lectores de pantalla. `UrbanTextButton` sustituye a los 24 `TextButton` que no son de
+diálogo y garantiza un objetivo táctil de 48 dp; los de `confirmButton` y `dismissButton`
+conservan el de Material. Solo cambia la presentación: no cambian rutas, permisos ni contratos.
+
+Validación: 450 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`: en Servicios el botón aparece expandido arriba y contraído
+tras desplazar, con la última tarjeta completa. No se recorrieron todas las pantallas que usan
+`UrbanTextButton`; el cambio es de presentación y lo cubren la compilación y las pruebas.
+
+Alcance que no entra, a propósito: unificar la carga y el error de las listas con
+`urbanListFeedback`. Ninguno de los once ViewModels de lista registra si la primera consulta
+terminó (`loaded`) y varios comparten un solo campo `error` entre consultar y guardar, de modo
+que un fallo al guardar se mostraría como fallo de consulta. Exige cambios en la capa de datos
+con pruebas y queda como incremento 3b.

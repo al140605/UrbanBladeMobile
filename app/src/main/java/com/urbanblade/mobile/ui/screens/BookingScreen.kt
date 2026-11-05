@@ -50,6 +50,7 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private enum class BookingStep(val label: String, val title: String, val hint: String) {
     SERVICE("Servicio", "Elige tu servicio", "Precio y duración reales de UrbanBlade."),
@@ -366,7 +367,7 @@ fun BookingScreen(
                     }
 
                     if (pay.method == BookingPayMethod.TRANSFERENCIA && transferInfoError != null) {
-                        TextButton(onClick = { vm.loadTransferQuote(serviceId, transferTip) }) { Text("Reintentar cotización") }
+                        UrbanTextButton(onClick = { vm.loadTransferQuote(serviceId, transferTip) }) { Text("Reintentar cotización") }
                     }
                     (localError ?: error)?.let {
                         Box(Modifier.padding(horizontal = UrbanSpace.Gutter)) { UrbanErrorBanner(it) }
@@ -806,7 +807,7 @@ private fun ExtrasStep(
                             Text("${UrbanFormat.moneyShort(p.precioVenta)}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.GoldText)
                         }
                         if (qty == 0) {
-                            TextButton(onClick = { onQuantity(p.id, 1) }) {
+                            UrbanTextButton(onClick = { onQuantity(p.id, 1) }) {
                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
                                 Spacer(Modifier.width(4.dp))
                                 Text("Agregar", color = UrbanColors.GoldText)

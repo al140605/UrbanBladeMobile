@@ -26,6 +26,7 @@ import com.urbanblade.mobile.ui.viewmodel.ClientsViewModel
 import kotlinx.coroutines.delay
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val SEGMENT_LABEL = mapOf(
     "vip" to "VIP",
@@ -284,7 +285,7 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         UrbanSectionTitle("Datos de contacto")
-                        TextButton(onClick = { editing = !editing }) { Text(if (editing) "Cancelar" else "Editar") }
+                        UrbanTextButton(onClick = { editing = !editing }) { Text(if (editing) "Cancelar" else "Editar") }
                     }
                 }
                 item {

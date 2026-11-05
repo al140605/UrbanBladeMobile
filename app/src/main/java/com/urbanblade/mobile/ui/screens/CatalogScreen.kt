@@ -32,6 +32,7 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CatalogViewModel
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -179,7 +180,7 @@ fun CatalogScreen(
         }
         if (!loading && error == null && barbers.isEmpty()) item { UrbanEmptyState("Sin barberos disponibles", null, Icons.Default.Groups) }
         if (isGuest && onLogin != null) item {
-            TextButton(onClick = onLogin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            UrbanTextButton(onClick = onLogin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text("Ya tengo cuenta · Iniciar sesión", color = UrbanColors.GoldText)
             }
         }

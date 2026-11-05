@@ -72,6 +72,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val ACTIVE = listOf("pendiente", "confirmada", "en_proceso")
 
@@ -425,7 +426,7 @@ private fun AppointmentActions(onReschedule: (() -> Unit)? = null, onCancel: (()
 
 @Composable
 private fun ActionText(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
+    UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
         Icon(icon, null, modifier = Modifier.size(17.dp), tint = color)
         Spacer(Modifier.width(5.dp))
         Text(label, color = color)

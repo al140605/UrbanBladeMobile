@@ -50,6 +50,10 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.rememberFabExpanded
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,22 +129,16 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
         if (isClient) vm.loadWaitlist()
     }
 
+    val listState = rememberLazyListState()
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (canBook) {
-                ExtendedFloatingActionButton(
-                    onClick = onBook,
-                    containerColor = UrbanColors.Gold,
-                    contentColor = UrbanColors.OnGold,
-                    icon = { Icon(Icons.Default.Add, null) },
-                    text = { Text("Nueva cita", fontWeight = FontWeight.Bold) }
-                )
-            }
+            if (canBook) UrbanFab("Nueva cita", Icons.Default.Add, rememberFabExpanded(listState), onBook)
         }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
+            state = listState,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -739,13 +737,13 @@ private fun AppointmentCard(
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (canNoShow) {
-                            TextButton(onClick = { onStatus?.invoke("no_asistio") }, contentPadding = PaddingValues(0.dp)) {
+                            UrbanTextButton(onClick = { onStatus?.invoke("no_asistio") }, contentPadding = PaddingValues(0.dp)) {
                                 Text("No asistió", color = UrbanColors.Muted)
                             }
                             Spacer(Modifier.width(16.dp))
                         }
                         if (onReschedule != null) {
-                            TextButton(onClick = onReschedule, contentPadding = PaddingValues(0.dp)) {
+                            UrbanTextButton(onClick = onReschedule, contentPadding = PaddingValues(0.dp)) {
                                 Icon(Icons.Default.EditCalendar, null, modifier = Modifier.size(17.dp), tint = UrbanColors.Gold)
                                 Spacer(Modifier.width(5.dp))
                                 Text("Reagendar", color = UrbanColors.GoldText)
@@ -1049,7 +1047,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
             if (method == PaymentMethodChoice.TRANSFERENCIA && (giftCardCode.isNotBlank() || puntos.isNotBlank())) {
                 Text("Para usar puntos o tarjeta regalo, selecciona Tarjeta. La transferencia no incluye esos beneficios.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
-            if (method != PaymentMethodChoice.TRANSFERENCIA) TextButton(onClick = { showExtras = !extrasOpen }) {
+            if (method != PaymentMethodChoice.TRANSFERENCIA) UrbanTextButton(onClick = { showExtras = !extrasOpen }) {
                 Text(if (extrasOpen) "Ocultar tarjeta regalo y puntos" else "¿Tienes tarjeta regalo o puntos?", color = UrbanColors.GoldText)
                 Icon(if (extrasOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, tint = UrbanColors.Gold)
             }
@@ -1134,7 +1132,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                     Spacer(Modifier.height(16.dp))
                     if (transferInfoError != null) {
                         UrbanErrorBanner(transferInfoError!!)
-                        TextButton(onClick = { vm.loadTransferInfo(appt.id, tipAmount) }) { Text("Reintentar cotización") }
+                        UrbanTextButton(onClick = { vm.loadTransferInfo(appt.id, tipAmount) }) { Text("Reintentar cotización") }
                     } else {
                         TransferAccount(displayTransferInfo, basePrice + tipAmount)
                         if (transferInfo != null && !validTransferQuote) UrbanInfoBanner("El servidor todavía no confirmó el importe. Reintenta la cotización o elige otro método.")
