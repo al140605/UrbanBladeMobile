@@ -58,16 +58,14 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.OffersAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private enum class OffersTab(val label: String) { Membresias("Membresías"), Paquetes("Paquetes") }
 
@@ -106,25 +104,17 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
                 tab.ordinal
             ) { tab = OffersTab.entries[it] }
         }
-        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-        if (!formOpen) state.error?.let { msg ->
-            item {
-                if (state.plans.isEmpty() && state.packages.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los beneficios", msg, "Reintentar") { vm.load() }
-                else UrbanErrorBanner(msg)
-            }
-        }
-        if (state.loading && state.plans.isEmpty() && state.packages.isEmpty()) item { UrbanSkeletonList(3) }
+        // Con el formulario abierto el error de guardar se muestra dentro de la hoja, no aquí.
+        if (!formOpen) state.error?.let { item { UrbanErrorBanner(it) } }
 
         if (tab == OffersTab.Membresias) {
-            if (!state.loading && state.plans.isEmpty() && state.error == null) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY, "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
-                        actionLabel = "Nuevo plan", actionIcon = Icons.Default.Add, onAction = { creatingPlan = true }
-                    )
-                }
-            }
+            urbanListFeedback(
+                state.loaded, state.loading, state.plans.isNotEmpty(), state.listError,
+                "No pudimos cargar los beneficios", "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
+                emptyActionLabel = "Nuevo plan", emptyActionIcon = Icons.Default.Add, onEmptyAction = { creatingPlan = true }
+            ) { vm.load() }
             if (state.plans.isNotEmpty()) item { UrbanSectionTitle("Planes mensuales", UrbanFormat.count(state.plans.size, "plan", "planes")) }
             items(state.plans, key = { it.id }) { plan ->
                 OfferCard(
@@ -137,14 +127,11 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
                 )
             }
         } else {
-            if (!state.loading && state.packages.isEmpty() && state.error == null) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY, "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
-                        actionLabel = "Nuevo paquete", actionIcon = Icons.Default.Add, onAction = { creatingPackage = true }
-                    )
-                }
-            }
+            urbanListFeedback(
+                state.loaded, state.loading, state.packages.isNotEmpty(), state.listError,
+                "No pudimos cargar los beneficios", "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
+                emptyActionLabel = "Nuevo paquete", emptyActionIcon = Icons.Default.Add, onEmptyAction = { creatingPackage = true }
+            ) { vm.load() }
             if (state.packages.isNotEmpty()) item { UrbanSectionTitle("Paquetes de usos", UrbanFormat.count(state.packages.size, "paquete", "paquetes")) }
             items(state.packages, key = { it.id }) { pack ->
                 OfferCard(

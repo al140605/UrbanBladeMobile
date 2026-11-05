@@ -278,3 +278,22 @@ pulsar «Reintentar» cargan sus datos. Sin cierres. Un fallo al guardar o elimi
 provocó en el teléfono (sería destructivo); lo cubren las pruebas.
 
 Pendiente: cobros, campañas y membresías y paquetes.
+
+### Incremento 3b, tanda 4: campañas y membresías y paquetes (5 de noviembre de 2026)
+
+Ambos ViewModels registran `loaded`, cancelan la consulta anterior y publican el error de la
+consulta en `listError`, separado de `error`, que queda para enviar una campaña y para guardar,
+activar o desactivar un plan o un paquete. En membresías, `runCatching` del selector de servicios
+también captura las cancelaciones, de modo que se comprueba `ensureActive()` tras cada paso para
+que una consulta cancelada no publique su resultado. Campañas conserva su barra de progreso
+mientras envía; membresías usa `urbanListFeedback` una vez por pestaña y conserva «Nuevo plan» y
+«Nuevo paquete» en el vacío. Seis pruebas nuevas (`PromoListLoadStateTest`).
+
+Validación: 478 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, quitando el túnel USB y abriendo cada pantalla por primera vez:
+las dos muestran «No pudimos cargar …», el motivo y «Reintentar»; con la red restaurada y tras
+pulsar «Reintentar», campañas muestra sus segmentos y el vacío confirmado («Sin campañas
+todavía») y membresías muestra el plan existente. Sin cierres. Un fallo al enviar, guardar o
+desactivar no se provocó en el teléfono; lo cubren las pruebas.
+
+Pendiente: cobros.

@@ -62,12 +62,9 @@ import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanStatStrip
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.components.statusStyle
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -79,6 +76,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Campañas de marketing por segmento (solo administrador): historial y envío inmediato o programado. */
 @Composable
@@ -101,8 +99,9 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
             UrbanFab("Nueva campaña", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
         }
     ) {
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        if (state.sending) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con la hoja de nueva campaña abierta el error de enviar se muestra dentro de ella, no aquí.
         if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
 
         if (data.segmentCounts.isNotEmpty()) {
@@ -122,15 +121,12 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
         }
 
         item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
-        if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
-        if (!state.loading && data.data.isEmpty() && state.error == null) {
-            item {
-                // Sin botón propio: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
-                UrbanMascotState(
-                    UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
-                )
-            }
-        }
+        // Sin botón propio en el vacío: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
+        urbanListFeedback(
+            state.loaded, state.loading, data.data.isNotEmpty(), state.listError,
+            "No pudimos cargar las campañas", "Sin campañas todavía",
+            "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
+        ) { vm.load() }
         items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
         item { Spacer(Modifier.height(80.dp)) }
     }
