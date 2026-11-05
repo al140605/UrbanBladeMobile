@@ -87,7 +87,7 @@ fun UrbanModuleScreen(
     eyebrow: String,
     title: String,
     subtitle: String?,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onRefresh: (() -> Unit)? = null,
     refreshing: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},

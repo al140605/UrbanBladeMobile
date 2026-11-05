@@ -26,7 +26,7 @@ import com.urbanblade.mobile.ui.components.UrbanTextButton
 /** Muro de trabajos reales: carruseles, perfil público, reacciones y comentarios recientes. */
 @Composable
 fun SocialFeedScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onBookBarber: ((String) -> Unit)? = null,
     vm: SocialFeedViewModel = viewModel(),
     onOpenBarber: ((String) -> Unit)? = null

@@ -152,6 +152,9 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
             NavItem("home", "Inicio", Icons.Default.Home),
             NavItem("catalog", "Reservar", Icons.Default.ContentCut),
             NavItem("appointments", "Mis citas", Icons.Default.CalendarMonth),
+            // El muro es sobre todo del cliente (ve trabajos y reserva con el barbero): va en la barra; el
+            // personal lo sigue encontrando en «Más».
+            NavItem("social", "Inspiración", Icons.Default.PhotoLibrary),
             NavItem("profile", "Cuenta", Icons.Default.Person)
         )
     } else {
@@ -241,7 +244,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                     label = {
                                         Text(
                                             item.label,
-                                            style = MaterialTheme.typography.labelMedium,
+                                            // Con cinco destinos cada uno es más angosto: una talla menos para que no se corte.
+                                            style = if (items.size > 4) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = TextOverflow.Ellipsis
@@ -358,7 +362,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
                 composable("social") {
                     SocialFeedScreen(
-                        onBack = { nav.popBackStack() },
+                        // Para el cliente es una pestaña de la barra: sin flecha de volver.
+                        onBack = if (clientOnly) null else ({ nav.popBackStack() }),
                         onOpenBarber = { slug -> nav.navigate("barber_profile/${android.net.Uri.encode(slug)}") },
                         // Solo el cliente reserva desde el muro; el personal lo ve como galería.
                         onBookBarber = if (clientOnly) { barberId -> nav.openBooking(bookingRoute(null, barberId)) } else null

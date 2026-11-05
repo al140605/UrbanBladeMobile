@@ -439,3 +439,12 @@ Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físi
   elemento exacto necesita un cambio en el backend (ids en el push) y una pantalla de destino en la app.
 - Además: se quitan tres espaciadores finales de 80 dp en Campañas, Ofertas y Servicios, que se sumaban a los
   88 dp que el andamio ya reserva bajo el botón flotante.
+
+## Muro de Inspiración en la barra del cliente (5 de noviembre de 2026)
+
+- La barra inferior del cliente pasa de cuatro a cinco destinos: Inicio, Reservar, Mis citas, Inspiración y
+  Cuenta. El personal no cambia: lo sigue teniendo en «Más» y el barbero en su inicio.
+- Como es una pestaña, el muro no muestra flecha de volver para el cliente (`onBack` ahora puede ser nulo en
+  `UrbanModuleScreen` y `SocialFeedScreen`). Con cinco destinos las etiquetas usan una talla menos.
+- Pendiente de verificar en el teléfono: que «Inspiración» no se corte a 320 dp y con fuente grande, y el
+  regreso desde el atajo del inicio del cliente.
