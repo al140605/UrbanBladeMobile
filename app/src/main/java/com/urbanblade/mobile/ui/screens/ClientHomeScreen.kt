@@ -56,6 +56,8 @@ import com.urbanblade.mobile.ui.components.UrbanHeroLabel
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
+import com.urbanblade.mobile.ui.components.UrbanStaleContentNotice
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
@@ -106,6 +108,7 @@ fun ClientHomeScreen(
 ) {
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) {
         vm.load()
@@ -127,7 +130,7 @@ fun ClientHomeScreen(
     val homeNotice by com.urbanblade.mobile.core.config.UrbanRemoteConfig.homeNotice.collectAsState()
     // Misma regla que en Mis citas: una cita de hoy que ya terminó no es «tu próxima visita».
     val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }
-    val failed = error != null && next == null
+    val failed = error != null && !loadedOnce
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
     val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }
     val lastVisit = response.data
@@ -148,6 +151,7 @@ fun ClientHomeScreen(
                 trailing = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // El cliente no tiene la pestaña "Más": sus avisos se abren desde aquí.
+                        UrbanRefreshButton(loading) { vm.load(); notificationsVm.load(); loyaltyVm.load() }
                         IconButton(onClick = { onNavigate("notifications") }) {
                             BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 9) "9+" else unread.toString()) } }) {
                                 Icon(Icons.Default.Notifications, "Notificaciones", tint = UrbanColors.Gold)
@@ -164,8 +168,10 @@ fun ClientHomeScreen(
         // Aviso para todos los clientes desde Firebase Remote Config (vacío = no se muestra).
         if (homeNotice.isNotBlank()) item { UrbanInfoBanner(homeNotice, Icons.Default.Campaign, Modifier.fillMaxWidth()) }
 
+        if (error != null && loadedOnce) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load() } }
+
         when {
-            loading && next == null -> item { UrbanSkeletonList(1) }
+            !loadedOnce && !failed -> item { UrbanSkeletonList(1) }
             failed -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus citas", error, "Reintentar") { vm.load() }
             }

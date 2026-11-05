@@ -56,12 +56,19 @@ fun ReceptionHomeScreen(
                 title = "Hola, ${user.name.substringBefore(' ')}",
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "RECEPCIÓN",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
+                trailing = {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        UrbanRefreshButton(loading) { vm.load() }
+                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                    }
+                }
             )
         }
 
+        if (error != null && board != null) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load() } }
+
         when {
-            board == null && loading -> item { UrbanSkeletonList(2) }
+            board == null && error == null -> item { UrbanSkeletonList(2) }
             board == null && error != null -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el día", error, "Reintentar") { vm.load() }
             }

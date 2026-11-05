@@ -39,6 +39,8 @@ class DashboardViewModel : ViewModel() {
 class AppointmentsViewModel @JvmOverloads constructor(
     private val repo: UrbanRepository = AppContainer.urbanRepository
 ) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false)
+    val hasLoaded = _hasLoaded.asStateFlow()
     private val _data = MutableStateFlow(AppointmentsResponse())
     val data = _data.asStateFlow()
     private val _loading = MutableStateFlow(false)
@@ -271,6 +273,7 @@ class AppointmentsViewModel @JvmOverloads constructor(
                 coroutineContext.ensureActive()
                 page = 1
                 _data.value = response
+                _hasLoaded.value = true
                 // Un servidor sin paginación no manda `meta`: se trata como lista completa.
                 _hasMore.value = response.meta?.hasMore == true
             }

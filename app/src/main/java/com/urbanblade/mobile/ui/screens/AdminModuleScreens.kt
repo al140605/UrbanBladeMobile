@@ -307,7 +307,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
                     }
                 }
             }
-            if (shown.isEmpty() && !busy) {
+            if (shown.isEmpty() && !busy && error == null) {
                 item {
                     UrbanMascotState(
                         UrbanStateKind.EMPTY,

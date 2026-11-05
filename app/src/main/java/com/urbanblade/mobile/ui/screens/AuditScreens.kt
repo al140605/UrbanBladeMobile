@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import com.urbanblade.mobile.ui.viewmodel.ReviewsViewModel
 @Composable
 fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
     val reviews by vm.reviews.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     var ratingFilter by remember { mutableStateOf<Int?>(null) }
@@ -40,7 +42,8 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
             error?.let { item { UrbanErrorBanner(it) } }
 
-            item {
+            if (!loadedOnce && error == null) item { UrbanSkeletonList(1) }
+            if (loadedOnce) item {
                 UrbanStatStrip(
                     listOf(
                         Triple("Total", reviews.stats.total.toString(), UrbanColors.Ink),
@@ -51,7 +54,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
             }
 
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = ratingFilter == null, onClick = { ratingFilter = null }, label = { Text("Todas") }, colors = urbanFilterChipColors())
                     (5 downTo 1).forEach { r ->
                         FilterChip(selected = ratingFilter == r, onClick = { ratingFilter = if (ratingFilter == r) null else r }, label = { Text("$r★") }, colors = urbanFilterChipColors())
@@ -59,7 +62,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
                 }
             }
 
-            if (reviews.data.isEmpty() && !busy) {
+            if (loadedOnce && reviews.data.isEmpty() && !busy && error == null) {
                 item {
                     UrbanMascotState(
                         UrbanStateKind.EMPTY,
@@ -98,6 +101,7 @@ internal fun logEventStyle(event: String?): Pair<String, androidx.compose.ui.gra
 @Composable
 fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
     val logs by vm.logs.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     var search by remember { mutableStateOf("") }
@@ -114,7 +118,8 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
         onRefresh = { reload() },
         refreshing = busy
     ) {
-        item {
+        if (!loadedOnce && error == null) item { UrbanSkeletonList(1) }
+        if (loadedOnce) item {
             UrbanHeroCard {
                 UrbanHeroLabel("Actividad de hoy")
                 Spacer(Modifier.height(6.dp))
@@ -127,8 +132,8 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
                 Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    UrbanHeroStat("Creados", logs.stats.creates.toString(), Icons.Default.AddCircle, Modifier.weight(1f), tone = UrbanColors.Success)
-                    UrbanHeroStat("Eliminados", logs.stats.deletes.toString(), Icons.Default.RemoveCircle, Modifier.weight(1f), tone = UrbanColors.Danger)
+                    UrbanHeroStat("Creados en total", logs.stats.creates.toString(), Icons.Default.AddCircle, Modifier.weight(1f), tone = UrbanColors.Success)
+                    UrbanHeroStat("Eliminados en total", logs.stats.deletes.toString(), Icons.Default.RemoveCircle, Modifier.weight(1f), tone = UrbanColors.Danger)
                 }
             }
         }
@@ -169,7 +174,7 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
             error != null && logs.data.isEmpty() -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar la bitácora", error, "Reintentar") { reload() }
             }
-            logs.data.isEmpty() && !busy -> item {
+            loadedOnce && logs.data.isEmpty() && !busy -> item {
                 UrbanMascotState(UrbanStateKind.EMPTY, "Sin registros", "No hay actividad que coincida con la búsqueda o el filtro.")
             }
             else -> {

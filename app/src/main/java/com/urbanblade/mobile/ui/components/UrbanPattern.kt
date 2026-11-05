@@ -83,13 +83,7 @@ fun UrbanModuleScreen(
         topBar = {
             UrbanTopBar("", onBack) {
                 if (onRefresh != null) {
-                    if (refreshing) {
-                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
-                        }
-                    } else {
-                        IconButton(onClick = onRefresh) { Icon(Icons.Default.Refresh, "Actualizar") }
-                    }
+                    UrbanRefreshButton(refreshing, onRefresh)
                 }
             }
         }

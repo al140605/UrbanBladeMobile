@@ -91,7 +91,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
                 if (clients.data.isNotEmpty()) {
                     item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
                 }
-                if (clients.data.isEmpty() && !busy) {
+                if (clients.data.isEmpty() && !busy && error == null) {
                     item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin clientes", "No hay clientes que coincidan con la búsqueda.", "Registrar cliente", Icons.Default.PersonAdd) { showCreate = true } }
                 }
                 items(clients.data) { client ->

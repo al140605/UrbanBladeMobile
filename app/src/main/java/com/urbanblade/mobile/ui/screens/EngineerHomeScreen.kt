@@ -70,6 +70,9 @@ fun EngineerHomeScreen(
     val loading by systemVm.busy.collectAsState()
     val error by systemVm.error.collectAsState()
     val logs by logsVm.logs.collectAsState()
+    val logsLoading by logsVm.busy.collectAsState()
+    val logsError by logsVm.error.collectAsState()
+    val logsLoaded by logsVm.hasLoaded.collectAsState()
     LaunchedEffect(Unit) {
         systemVm.load()
         logsVm.load(null, event = null)
@@ -87,12 +90,19 @@ fun EngineerHomeScreen(
                 title = "Hola, ${user.name.substringBefore(' ')}",
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "INGENIERO",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
+                trailing = {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        UrbanRefreshButton(loading || logsLoading) { systemVm.load(); logsVm.load(null, event = null) }
+                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                    }
+                }
             )
         }
 
+        if (error != null && status != null) item { UrbanStaleContentNotice(error.orEmpty()) { systemVm.load() } }
+
         when {
-            loading && status == null -> item { UrbanSkeletonList(1) }
+            error == null && status == null -> item { UrbanSkeletonList(1) }
             error != null && status == null -> item {
                 UrbanMascotState(
                     UrbanStateKind.ERROR,
@@ -140,13 +150,18 @@ fun EngineerHomeScreen(
             }
         }
 
-        item { UrbanSectionTitle("Actividad de hoy", "Movimientos registrados en la bitácora.") }
-        item {
+        item { UrbanSectionTitle("Actividad registrada", "Hoy y acumulado histórico de la bitácora.") }
+        if (logsError != null) item {
+            if (logsLoaded) UrbanStaleContentNotice(logsError.orEmpty()) { logsVm.load() }
+            else UrbanMascotState(UrbanStateKind.ERROR, "No pudimos consultar la actividad", logsError, "Reintentar") { logsVm.load() }
+        }
+        if (!logsLoaded && logsError == null) item { UrbanSkeletonList(1) }
+        if (logsLoaded) item {
             UrbanStatStrip(
                 listOf(
                     Triple("Hoy", logs.stats.hoy.toString(), UrbanColors.Gold),
-                    Triple("Creados", logs.stats.creates.toString(), UrbanColors.Success),
-                    Triple("Eliminados", logs.stats.deletes.toString(), UrbanColors.Danger)
+                    Triple("Creados en total", logs.stats.creates.toString(), UrbanColors.Success),
+                    Triple("Eliminados en total", logs.stats.deletes.toString(), UrbanColors.Danger)
                 ),
                 onClick = { onNavigate("logs") }
             )

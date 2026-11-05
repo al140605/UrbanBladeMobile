@@ -119,7 +119,6 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
             }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (!isClient) item { UrbanInfoBanner("Consulta productos y precios. Los pedidos se crean desde una cuenta de cliente.", Icons.Default.Visibility) }
-            if (!busy && error == null && products.isEmpty()) item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos en esta búsqueda", "Prueba con otro nombre o limpia el buscador.") }
             item { UrbanSectionTitle("Productos", if (busy) "Consultando catálogo…" else UrbanFormat.count(products.size, "resultado", "resultados")) }
             items(products, key = { it.id }) { product ->
                 ProductCard(

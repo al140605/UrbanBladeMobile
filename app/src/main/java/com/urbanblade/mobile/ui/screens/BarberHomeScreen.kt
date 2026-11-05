@@ -57,7 +57,7 @@ fun BarberHomeScreen(
     val dashboard by dashboardVm.data.collectAsState()
     LaunchedEffect(Unit) { dashboardVm.load() }
 
-    val now = remember { LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) }
+    val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
     val day = barberDay(agenda.data, now)
     val loadedOnce by vm.hasLoaded.collectAsState()
 
@@ -72,9 +72,16 @@ fun BarberHomeScreen(
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "BARBERO",
                 compact = true,
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
+                trailing = {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        UrbanRefreshButton(busy) { vm.load("day", null, 0); dashboardVm.load() }
+                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                    }
+                }
             )
         }
+
+        if (error != null && loadedOnce) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load("day", null, 0) } }
 
         when {
             error != null && !loadedOnce -> item {

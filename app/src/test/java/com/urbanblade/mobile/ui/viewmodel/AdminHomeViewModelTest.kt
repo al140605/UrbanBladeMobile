@@ -16,6 +16,10 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.times
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
@@ -80,5 +84,35 @@ class AdminHomeViewModelTest {
         assertEquals(2, vm.state.value.pendingPayments)
         assertEquals(null, vm.state.value.occupancyRate)
         assertFalse(vm.state.value.loading)
+    }
+
+    @Test
+    fun `fallar pagos pendientes no representa cero ni todo al dia`() = runTest(dispatcher) {
+        whenever(repo.pendingPayments()).thenThrow(IllegalStateException("sin red"))
+        val vm = AdminHomeViewModel(repo)
+        vm.load(); advanceUntilIdle()
+        assertNotNull(vm.state.value.kpis)
+        assertNull(vm.state.value.pendingPayments)
+        assertNotNull(vm.state.value.pendingPaymentsError)
+        assertFalse(vm.state.value.loading)
+    }
+
+    @Test
+    fun `fallar actualizacion conserva resumen y expone aviso`() = runTest(dispatcher) {
+        val vm = AdminHomeViewModel(repo)
+        vm.load(); advanceUntilIdle()
+        val previous = vm.state.value.kpis
+        whenever(repo.dashboard()).thenThrow(IllegalStateException("sin red"))
+        vm.load(); advanceUntilIdle()
+        assertEquals(previous, vm.state.value.kpis)
+        assertNotNull(vm.state.value.error)
+        assertFalse(vm.state.value.loading)
+    }
+
+    @Test
+    fun `toques consecutivos no duplican la actualizacion`() = runTest(dispatcher) {
+        val vm = AdminHomeViewModel(repo)
+        vm.load(); vm.load(); advanceUntilIdle()
+        verify(repo, times(1)).dashboard()
     }
 }

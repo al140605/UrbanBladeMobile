@@ -580,27 +580,29 @@ class AnalyticsViewModel : ViewModel() {
     }
 }
 
-class ReviewsViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class ReviewsViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _reviews = MutableStateFlow(ReviewsResponse()); val reviews = _reviews.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
     fun load(barberId: String? = null, rating: Int? = null) = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _reviews.value = repo.reviews(barberId, rating) }
+        try { _reviews.value = repo.reviews(barberId, rating); _hasLoaded.value = true }
+        catch (e: CancellationException) { throw e }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar las reseñas.") }
         finally { _busy.value = false }
     }
 }
 
-class LogsViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class LogsViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _logs = MutableStateFlow(LogsResponse()); val logs = _logs.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
     fun load(search: String? = null, logName: String? = null, event: String? = null) = viewModelScope.launch {
         _busy.value = true; _error.value = null
-        try { _logs.value = repo.logs(search, logName, event) }
+        try { _logs.value = repo.logs(search, logName, event); _hasLoaded.value = true }
+        catch (e: CancellationException) { throw e }
         catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los logs.") }
         finally { _busy.value = false }
     }

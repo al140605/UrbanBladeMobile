@@ -16,6 +16,12 @@ probado cuentas de los competidores ni medido una mejora de conversión.
 Ver los criterios UX-01 a UX-08 del informe antes de ampliar el rediseño. Se conservan
 la identidad, los cuatro temas y las decisiones visuales ya aprobadas.
 
+## Alcance integral por rol
+
+La revisión abarca todas las pantallas de cliente, barbero, recepción, administración
+e ingeniería. Ver [matriz de recorridos y avances](PULIDO_PANTALLAS_POR_ROL.md).
+Pagos es un bloque de este alcance; no sustituye el pulido del resto de módulos.
+
 ## Punto de partida
 
 La rama conserva el rediseño editorial, la opción 2 del cliente y la opción A del barbero. Integra main publicado `3173e34839517145c1708f86f56320da0c6e9f1a`; la combinación `100ac0ca76182b9d4b4b20bbe0224abaf10e8035` pasó lint, build debug y 369 pruebas JVM sin errores u omisiones. Esta evidencia no reemplaza la revisión visual e integración de los próximos cambios.

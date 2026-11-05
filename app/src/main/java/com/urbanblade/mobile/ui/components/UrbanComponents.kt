@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -131,12 +132,8 @@ fun UrbanPageHeader(
     /** Encabezado de módulo o pantalla utilitaria: un paso menos de serif (24 sp en vez de 27). */
     compact: Boolean = false
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Column(Modifier.weight(1f)) {
+    val copy: @Composable (Modifier) -> Unit = { textModifier ->
+        Column(textModifier) {
             eyebrow?.let {
                 Text(
                     it.uppercase(),
@@ -155,9 +152,20 @@ fun UrbanPageHeader(
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
             }
         }
-        trailing?.let {
-            Spacer(Modifier.width(12.dp))
-            it()
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f
+        if (stacked && trailing != null) {
+            Column(Modifier.fillMaxWidth()) {
+                copy(Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { trailing() }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                copy(Modifier.weight(1f))
+                trailing?.let { Spacer(Modifier.width(12.dp)); it() }
+            }
         }
     }
 }

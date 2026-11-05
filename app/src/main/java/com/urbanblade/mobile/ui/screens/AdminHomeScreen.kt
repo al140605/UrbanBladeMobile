@@ -68,6 +68,8 @@ import com.urbanblade.mobile.ui.components.UrbanHeroLabel
 import com.urbanblade.mobile.ui.components.UrbanHeroStat
 import com.urbanblade.mobile.ui.components.UrbanStatCard
 import com.urbanblade.mobile.ui.components.UrbanTrendPill
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
+import com.urbanblade.mobile.ui.components.UrbanStaleContentNotice
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
@@ -116,12 +118,19 @@ fun AdminHomeScreen(
                 title = "Hola, $firstName",
                 subtitle = UrbanFormat.date(LocalDate.now().toString()),
                 eyebrow = "ADMINISTRADOR",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
+                trailing = {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        UrbanRefreshButton(state.loading) { vm.load() }
+                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                    }
+                }
             )
         }
 
+        if (state.error != null && kpis != null) item { UrbanStaleContentNotice(state.error.orEmpty()) { vm.load() } }
+
         when {
-            state.loading && kpis == null -> item { UrbanSkeletonList(2) }
+            state.error == null && kpis == null -> item { UrbanSkeletonList(2) }
             state.error != null && kpis == null -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     UrbanErrorBanner(state.error.orEmpty())
@@ -142,15 +151,16 @@ fun AdminHomeScreen(
                 item { UrbanSectionTitle("Requiere tu atención", "Lo que conviene revisar ahora.") }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (state.pendingPayments > 0) {
+                        if ((state.pendingPayments ?: 0) > 0) {
                             UrbanAttentionRow(
                                 icon = Icons.Default.Payments,
-                                text = UrbanFormat.count(state.pendingPayments, "pago por verificar", "pagos por verificar"),
-                                subtitle = "Citas completadas · Revisa y confirma",
+                                text = UrbanFormat.count(state.pendingPayments ?: 0, "pago por verificar", "pagos por verificar"),
+                                subtitle = "Comprobantes recibidos · Revisa y confirma",
                                 tone = UrbanColors.Danger,
                                 onClick = { onNavigate("payments") }
                             )
                         }
+                        state.pendingPaymentsError?.let { UrbanErrorBanner(it) }
                         if (lowStock > 0) {
                             UrbanAttentionRow(
                                 icon = Icons.Default.Inventory2,
