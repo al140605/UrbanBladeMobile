@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -389,14 +390,18 @@ fun UrbanOutlineButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    /** Para botones sobre una fotografía oscura en un tema claro, donde la tinta del tema no se lee. */
+    onPhoto: Boolean = false
 ) {
+    val overPhoto = onPhoto && UrbanColors.current.isLight
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 50.dp),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, UrbanColors.Line)
+        border = BorderStroke(1.dp, if (overPhoto) Color(0xFFF0D68C).copy(alpha = 0.7f) else UrbanColors.Line),
+        colors = if (overPhoto) ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF0D68C)) else ButtonDefaults.outlinedButtonColors()
     ) {
         icon?.let { Icon(it, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
         Text(text)

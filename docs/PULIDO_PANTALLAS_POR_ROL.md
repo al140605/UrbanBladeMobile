@@ -407,3 +407,15 @@ Misma pantalla para los cinco roles; lo que cambia es solo lo que cada rol tiene
   reemplazaba al texto y se perdía el subtítulo); la etiqueta seleccionada de los chips usa el dorado de texto
   (legible en Libreta).
 - Pendiente: recorrer con TalkBack en el teléfono, revisar Seguridad y Ajustes en Libreta y 320 dp.
+
+## Verificación de temas (5 de noviembre de 2026)
+
+Recorrido físico con la cuenta demo de administrador: bienvenida, acceso, registro, recuperación, inicio y
+Cuenta > Ajustes en los cuatro temas.
+
+- Taller de Acero y Salón Inglés: sin defectos visibles.
+- Libreta: «Iniciar sesión» de la bienvenida se pintaba en dorado oscuro sobre la fotografía oscura y no se
+  leía. `UrbanOutlineButton` tiene ahora `onPhoto`, que en un tema claro usa dorado claro; en los temas
+  oscuros la bienvenida no cambia.
+- Pendiente: 320 dp y fuente grande (el teléfono se desconectó al cambiar la densidad), teclado abierto en
+  acceso, estado «correo enviado», Seguridad y Ajustes en Libreta, TalkBack real.

@@ -84,7 +84,7 @@ fun WelcomeScreen(onRegister: () -> Unit, onLogin: () -> Unit, sessionExpired: B
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (sessionExpired) UrbanInfoBanner("Tu sesión venció. Inicia sesión de nuevo para continuar.", Icons.Default.Lock)
                         AuthPrimaryButton("Crear mi cuenta", onRegister, icon = Icons.Default.PersonAdd, modifier = Modifier.fillMaxWidth())
-                        UrbanOutlineButton("Iniciar sesión", onLogin, modifier = Modifier.fillMaxWidth())
+                        UrbanOutlineButton("Iniciar sesión", onLogin, modifier = Modifier.fillMaxWidth(), onPhoto = true)
                     }
                 }
             }
