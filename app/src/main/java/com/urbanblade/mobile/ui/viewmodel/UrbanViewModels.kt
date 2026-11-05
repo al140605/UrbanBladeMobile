@@ -197,11 +197,11 @@ class AppointmentsViewModel @JvmOverloads constructor(
     }
 
     /** Stripe rechazó o no pudo procesar la tarjeta. La cita no se marca como pagada (solo el webhook de barber puede hacerlo). */
+    @Suppress("UNUSED_PARAMETER") // No mostrar detalles internos del SDK en la interfaz.
     fun onStripeFailed(reason: String?) {
         _stripeClientSecret.value = null
         _paymentNotice.value = null
-        val detail = reason?.trim()?.takeIf { it.isNotEmpty() }?.let { ": $it" } ?: "."
-        _error.value = "El pago con tarjeta no se completó$detail Intenta con otra tarjeta o paga por transferencia."
+        _error.value = "El pago con tarjeta no se completó. Intenta con otra tarjeta o paga por transferencia."
     }
 
     /** Reintenta cargar las citas hasta ~10s esperando a que el webhook confirme el pago. */
@@ -677,6 +677,7 @@ class BookingViewModel @JvmOverloads constructor(
     }
 
     /** Resultado de confirmar la tarjeta con Stripe. El cobro real lo confirma el webhook de barber. */
+    @Suppress("UNUSED_PARAMETER")
     fun onCardResult(completed: Boolean, canceled: Boolean, reason: String?) {
         // El launcher puede volver a entregar un resultado; solo se consume el pendiente actual.
         val done = pendingDone ?: return
@@ -686,7 +687,7 @@ class BookingViewModel @JvmOverloads constructor(
         _paymentNote.value = when {
             completed -> "Pago con tarjeta enviado. UrbanBlade lo está confirmando."
             canceled -> "Cancelaste el pago. Tu cita quedó reservada y puedes pagarla desde Mis citas."
-            else -> "El pago con tarjeta no se completó${reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""}. Tu cita quedó reservada; págala desde Mis citas."
+            else -> "El pago con tarjeta no se completó. Tu cita quedó reservada; págala desde Mis citas."
         }
         finishReservation(id, done)
     }
@@ -869,6 +870,7 @@ class WalletViewModel @JvmOverloads constructor(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun onCheckoutResult(ok: Boolean, canceled: Boolean, detail: String?) = viewModelScope.launch {
         _checkout.value = null
         when {
@@ -879,7 +881,7 @@ class WalletViewModel @JvmOverloads constructor(
                 load()
             }
             canceled -> _message.value = "Cancelaste el pago. Puedes intentarlo de nuevo cuando quieras."
-            else -> _error.value = "No se pudo cobrar tu tarjeta" + (detail?.let { ": $it" } ?: ".")
+            else -> _error.value = "No se pudo cobrar tu tarjeta. Intenta de nuevo o utiliza otra tarjeta."
         }
         _busy.value = false
     }

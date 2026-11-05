@@ -72,7 +72,7 @@ Las propiedades se leen desde `local.properties` o `-P`: `DEBUG_API_BASE_URL`, `
 
 La suite incluye una comprobación TLS pública contra la API y necesita conectividad. No omitir pruebas ni desactivar TLS para obtener un resultado verde.
 
-Android CI ejecuta lint, pruebas JVM sin omisiones, cobertura y builds debug/release con R8. CodeQL analiza Java/Kotlin con compilación explícita. [Evidencia y reproducción](docs/PRUEBAS.md).
+Android CI ejecuta lint, pruebas JVM sin omisiones, cobertura, builds debug/staging/release con R8 y controles de paquetes y dependencias. CodeQL analiza Java/Kotlin y Gitleaks revisa el historial completo. [Evidencia y reproducción](docs/PRUEBAS.md).
 
 CI no publica en Google Play ni acredita una prueba en dispositivo. La generación de un AAB firmado se trata en el [procedimiento de publicación](docs/PUBLICAR_PLAY_STORE.md).
 

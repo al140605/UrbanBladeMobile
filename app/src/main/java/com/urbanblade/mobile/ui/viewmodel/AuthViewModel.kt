@@ -218,6 +218,7 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
         }
         // Sin red o tiempo agotado: un mensaje claro, no el "Unable to resolve host" técnico.
         is IOException -> "Sin conexión. Revisa tu red e inténtalo de nuevo."
-        else -> message?.takeIf { it.isNotBlank() } ?: fallback
+        // Las excepciones inesperadas pueden contener URLs, rutas o datos del SDK.
+        else -> fallback
     }
 }

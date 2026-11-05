@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Solo se aplica a builds debug (merge de manifiestos por variante). El HTTP
-    cleartext a 10.0.2.2 (emulador) queda scoped aquí; release hereda el valor
-    seguro por defecto (usesCleartextTraffic=false) del manifest principal.
+    HTTP de desarrollo exclusivamente en la variante debug (emulador o API local).
+    Staging y release usan el bloqueo explicito del manifiesto principal.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:usesCleartextTraffic="true" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application android:usesCleartextTraffic="true" tools:replace="android:usesCleartextTraffic" />
 </manifest>

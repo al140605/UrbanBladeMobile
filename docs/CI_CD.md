@@ -1,15 +1,16 @@
 # Integración continua y distribución
 
-Revisión documental: 30 de octubre de 2026. Fuentes: [Android CI](../.github/workflows/android-ci.yml) y [CodeQL](../.github/workflows/codeql.yml).
+Revisión documental: 4 de noviembre de 2026. Fuentes: [Android CI](../.github/workflows/android-ci.yml), [CodeQL](../.github/workflows/codeql.yml) y [secretos](../.github/workflows/secretos.yml).
 
 ## Workflows existentes
 
 | Workflow | Disparadores | Controles |
 |---|---|---|
-| Android CI | Pull request a main, push a main y ejecución manual | Wrapper, lint, pruebas JVM, cero omisiones, JaCoCo, debug y release/R8 |
+| Android CI | Pull request a main, push a main y ejecución manual | Wrapper, lint, pruebas JVM, cero omisiones, JaCoCo, debug, staging, release/R8 y seguridad de paquetes/dependencias |
 | CodeQL Advanced | Pull request a main, push a main y calendario semanal | Análisis Java/Kotlin con compilación debug explícita |
+| Escaneo de secretos | Pull request a main, push a main y ejecución manual | Gitleaks verificado sobre el historial completo |
 
-Ambos usan Ubuntu 24.04, JetBrains JDK 21 y Actions fijadas a commits completos. El checkout no conserva credenciales Git. El wrapper fija Gradle 9.6.0 y verifica el checksum de la distribución.
+Los tres usan Ubuntu 24.04 y Actions fijadas a commits completos. Los builds usan JetBrains JDK 21. El checkout no conserva credenciales Git. El wrapper fija Gradle 9.6.0 y verifica el checksum de la distribución.
 
 Android CI tiene un límite de 40 minutos y cancela ejecuciones anteriores del mismo grupo de referencia. CodeQL tiene un límite de 35 minutos; compila sin build cache, con dos workers y Kotlin en el proceso de Gradle. No deducir un resultado de CodeQL a partir de un build local sin instrumentación.
 
@@ -18,6 +19,9 @@ Android CI tiene un límite de 40 minutos y cancela ejecuciones anteriores del m
 Android CI publica `reportes-android` con lint, resultados de pruebas y cobertura durante 14 días. El paso usa `always()`: la presencia de un artefacto no implica que el workflow haya pasado. JaCoCo informa cobertura sin imponer umbral mínimo.
 
 La suite no requiere credenciales de firma ni Firebase. Su caso TLS público sí requiere conectividad a la API. El build release configura la URL pública para compilar con R8; no ejecuta una prueba funcional de producción.
+
+Los controles y los comandos locales de inspección se describen en la
+[revisión de depuración y paquetes](REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md).
 
 ## Flujo de cambios
 

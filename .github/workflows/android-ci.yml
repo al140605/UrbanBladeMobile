@@ -87,6 +87,15 @@ jobs:
       - name: Build de release (R8)
         run: ./gradlew :app:assembleRelease -PRELEASE_API_BASE_URL=https://api.urbanblade.com.mx/api/v1/ --console=plain
 
+      - name: Build de staging sin depuracion
+        run: ./gradlew :app:assembleStaging :app:verifyDistributionDependencies --console=plain
+
+      - name: Verificar seguridad de paquetes
+        run: |
+          python3 -m unittest discover -s scripts/security -p 'test_*.py'
+          python3 scripts/security/check_android_package.py --variant release
+          python3 scripts/security/check_android_package.py --variant staging
+
       - name: Reportes de lint y pruebas
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

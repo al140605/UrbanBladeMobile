@@ -125,6 +125,7 @@ android {
             enableUnitTestCoverage = true
         }
         release {
+            isDebuggable = false
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
             // R8: sin esto el APK de producción sale sin ofuscar ni reducir. Los DTO que Gson
             // llena por reflexión se conservan en proguard-rules.pro.
@@ -138,6 +139,7 @@ android {
         // CloudFront. No usa el manifest de debug, así que NO permite HTTP en claro.
         create("staging") {
             initWith(getByName("debug"))
+            isDebuggable = false
             buildConfigField("String", "API_BASE_URL", "\"$stagingApiBaseUrl\"")
             matchingFallbacks += listOf("debug")
         }
@@ -215,7 +217,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-video:2.7.0")                              // miniatura (primer cuadro) de los videos del muro
 
@@ -267,4 +268,29 @@ dependencies {
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("org.robolectric:robolectric:4.17")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Las herramientas de pruebas o inspeccion no deben entrar a los APK distribuibles.
+tasks.register("verifyDistributionDependencies") {
+    group = "verification"
+    description = "Rechaza dependencias de pruebas y depuracion en staging/release."
+    doLast {
+        val forbidden = setOf(
+            "com.squareup.okhttp3:logging-interceptor", "com.squareup.okhttp3:mockwebserver",
+            "androidx.compose.ui:ui-tooling", "androidx.compose.ui:ui-test-manifest",
+            "androidx.compose.ui:ui-test-junit4"
+        )
+        val forbiddenGroups = setOf("junit", "org.junit", "org.mockito", "org.mockito.kotlin", "org.robolectric")
+        listOf("stagingRuntimeClasspath", "releaseRuntimeClasspath").forEach { name ->
+            val unexpected = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts
+                .map { "${it.moduleVersion.id.group}:${it.moduleVersion.id.name}" }
+                .filter { module ->
+                    module in forbidden || module.substringBefore(':') in forbiddenGroups ||
+                        module.startsWith("com.facebook.flipper:") || module.startsWith("com.facebook.stetho:") ||
+                        module.startsWith("com.github.chuckerteam.chucker:") || module.startsWith("com.squareup.leakcanary:")
+                }.distinct()
+            check(unexpected.isEmpty()) { "$name contiene herramientas no distribuibles: ${unexpected.joinToString()}" }
+            logger.lifecycle("$name: sin herramientas de pruebas o depuracion detectadas")
+        }
+    }
 }

@@ -330,4 +330,17 @@ class BookingViewModelTest {
         verify(repo).createAppointment(any())
     }
 
+    @Test
+    fun `fallo del SDK no muestra detalles privados y conserva la reserva`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.onCardResult(false, false, "SDK internal path with client_secret=synthetic")
+        assertEquals("El pago con tarjeta no se completó. Tu cita quedó reservada; págala desde Mis citas.", vm.paymentNote.value)
+        assertTrue(vm.reservationCompleted.value)
+        verify(repo).createAppointment(any())
+    }
+
 }

@@ -11,3 +11,19 @@
 __pycache__/
 app/build
 /app/google-services.json
+
+# Diagnostico local y material privado: no depender del gitignore global del equipo.
+*.log
+*.hprof
+*.heapdump
+*.trace
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.private.*
+*service-account*.json
+/keystore.properties
+.env
+.env.*
+!.env.example

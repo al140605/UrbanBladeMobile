@@ -351,15 +351,15 @@ class AppointmentsViewModelTest {
     }
 
     @Test
-    fun `onStripeFailed muestra el motivo de Stripe como error`() = runTest(dispatcher) {
+    fun `onStripeFailed no expone detalles internos de Stripe`() = runTest(dispatcher) {
         val vm = AppointmentsViewModel(repo)
 
-        vm.onStripeFailed("Tu tarjeta fue rechazada.")
+        vm.onStripeFailed("Request failed at internal endpoint; client_secret=synthetic")
 
         assertNull(vm.stripeClientSecret.value)
         assertNull(vm.paymentNotice.value)
         assertEquals(
-            "El pago con tarjeta no se completó: Tu tarjeta fue rechazada. Intenta con otra tarjeta o paga por transferencia.",
+            "El pago con tarjeta no se completó. Intenta con otra tarjeta o paga por transferencia.",
             vm.error.value
         )
     }

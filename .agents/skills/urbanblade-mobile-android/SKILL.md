@@ -50,10 +50,13 @@ rompa por accidente:
 - **El token vive en DataStore**, nunca en `SharedPreferences` sin cifrar ni en logs. No
   agregues logging que imprima el header `Authorization` o el token completo, ni
   siquiera en builds debug.
-- **No hay claves de Stripe secretas en el proyecto** — solo la clave publicable, cuando
-  se integre el SDK oficial. Si algún día se agrega, va en `local.properties` o
-  `BuildConfig` generado desde variables de entorno de CI, nunca hardcodeado ni
-  commiteado.
+- **Las claves secretas de Stripe pertenecen exclusivamente al servidor.** Nunca
+  se incorporan al APK, a `BuildConfig` ni a recursos Android. Solo la clave
+  publicable se inyecta desde configuración privada de desarrollo o CI.
+- El cliente no registra URLs, encabezados ni cuerpos HTTP en ninguna variante.
+  Staging y release no son depurables y bloquean HTTP. Ejecutar
+  `:app:verifyDistributionDependencies` y los controles de paquetes descritos en
+  `docs/REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md` antes de distribuir.
 - **`cleartext traffic`** (HTTP sin TLS) es aceptable solo para desarrollo local
   (`10.0.2.2` en emulador, LAN en dispositivo físico). Antes de cualquier build de
   producción, seguir la lista de `docs/ARQUITECTURA.md` (HTTPS real, desactivar

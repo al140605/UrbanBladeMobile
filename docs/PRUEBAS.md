@@ -21,6 +21,8 @@ En Linux y macOS sustituir el ejecutable por `./gradlew`. El segundo comando com
 | Android Lint | Análisis estático de la variante debug |
 | JaCoCo | Reporte de cobertura; CI no impone un umbral mínimo |
 | Debug y release/R8 | Compilación y reducción; no prueban un recorrido funcional completo |
+| Staging y paquetes | Variante no depurable, HTTPS, dependencias de ejecución y revisión de APKs con controles reproducibles |
+| Gitleaks | Escaneo de secretos sobre el historial completo; no sustituye revisar capturas y reportes |
 | CodeQL | Análisis Java/Kotlin con build debug explícito e instrumentado en GitHub |
 
 Los reportes JVM quedan en `app/build/reports/tests/testDebugUnitTest/`; lint en `app/build/reports/lint-results-debug.html`; cobertura en `app/build/reports/coverage/test/debug/`.
@@ -36,6 +38,11 @@ Mantenimiento fusionado el 30 de octubre de 2026, commit `603879cdadea34cbae027e
 - [CodeQL en main](https://github.com/al140605/UrbanBladeMobile/actions/runs/41016321297): aprobado.
 
 Estos resultados corresponden a ese commit. No acreditan cambios posteriores, instalación en dispositivo ni distribución en Play.
+
+El incremento de seguridad del 4 de noviembre registra 435 pruebas Android y
+siete pruebas del verificador de paquetes, además de builds y escaneo de secretos.
+Consultar [alcance y resultados](REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md);
+la nueva comprobación de Logcat en dispositivo está pendiente.
 
 ## Revisión funcional
 

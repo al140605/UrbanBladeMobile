@@ -77,4 +77,12 @@ class WalletMembershipCheckoutTest {
         assertNotNull(vm.message.value)
         assertFalse(vm.busy.value)
     }
+    @Test
+    fun `fallo de membresia no muestra detalles del SDK`() = runTest(dispatcher) {
+        val vm = WalletViewModel(repo)
+        vm.onCheckoutResult(false, false, "SDK request with client_secret=synthetic")
+        advanceUntilIdle()
+        assertEquals("No se pudo cobrar tu tarjeta. Intenta de nuevo o utiliza otra tarjeta.", vm.error.value)
+    }
+
 }
