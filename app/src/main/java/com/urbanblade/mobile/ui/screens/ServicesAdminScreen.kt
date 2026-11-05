@@ -145,7 +145,6 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
                 )
             }
         }
-        item { Spacer(Modifier.height(80.dp)) }
     }
 
     if (creating || editing != null) {

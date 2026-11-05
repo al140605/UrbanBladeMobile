@@ -419,3 +419,23 @@ Cuenta > Ajustes en los cuatro temas.
   oscuros la bienvenida no cambia.
 - Pendiente: 320 dp y fuente grande (el teléfono se desconectó al cambiar la densidad), teclado abierto en
   acceso, estado «correo enviado», Seguridad y Ajustes en Libreta, TalkBack real.
+
+## Notificaciones: bandeja y destino de los push (5 de noviembre de 2026)
+
+Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físico.
+
+- Bandeja nueva (`NotificationsScreen.kt`): «Nuevas» (todo lo no leído) arriba y lo leído por antigüedad
+  (Hoy, Ayer, Esta semana, Anteriores); filtro Todas / No leídas; una fila por aviso con ícono por tipo,
+  tiempo relativo («Hace 5 min», «Ayer», «20 oct»), fondo dorado tenue y punto si no se ha leído; menú por
+  aviso (marcar como leída, eliminar) y las mismas acciones para TalkBack; «Marcar todas como leídas» como
+  botón de texto. Eliminar usa `DELETE /notifications/{id}`, que el backend ya tenía.
+- Destino del toque: la bandeja y el push comparten `routeForNotificationType`. Se añaden `service_ending`
+  (agenda del barbero), `barber_review_flagged` (reseñas) y `barber_performance_report` (reportes). Si un
+  push llega con la ruta genérica «notifications» pero con un `type` que la app conoce, abre la pantalla del
+  tipo en vez de la bandeja (`pushRoute`).
+- Límite conocido: el push abre la **pantalla** del módulo, no el elemento. El push no trae el id de la cita
+  ni del pedido (`AppointmentNotification::toWebPush` no lo incluye y `PushesToDevices` solo añade
+  tipo, canal y ruta), y la app no tiene una vista de detalle por cita o pedido a la que enlazar. Abrir el
+  elemento exacto necesita un cambio en el backend (ids en el push) y una pantalla de destino en la app.
+- Además: se quitan tres espaciadores finales de 80 dp en Campañas, Ofertas y Servicios, que se sumaban a los
+  88 dp que el andamio ya reserva bajo el botón flotante.

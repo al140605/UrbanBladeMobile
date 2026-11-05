@@ -145,7 +145,6 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
                 )
             }
         }
-        item { Spacer(Modifier.height(80.dp)) }
     }
 
     if (creatingPlan || editingPlan != null) {

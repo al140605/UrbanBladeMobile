@@ -1,6 +1,5 @@
 package com.urbanblade.mobile.ui.screens
 
-import com.urbanblade.mobile.core.push.routeForNotificationType
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -220,112 +219,6 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit) {
 }
 
 @Composable
-fun NotificationsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, vm: NotificationsViewModel = viewModel()) {
-    val data by vm.data.collectAsState()
-    val busy by vm.busy.collectAsState()
-    val error by vm.error.collectAsState()
-    LaunchedEffect(Unit) { vm.load() }
-    val view = parseNotifications(data)
-
-    UrbanModuleScreen(
-        eyebrow = "CUENTA",
-        title = "Notificaciones",
-        subtitle = when {
-            busy -> "Actualizando tus avisos…"
-            error != null -> "La consulta necesita actualizarse."
-            data == null -> "Tus avisos de UrbanBlade."
-            view.unread > 0 -> UrbanFormat.count(view.unread, "aviso sin leer", "avisos sin leer")
-            else -> "Estás al día."
-        },
-        onBack = onBack,
-        onRefresh = { vm.load() },
-        refreshing = busy
-    ) {
-        if (view.unread > 0) item {
-            UrbanOutlineButton(
-                text = "Marcar todas como leídas",
-                onClick = { vm.readAll() },
-                enabled = !busy,
-                icon = Icons.Default.DoneAll,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (error != null && view.items.isNotEmpty()) item {
-            UrbanErrorBanner(error!!)
-            UrbanOutlineButton("Reintentar consulta", { vm.load() }, enabled = !busy, modifier = Modifier.fillMaxWidth())
-        }
-        when {
-            error != null && view.items.isEmpty() -> item {
-                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus avisos", error, "Reintentar") { vm.load() }
-            }
-            view.items.isEmpty() && !busy -> item {
-                UrbanMascotState(UrbanStateKind.EMPTY, "Sin notificaciones", "Aquí verás confirmaciones de citas, pagos y novedades.")
-            }
-            else -> items(view.items, key = { it.id }) { n ->
-                val route = routeForNotificationType(n.type)
-                NotificationRow(n, hasRoute = route != null) {
-                    if (!n.read) vm.read(n.id)
-                    // Tocar un aviso lo marca como leído y abre lo que anuncia (cita, pago, pedido...).
-                    route?.let(onOpen)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotificationRow(n: NotificationItem, hasRoute: Boolean, onOpen: () -> Unit) {
-    val (icon, kindTone) = notificationLook(n)
-    // Leídas en gris; sin leer, con el color de su tipo (cancelada en rojo, confirmada en verde...).
-    val tone = if (n.read) UrbanColors.Muted else kindTone
-    UrbanCard(Modifier.fillMaxWidth(), onClick = onOpen) {
-        Row(verticalAlignment = Alignment.Top) {
-            Box(
-                Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tone.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    null,
-                    tint = tone,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    n.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (n.read) FontWeight.Normal else FontWeight.Bold,
-                    color = UrbanColors.Ink
-                )
-                n.message?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                }
-                n.createdAt?.let { iso ->
-                    val whenText = runCatching {
-                        val date = java.time.OffsetDateTime.parse(iso)
-                        UrbanFormat.date(date.toLocalDate().toString()) + " · " + UrbanFormat.time(date.toLocalTime().toString())
-                    }.getOrNull()
-                    whenText?.let {
-                        Spacer(Modifier.height(4.dp))
-                        Text(it, style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
-                    }
-                }
-            }
-            if (!n.read) {
-                Spacer(Modifier.width(8.dp))
-                Box(Modifier.padding(top = 6.dp).size(9.dp).clip(CircleShape).background(UrbanColors.Gold))
-            }
-            if (hasRoute) {
-                Spacer(Modifier.width(4.dp))
-                Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted, modifier = Modifier.padding(top = 8.dp).size(20.dp))
-            }
-        }
-    }
-}
-
-@Composable
 fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
     val roles = user.roles.toSet()
     val staff = roles.any { it == "administrador" || it == "recepcionista" }
@@ -420,26 +313,4 @@ private data class ModuleItem(
     val icon: ImageVector,
     val section: String
 )
-
-/**
- * Ícono y color de un aviso. Todas las de citas llegan con type "appointment", así que el estado
- * (cancelada, confirmada, recordatorio...) se toma del título que manda el servidor.
- */
-private fun notificationLook(n: NotificationItem): Pair<androidx.compose.ui.graphics.vector.ImageVector, androidx.compose.ui.graphics.Color> {
-    val type = n.type?.lowercase().orEmpty()
-    val title = n.title.lowercase()
-    return when {
-        "cancel" in title || "expir" in type || "no asist" in title -> Icons.Default.EventBusy to UrbanColors.Danger
-        "confirm" in title || "complet" in title || type == "order_delivered" -> Icons.Default.EventAvailable to UrbanColors.Success
-        "recordatorio" in title || type == "reminder" -> Icons.Default.Alarm to UrbanColors.Info
-        "reagend" in title || "cambi" in title -> Icons.Default.EditCalendar to UrbanColors.Warning
-        type == "review_request" -> Icons.Default.RateReview to UrbanColors.Gold
-        type in setOf("appointment", "cita") -> Icons.Default.CalendarMonth to UrbanColors.Gold
-        type in setOf("payment", "pago", "deposit", "transfer_receipt") -> Icons.Default.Payments to UrbanColors.Success
-        type.startsWith("order") || type == "pedido" -> Icons.Default.ShoppingBag to UrbanColors.Gold
-        type.startsWith("loyalty") || type in setOf("points", "raffle", "raffle_win", "referral", "client_birthday") -> Icons.Default.Star to UrbanColors.Gold
-        type == "promotion" -> Icons.Default.LocalOffer to UrbanColors.Gold
-        else -> Icons.Default.Notifications to UrbanColors.Gold
-    }
-}
 

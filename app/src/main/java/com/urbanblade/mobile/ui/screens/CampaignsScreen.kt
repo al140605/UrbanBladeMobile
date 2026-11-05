@@ -128,7 +128,6 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
             "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
         ) { vm.load() }
         items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
-        item { Spacer(Modifier.height(80.dp)) }
     }
 
     if (creating) {

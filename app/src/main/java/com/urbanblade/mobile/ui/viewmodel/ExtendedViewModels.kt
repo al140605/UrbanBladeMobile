@@ -97,13 +97,15 @@ class NotificationsViewModel @JvmOverloads constructor(private val repo: UrbanRe
 
     fun readAll() = markRead(null)
     fun read(id: String) = markRead(id)
+    fun delete(id: String) = markRead(id, delete = true)
 
-    private fun markRead(id: String?) {
+    private fun markRead(id: String?, delete: Boolean = false) {
         if (_busy.value) return
         _busy.value = true; _error.value = null
         readRequest = viewModelScope.launch {
             try {
-                if (id == null) repo.markAllNotificationsRead() else repo.markNotificationRead(id)
+                if (delete && id != null) repo.deleteNotification(id)
+                else if (id == null) repo.markAllNotificationsRead() else repo.markNotificationRead(id)
                 val response = repo.notifications()
                 ensureActive()
                 _data.value = response

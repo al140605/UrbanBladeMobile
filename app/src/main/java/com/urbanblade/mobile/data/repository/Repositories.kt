@@ -205,6 +205,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun notifications() = api.notifications()
     suspend fun markAllNotificationsRead() = api.markNotificationsRead()
     suspend fun markNotificationRead(id: String) = api.markNotificationRead(id)
+    suspend fun deleteNotification(id: String) = api.deleteNotification(id)
     suspend fun analytics() = api.analytics()
     suspend fun socialFeed(page: Int = 1) = api.socialFeed(page)
     suspend fun reactWork(id: String) = api.reactWork(id)
