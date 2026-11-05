@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,22 +48,19 @@ import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanRow
 import com.urbanblade.mobile.ui.components.UrbanRowGroup
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
-import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanStatStrip
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryMovementsViewModel
 import com.urbanblade.mobile.ui.viewmodel.MovementFilter
 import com.urbanblade.mobile.ui.viewmodel.WaitlistFilter
 import com.urbanblade.mobile.ui.viewmodel.WaitlistStaffViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** "2026-09-21T10:30:00+00:00" -> "21 sep · 10:30". Si no se puede leer, devuelve el texto original. */
 internal fun formatWhen(iso: String?): String {
@@ -100,7 +96,7 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
     ) {
         // Tres números en una sola tarjeta (UrbanStatStrip), como pide la skill: con tres
         // UrbanMetricCard angostas la etiqueta "Entradas" se partía como "Entrad / as" a 360 dp.
-        item {
+        if (state.loaded) item {
             UrbanStatStrip(
                 listOf(
                     Triple("Entradas", state.stats.entradas.toString(), UrbanColors.Ink),
@@ -127,13 +123,10 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
                 }
             }
         }
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-        state.error?.let { item { UrbanErrorBanner(it) } }
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
-
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin movimientos", "Aquí aparecerán las entradas y salidas de stock.") }
-        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.error,
+            "No pudimos cargar el historial", "Sin movimientos", "Aquí aparecerán las entradas y salidas de stock."
+        ) { vm.load() }
         if (state.items.isNotEmpty()) {
             item { UrbanSectionTitle("Historial", UrbanFormat.count(state.total, "movimiento", "movimientos")) }
         }
@@ -205,19 +198,11 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
                 }
             }
         }
-        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-        state.error?.let { item { UrbanErrorBanner(it) } }
-        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
-
-        if (!state.loading && state.items.isEmpty() && state.error == null) {
-            item {
-                UrbanMascotState(
-                    UrbanStateKind.EMPTY,
-                    "Nadie en esta lista",
-                    if (state.filter == WaitlistFilter.Espera) "Cuando un cliente se anote por un horario lleno aparecerá aquí." else "No hay entradas con este estado."
-                )
-            }
-        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.error,
+            "No pudimos cargar la lista de espera", "Nadie en esta lista",
+            if (state.filter == WaitlistFilter.Espera) "Cuando un cliente se anote por un horario lleno aparecerá aquí." else "No hay entradas con este estado."
+        ) { vm.load() }
         if (state.items.isNotEmpty()) {
             item { UrbanSectionTitle("Entradas", UrbanFormat.count(state.items.size, "entrada", "entradas")) }
         }

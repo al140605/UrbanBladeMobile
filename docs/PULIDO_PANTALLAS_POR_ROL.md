@@ -208,3 +208,30 @@ Alcance que no entra, a propósito: unificar la carga y el error de las listas c
 terminó (`loaded`) y varios comparten un solo campo `error` entre consultar y guardar, de modo
 que un fallo al guardar se mostraría como fallo de consulta. Exige cambios en la capa de datos
 con pruebas y queda como incremento 3b.
+
+### Incremento 3b: estados únicos de lista, piloto (5 de noviembre de 2026)
+
+Piloto en las dos listas que son consultas puras: movimientos de inventario y lista de espera.
+Sus ViewModels registran `loaded` (solo tras una primera consulta correcta), cancelan la consulta
+anterior y la paginación en curso, y no publican el resultado de una consulta cancelada, con el
+mismo método que reseñas, bitácora y sorteos. Sus pantallas sustituyen la barra de carga, el
+aviso de error, el esqueleto y el vacío escritos a mano por `urbanListFeedback`, y el resumen
+numérico de movimientos no se muestra hasta tener datos confirmados. Seis pruebas nuevas
+(`StaffListLoadStateTest`): primera consulta fallida y reintento, fallo al actualizar con lo
+confirmado conservado, y respuesta tardía de un filtro anterior descartada.
+
+Validación: 456 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, quitando el túnel USB para provocar un error de red real:
+- Primera consulta sin red: lista de espera muestra «No pudimos cargar la lista de espera», el
+  motivo («Sin conexión. Revisa tu red e inténtalo de nuevo.») y el botón «Reintentar»; ya no
+  aparece un «Nadie en esta lista» falso.
+- Tras restaurar la red y pulsar «Reintentar»: «Nadie en esta lista», ya como vacío confirmado.
+- Fallo al actualizar con datos ya confirmados: aviso «No pudimos actualizar. La información
+  visible corresponde a la última consulta» con «Reintentar actualización».
+- Movimientos con red: resumen y vacío confirmado («Sin movimientos»).
+La demo no tiene entradas ni movimientos, de modo que la conservación de filas la cubren las
+pruebas y no el recorrido físico.
+
+Pendiente: extender el método a las demás listas por tandas. Las que mezclan consultar y guardar
+en un mismo campo `error` (cobros, pedidos, clientes, inventario, servicios, barberos, campañas,
+membresías y usuarios) necesitan primero separar ambos errores en su ViewModel.

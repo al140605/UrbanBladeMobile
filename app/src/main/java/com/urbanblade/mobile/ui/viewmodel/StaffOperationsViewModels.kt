@@ -7,6 +7,9 @@ import com.urbanblade.mobile.data.model.InventoryMovementRow
 import com.urbanblade.mobile.data.model.InventoryMovementStats
 import com.urbanblade.mobile.data.model.WaitlistEntry
 import com.urbanblade.mobile.data.repository.UrbanRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +30,8 @@ data class InventoryMovementsState(
     val lastPage: Int = 1,
     val query: String = "",
     val filter: MovementFilter = MovementFilter.Todos,
+    /** True cuando la primera consulta terminó bien; hasta entonces las cifras en cero no son datos. */
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val loadingMore: Boolean = false,
     val error: String? = null
@@ -41,21 +46,32 @@ class InventoryMovementsViewModel @JvmOverloads constructor(
     private val _state = MutableStateFlow(InventoryMovementsState())
     val state: StateFlow<InventoryMovementsState> = _state.asStateFlow()
 
+    private var loadRequest: Job? = null
+    private var moreRequest: Job? = null
+
+    /** Cada consulta cancela la anterior (y la paginación en curso): una respuesta tardía no pisa la última. */
     fun load() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+        loadRequest?.cancel()
+        moreRequest?.cancel()
+        _state.value = _state.value.copy(loading = true, loadingMore = false, error = null)
+        loadRequest = viewModelScope.launch {
             try {
                 val s = _state.value
                 val response = repo.inventoryMovementsPage(1, s.filter.param, s.query.trim().ifEmpty { null })
+                coroutineContext.ensureActive()
                 _state.value = _state.value.copy(
                     items = response.data,
                     stats = response.meta.stats,
                     total = response.meta.total,
                     page = response.meta.currentPage,
                     lastPage = response.meta.lastPage,
+                    loaded = true,
                     loading = false
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                coroutineContext.ensureActive()
                 _state.value = _state.value.copy(loading = false, error = e.toFriendlyMessage("No se pudo cargar el historial."))
             }
         }
@@ -64,10 +80,11 @@ class InventoryMovementsViewModel @JvmOverloads constructor(
     fun loadMore() {
         val s = _state.value
         if (s.loadingMore || s.loading || !s.hasMore) return
-        viewModelScope.launch {
+        moreRequest = viewModelScope.launch {
             _state.value = _state.value.copy(loadingMore = true)
             try {
                 val response = repo.inventoryMovementsPage(s.page + 1, s.filter.param, s.query.trim().ifEmpty { null })
+                coroutineContext.ensureActive()
                 val known = _state.value.items.map { it.id }.toSet()
                 _state.value = _state.value.copy(
                     items = _state.value.items + response.data.filter { it.id !in known },
@@ -75,7 +92,10 @@ class InventoryMovementsViewModel @JvmOverloads constructor(
                     lastPage = response.meta.lastPage,
                     loadingMore = false
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                coroutineContext.ensureActive()
                 _state.value = _state.value.copy(loadingMore = false, error = e.toFriendlyMessage("No se pudieron cargar más movimientos."))
             }
         }
@@ -104,6 +124,8 @@ enum class WaitlistFilter(val label: String, val param: String?) {
 data class WaitlistStaffState(
     val items: List<WaitlistEntry> = emptyList(),
     val filter: WaitlistFilter = WaitlistFilter.Espera,
+    /** True cuando la primera consulta terminó bien. */
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val error: String? = null
 )
@@ -115,13 +137,21 @@ class WaitlistStaffViewModel @JvmOverloads constructor(
     private val _state = MutableStateFlow(WaitlistStaffState())
     val state: StateFlow<WaitlistStaffState> = _state.asStateFlow()
 
+    private var loadRequest: Job? = null
+
+    /** Cada consulta cancela la anterior: cambiar de filtro rápido no deja pasar una respuesta vieja. */
     fun load() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+        loadRequest?.cancel()
+        _state.value = _state.value.copy(loading = true, error = null)
+        loadRequest = viewModelScope.launch {
             try {
                 val items = repo.waitlistForStaff(_state.value.filter.param)
-                _state.value = _state.value.copy(items = items, loading = false)
+                coroutineContext.ensureActive()
+                _state.value = _state.value.copy(items = items, loaded = true, loading = false)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                coroutineContext.ensureActive()
                 _state.value = _state.value.copy(loading = false, error = e.toFriendlyMessage("No se pudo cargar la lista de espera."))
             }
         }
