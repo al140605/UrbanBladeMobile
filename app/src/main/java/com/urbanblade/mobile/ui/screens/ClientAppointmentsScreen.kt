@@ -224,7 +224,7 @@ fun ClientAppointmentsScreen(
                     }
 
                     if (toPay.isNotEmpty()) {
-                        item { UrbanSectionTitle("Por pagar", "Citas atendidas que aún no se cobran.") }
+                        item { UrbanSectionTitle("Por pagar", "Citas con un pago pendiente.") }
                         items(toPay, key = { "pay-${it.id}" }) { appt ->
                             ClientAppointmentRow(appt, onPay = { checkingOut = appt })
                         }

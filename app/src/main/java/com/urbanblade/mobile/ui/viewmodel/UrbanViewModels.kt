@@ -140,9 +140,21 @@ class AppointmentsViewModel @JvmOverloads constructor(
     private val _transferInfo = MutableStateFlow<TransferInfo?>(null)
     val transferInfo = _transferInfo.asStateFlow()
 
-    fun loadTransferInfo() = viewModelScope.launch {
-        if (_transferInfo.value?.configurado == true) return@launch
-        _transferInfo.value = try { repo.transferInfo() } catch (_: Exception) { TransferInfo() }
+    private val _transferInfoError = MutableStateFlow<String?>(null)
+    val transferInfoError = _transferInfoError.asStateFlow()
+    private var transferRequest: Job? = null
+    fun loadTransferInfo(appointmentId: String, propina: Double = 0.0) {
+        transferRequest?.cancel()
+        _transferInfo.value = null
+        _transferInfoError.value = null
+        transferRequest = viewModelScope.launch {
+            try {
+                val info = repo.transferInfo(appointmentId, propina)
+                ensureActive()
+                _transferInfo.value = info
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _transferInfoError.value = e.toFriendlyMessage("No se pudo consultar el importe de transferencia.") }
+        }
     }
 
     /** Quita un error anterior (p. ej. al cambiar de método de pago) para que no parezca del paso actual. */
@@ -494,8 +506,24 @@ class BookingViewModel @JvmOverloads constructor(
     private var pendingId: String? = null
 
     /** Datos bancarios y tarjetas guardadas; si fallan, el pago sigue disponible (sin CLABE o sin tarjetas guardadas). */
+    private val _transferInfoError = MutableStateFlow<String?>(null)
+    val transferInfoError = _transferInfoError.asStateFlow()
+    private var transferRequest: Job? = null
+    fun loadTransferQuote(serviceId: String, propina: Double) {
+        transferRequest?.cancel()
+        _transferInfo.value = null
+        _transferInfoError.value = null
+        transferRequest = viewModelScope.launch {
+            try {
+                val info = repo.transferInfo(propina = propina, serviceId = serviceId)
+                ensureActive()
+                _transferInfo.value = info
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _transferInfoError.value = e.toFriendlyMessage("No se pudo consultar el importe de transferencia.") }
+        }
+    }
+
     fun loadPaymentOptions() = viewModelScope.launch {
-        _transferInfo.value = try { repo.transferInfo() } catch (_: Exception) { TransferInfo() }
         _savedCards.value = try { repo.savedCards() } catch (_: Exception) { emptyList() }
     }
 

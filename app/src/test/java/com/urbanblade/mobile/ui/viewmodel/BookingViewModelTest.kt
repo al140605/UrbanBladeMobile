@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -169,14 +170,13 @@ class BookingViewModelTest {
 
     @Test
     fun `loadPaymentOptions deja la reserva usable aunque fallen los datos de pago`() = runTest(dispatcher) {
-        whenever(repo.transferInfo()).thenThrow(RuntimeException("sin red"))
         whenever(repo.savedCards()).thenThrow(RuntimeException("sin red"))
 
         val vm = BookingViewModel(repo)
         vm.loadPaymentOptions()
         dispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(TransferInfo(), vm.transferInfo.value)
+        assertNull(vm.transferInfo.value)
         assertTrue(vm.savedCards.value.isEmpty())
     }
 

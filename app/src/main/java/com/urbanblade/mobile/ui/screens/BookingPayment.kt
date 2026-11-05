@@ -151,7 +151,8 @@ fun BookingPaymentSection(
     savedCards: List<SavedCard>,
     cardAvailable: Boolean,
     testMode: Boolean,
-    onPickReceipt: () -> Unit
+    onPickReceipt: () -> Unit,
+    transferError: String? = null
 ) {
     val tip = state.tipFor(servicePrice)
 
@@ -189,20 +190,21 @@ fun BookingPaymentSection(
     }
 
     Spacer(Modifier.height(16.dp))
+    val transferQuote = transferInfo?.cotizacion.takeIf { state.method == BookingPayMethod.TRANSFERENCIA }
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
-        UrbanKeyValue("Servicio", money(servicePrice))
+        UrbanKeyValue(if (transferQuote != null) "Servicio con descuentos" else "Servicio", if (transferQuote != null) UrbanFormat.money(transferQuote.serviceAmount) else money(servicePrice))
         if (tip > 0) {
             Spacer(Modifier.height(6.dp))
-            UrbanKeyValue("Propina", money(tip))
+            UrbanKeyValue("Propina", if (transferQuote != null) UrbanFormat.money(tip) else money(tip))
         }
         HorizontalDivider(Modifier.padding(vertical = 10.dp), color = UrbanColors.Muted.copy(alpha = 0.2f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Total de la cita", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(money(servicePrice + tip), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.GoldText)
+            Text(if (transferQuote != null) UrbanFormat.money(transferQuote.total) else money(servicePrice + tip), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.GoldText)
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            "Si tienes descuento por nivel o membresía, se aplica al cobrar.",
+            if (transferQuote != null) "Incluye tus descuentos actuales. Los productos se pagan por separado." else "Si tienes descuento por nivel o membresía, se aplica al cobrar.",
             style = MaterialTheme.typography.bodySmall,
             color = UrbanColors.Muted
         )
@@ -225,7 +227,8 @@ fun BookingPaymentSection(
     when (state.method) {
         BookingPayMethod.TRANSFERENCIA -> {
             Spacer(Modifier.height(16.dp))
-            TransferDetails(transferInfo, servicePrice + tip, state.receiptUri != null, onPickReceipt)
+            if (transferError != null) UrbanErrorBanner(transferError)
+            else TransferDetails(transferInfo, servicePrice + tip, state.receiptUri != null, onPickReceipt)
         }
         BookingPayMethod.TARJETA -> {
             Spacer(Modifier.height(16.dp))
@@ -282,11 +285,13 @@ internal fun TransferAccount(info: TransferInfo?, total: Double) {
             info.beneficiario?.takeIf { it.isNotBlank() }?.let { BankRow("Beneficiario", it, copyable = false) }
             info.clabe?.let { BankRow("CLABE", it.chunked(4).joinToString(" "), copyValue = it, mono = true) }
             info.concepto?.takeIf { it.isNotBlank() }?.let { BankRow("Concepto", it) }
-            BankRow("Monto estimado", money(total), copyable = false, highlight = true)
-            Text(
+            BankRow(if (info.cotizacion != null) "Total a transferir" else "Monto estimado", if (info.cotizacion != null) UrbanFormat.money(info.cotizacion.total) else money(total), copyable = false, highlight = true)
+            if (info.cotizacion != null) {
+                BankRow("Servicio con descuentos", UrbanFormat.money(info.cotizacion.serviceAmount), copyable = false)
+                if (info.cotizacion.propina > 0) BankRow("Propina", UrbanFormat.money(info.cotizacion.propina), copyable = false)
+            } else Text(
                 "Confirma el importe final con la barbería antes de transferir: puede cambiar por descuentos.",
-                style = MaterialTheme.typography.bodySmall,
-                color = UrbanColors.Muted
+                style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted
             )
         }
     }

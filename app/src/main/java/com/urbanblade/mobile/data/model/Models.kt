@@ -581,8 +581,25 @@ data class TransferInfo(
     val banco: String? = null,
     val beneficiario: String? = null,
     val clabe: String? = null,
-    val concepto: String? = null
+    val concepto: String? = null,
+    val cotizacion: TransferQuote? = null
 )
+data class TransferQuote(
+    @com.google.gson.annotations.SerializedName("appointment_id") val appointmentId: String? = null,
+    @com.google.gson.annotations.SerializedName("service_id") val serviceId: String? = null,
+    @com.google.gson.annotations.SerializedName("monto_servicio") val serviceAmount: Double = 0.0,
+    val propina: Double = 0.0,
+    val total: Double = 0.0,
+    val moneda: String = ""
+) {
+    fun matches(appointmentId: String? = null, serviceId: String? = null, tip: Double): Boolean =
+        moneda == "mxn" && total.isFinite() && total > 0 && serviceAmount.isFinite() && serviceAmount >= 0 &&
+            propina.isFinite() && propina >= 0 && kotlin.math.abs(propina - tip) < 0.005 &&
+            kotlin.math.abs(total - serviceAmount - propina) < 0.005 &&
+            ((appointmentId != null && this.appointmentId == appointmentId) ||
+                (appointmentId == null && serviceId != null && this.appointmentId == null && this.serviceId == serviceId))
+}
+
 data class TransferInfoResponse(val data: TransferInfo = TransferInfo())
 
 /** GET /payments/cards: tarjeta guardada en Stripe (solo datos seguros de mostrar). */

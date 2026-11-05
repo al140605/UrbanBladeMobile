@@ -87,6 +87,12 @@ las pruebas de QA del desarrollador como investigación representativa de client
 
 ## Límites de esta entrega
 
+Seguimiento: el incremento posterior implementa la consulta de importes de UX-01
+y corrige el texto de pagos pendientes de UX-02. El contrato y los límites de
+entrega están en [Cotización de transferencias](COTIZACION_TRANSFERENCIAS.md).
+Esto no declara completados UX-02 ni UX-03, que requieren revisar más estados y
+la recuperación de pagos interrumpidos.
+
 Este incremento documenta investigación y prioridades; no modifica código de
 aplicación, políticas comerciales, infraestructura ni producción. No se ejecutan
 cobros, suscripciones o reservas en plataformas de terceros. La rama conserva el

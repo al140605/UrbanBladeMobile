@@ -126,7 +126,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun deleteService(slug: String) = api.deleteService(slug)
 
     suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
-    suspend fun transferInfo() = api.transferInfo().data
+    suspend fun transferInfo(appointmentId: String? = null, propina: Double? = null, serviceId: String? = null) = api.transferInfo(appointmentId, propina, serviceId).data
     suspend fun depositStripeIntent(code: String, body: DepositIntentRequest) = api.depositStripeIntent(code, body).data
 
     suspend fun uploadDepositReceipt(context: Context, code: String, receiptUri: Uri): UploadPaymentReceiptResponse {

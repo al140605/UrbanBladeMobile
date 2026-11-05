@@ -48,4 +48,18 @@ class TransferAccountTest {
         compose.onNodeWithText("Confirma el importe final con la barbería antes de transferir: puede cambiar por descuentos.").assertExists()
         compose.onNodeWithText("Monto").assertDoesNotExist()
     }
+
+    @Test
+    fun `confirmed quote displays server total instead of local estimate`() {
+        val info = TransferInfo(configurado = true, cotizacion = com.urbanblade.mobile.data.model.TransferQuote(
+            appointmentId = "a", serviceAmount = 142.5, propina = 15.0, total = 157.5, moneda = "mxn"
+        ))
+        compose.setContent { MaterialTheme { TransferAccount(info = info, total = 999.0) } }
+        compose.onNodeWithText("$157.50").assertExists()
+        compose.onNodeWithText("$142.50").assertExists()
+        compose.onNodeWithText("$158").assertDoesNotExist()
+        compose.onNodeWithText("Total a transferir").assertExists()
+        compose.onNodeWithText("Monto estimado").assertDoesNotExist()
+        compose.onNodeWithText("Servicio con descuentos").assertExists()
+    }
 }

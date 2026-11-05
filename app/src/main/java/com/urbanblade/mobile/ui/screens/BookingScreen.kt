@@ -136,6 +136,7 @@ fun BookingScreen(
     val paymentNote by vm.paymentNote.collectAsState()
     val cardConfirm by vm.cardConfirm.collectAsState()
     val transferInfo by vm.transferInfo.collectAsState()
+    val transferInfoError by vm.transferInfoError.collectAsState()
     val savedCards by vm.savedCards.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val cardAvailable = rememberStripeReady()
@@ -184,6 +185,12 @@ fun BookingScreen(
     }
 
     val selectedService = services.firstOrNull { it.id == serviceId }
+    val transferTip = pay.tipFor(selectedService?.precio ?: 0.0)
+    LaunchedEffect(pay.method, serviceId, transferTip) {
+        if (pay.method == BookingPayMethod.TRANSFERENCIA && serviceId.isNotBlank()) vm.loadTransferQuote(serviceId, transferTip)
+    }
+    val validTransferQuote = transferInfo?.cotizacion?.matches(serviceId = serviceId, tip = transferTip) == true
+
     // Si llega desde el Muro de Inspiración trae el id del usuario del barbero: se traduce al de su perfil.
     LaunchedEffect(barbers) {
         if (barberId.isBlank()) barbers.firstOrNull { it.esFavorito }?.let { barberId = it.id }
@@ -345,7 +352,8 @@ fun BookingScreen(
                                     BookingPaymentSection(
                                         state = pay,
                                         servicePrice = selectedService?.precio ?: 0.0,
-                                        transferInfo = transferInfo,
+                                        transferInfo = transferInfo?.let { if (validTransferQuote) it else it.copy(cotizacion = null) },
+                                        transferError = transferInfoError,
                                         savedCards = savedCards,
                                         cardAvailable = cardAvailable && cardEnabledRemotely,
                                         testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
@@ -356,6 +364,9 @@ fun BookingScreen(
                         }
                     }
 
+                    if (pay.method == BookingPayMethod.TRANSFERENCIA && transferInfoError != null) {
+                        TextButton(onClick = { vm.loadTransferQuote(serviceId, transferTip) }) { Text("Reintentar cotización") }
+                    }
                     (localError ?: error)?.let {
                         Box(Modifier.padding(horizontal = 18.dp)) { UrbanErrorBanner(it) }
                         Spacer(Modifier.height(8.dp))
@@ -429,7 +440,9 @@ fun BookingScreen(
                         if (step == BookingStep.PAY) {
                             localError = null
                             val savedId = pay.savedCardToUse(savedCards)
-                            if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.newCardProblem() != null) {
+                            if (pay.method == BookingPayMethod.TRANSFERENCIA && pay.receiptUri != null && !validTransferQuote) {
+                                localError = "Consulta el importe de transferencia antes de enviar el comprobante."
+                            } else if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.newCardProblem() != null) {
                                 localError = pay.newCardProblem()
                                 // Lleva al formulario para que se vea qué falta (antes quedaba abajo, fuera de la vista).
                                 pay.cardAttention++
