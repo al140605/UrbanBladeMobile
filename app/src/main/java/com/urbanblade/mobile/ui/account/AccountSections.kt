@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,7 +69,10 @@ import com.urbanblade.mobile.ui.viewmodel.AccountNotice
 fun AccountNoticeBanner(notice: AccountNotice?) {
     notice ?: return
     Spacer(Modifier.height(12.dp))
-    if (notice.isError) UrbanErrorBanner(notice.text) else UrbanInfoBanner(notice.text, Icons.Default.CheckCircle)
+    // Región viva: TalkBack anuncia el resultado (guardado, error) sin tener que buscarlo.
+    Column(Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }) {
+        if (notice.isError) UrbanErrorBanner(notice.text) else UrbanInfoBanner(notice.text, Icons.Default.CheckCircle)
+    }
 }
 
 private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
@@ -131,7 +137,7 @@ fun PersonalDataForm(
                             label = { Text(label) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = UrbanColors.Gold.copy(alpha = 0.18f),
-                                selectedLabelColor = UrbanColors.Gold
+                                selectedLabelColor = UrbanColors.GoldText
                             )
                         )
                     }
@@ -266,7 +272,7 @@ fun NotificationPreferences.summary(): String {
 /** Selector de los cuatro temas con vista previa de fondo y acento. */
 @Composable
 fun ThemePicker(current: UrbanTheme, onSelect: (UrbanTheme) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.SpaceBetween) {
         UrbanTheme.entries.forEach { theme ->
             ThemeSwatch(theme, theme == current) { onSelect(theme) }
         }

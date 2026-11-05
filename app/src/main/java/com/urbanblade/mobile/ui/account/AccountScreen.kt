@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -59,6 +61,7 @@ import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.rememberSingleImagePicker
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.viewmodel.AccountSection
 import com.urbanblade.mobile.ui.viewmodel.AccountViewModel
 import kotlinx.coroutines.launch
@@ -84,14 +87,13 @@ fun AccountScreen(
 ) {
     val state by vm.state.collectAsState()
     val isClient = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
-    val compactMember = isClient || accountRoleLabel(user.roles) == "Barbero"
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pickPhoto = rememberSingleImagePicker { uri -> vm.uploadAvatar(context, uri, onUserChanged) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    // Cliente y barbero ven primero el resumen; el resto del personal conserva su sección inicial.
-    var openData by rememberSaveable { mutableStateOf(if (compactMember) "" else "personal") }
+    // Todos los roles ven primero el resumen de sus secciones, cerradas.
+    var openData by rememberSaveable { mutableStateOf("") }
     var openSecurity by rememberSaveable { mutableStateOf("password") }
     var openPrefs by rememberSaveable { mutableStateOf("") }
     fun toggle(current: String, key: String) = if (current == key) "" else key
@@ -103,8 +105,8 @@ fun AccountScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
             UrbanPageHeader(
@@ -145,7 +147,6 @@ fun AccountScreen(
                         uploading = state.uploadingAvatar,
                         onChangePhoto = pickPhoto,
                         stats = stats,
-                        compact = compactMember,
                         footnote = when {
                             isClient && discount > 0 -> "Tu descuento activo: ${discount.toInt()} % en cada servicio."
                             isClient && (loyalty?.citasFaltan ?: 0) > 0 && loyalty?.nextNivelLabel != null ->
@@ -282,22 +283,23 @@ fun AccountScreen(
 
         // Documentos legales y contacto para derechos sobre los datos; el borrado de la cuenta
         // está en Seguridad para los roles autorizados.
+        item { UrbanSectionTitle("Legal y privacidad", "Tus datos, tus derechos.") }
         item {
             val openLegal = com.urbanblade.mobile.ui.components.rememberOpenLegal()
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL) }) {
-                    Text("Aviso de Privacidad", color = UrbanColors.GoldText)
+            UrbanRowGroup(listOf("privacy", "terms")) { key ->
+                if (key == "privacy") UrbanActionRow("Aviso de Privacidad", "Cómo cuidamos y usamos tus datos.", Icons.Default.PrivacyTip) {
+                    openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL)
+                } else UrbanActionRow("Términos y Condiciones", "Las reglas de uso de UrbanBlade.", Icons.Default.Description) {
+                    openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL)
                 }
-                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL) }) {
-                    Text("Términos y Condiciones", color = UrbanColors.GoldText)
-                }
-                Text(
-                    "Para ejercer tus derechos sobre tus datos (acceso, corrección o borrado del historial), escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = UrbanColors.Muted,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
             }
+        }
+        item {
+            Text(
+                "Para ejercer tus derechos sobre tus datos (acceso, corrección o borrado del historial), escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
 
         item {

@@ -148,7 +148,8 @@ fun UrbanPageHeader(
             Text(
                 title,
                 style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
-                color = UrbanColors.Ink
+                color = UrbanColors.Ink,
+                modifier = Modifier.semantics { heading() }
             )
             subtitle?.let {
                 Spacer(Modifier.height(5.dp))

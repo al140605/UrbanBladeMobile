@@ -390,3 +390,20 @@ Sin cambiar ninguna fotografía. Solo composición:
   queda fijo. La mascota de error o éxito va junto al título.
 - Registro: el avance es una barra de dos segmentos (con descripción para TalkBack).
 - Pendiente: probar Libreta, el teclado abierto y el estado «correo enviado» en el teléfono.
+
+## Cuenta, perfil y accesibilidad (5 de noviembre de 2026)
+
+Misma pantalla para los cinco roles; lo que cambia es solo lo que cada rol tiene.
+
+- Tarjeta de miembro única y compacta (antes administración, recepción e ingeniería usaban una grande y
+  barbero y cliente una compacta): foto de 64 dp, nombre, correo, rol y dos datos en una fila sin cajas.
+- Todas las secciones empiezan cerradas, también para el personal, y el margen es el de los demás inicios
+  (16 dp).
+- «Legal y privacidad» pasa de dos botones de texto sueltos a dos filas del mismo grupo de acciones que usa
+  el cliente (Beneficios, pedidos, facturas).
+- Accesibilidad: el título de cada pantalla (`UrbanPageHeader`) es un encabezado para TalkBack; la foto de
+  perfil es un botón con descripción; el selector de tema es un grupo de selección; los avisos de guardado y
+  error son regiones vivas; las filas con interruptor leen título y descripción (antes la descripción
+  reemplazaba al texto y se perdía el subtítulo); la etiqueta seleccionada de los chips usa el dorado de texto
+  (legible en Libreta).
+- Pendiente: recorrer con TalkBack en el teléfono, revisar Seguridad y Ajustes en Libreta y 320 dp.

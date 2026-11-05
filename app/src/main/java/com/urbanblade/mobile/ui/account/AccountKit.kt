@@ -58,8 +58,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.components.UrbanAvatar
 import com.urbanblade.mobile.ui.components.UrbanHeroCard
-import com.urbanblade.mobile.ui.components.UrbanHeroLabel
-import com.urbanblade.mobile.ui.components.UrbanHeroStat
 import com.urbanblade.mobile.ui.components.UrbanRolePill
 import com.urbanblade.mobile.ui.theme.UrbanColors
 
@@ -75,8 +73,8 @@ fun accountRoleLabel(roles: List<String>): String {
 }
 
 /**
- * Tarjeta de miembro: foto (se toca para cambiarla), nombre, correo, roles y dos o tres datos
- * de la cuenta. [footnote] es una línea opcional al pie, como el "Esta semana" del administrador.
+ * Tarjeta de miembro, igual para los cinco roles: foto (se toca para cambiarla), nombre, correo, rol y dos
+ * datos de la cuenta en una fila. [footnote] es una línea opcional al pie.
  */
 @Composable
 fun AccountMemberCard(
@@ -87,22 +85,23 @@ fun AccountMemberCard(
     uploading: Boolean,
     onChangePhoto: () -> Unit,
     stats: List<Triple<String, String, ImageVector>>,
-    footnote: String? = null,
-    compact: Boolean = false
+    footnote: String? = null
 ) {
     UrbanHeroCard {
-        if (!compact) {
-            UrbanHeroLabel("Miembro UrbanBlade")
-            Spacer(Modifier.height(14.dp))
-        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             // La insignia de cámara va fuera del recorte circular de la foto para verse completa.
-            Box(Modifier.size(if (compact) 60.dp else 76.dp)) {
+            Box(Modifier.size(64.dp)) {
                 Box(
                     Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .clickable(enabled = !uploading, onClickLabel = "Cambiar foto de perfil", onClick = onChangePhoto)
+                        .clickable(
+                            enabled = !uploading,
+                            onClickLabel = "Cambiar foto de perfil",
+                            role = Role.Button,
+                            onClick = onChangePhoto
+                        )
+                        .semantics { contentDescription = "Foto de perfil de $name" }
                 ) {
                     UrbanAvatar(name, Modifier.fillMaxSize(), imageUrl = avatarUrl)
                     if (uploading) {
@@ -114,46 +113,56 @@ fun AccountMemberCard(
                 Box(
                     Modifier
                         .align(Alignment.BottomEnd)
-                        .size(26.dp)
+                        .size(24.dp)
                         .clip(CircleShape)
                         .background(UrbanColors.Gold)
                         .border(2.dp, UrbanColors.Background, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.CameraAlt, null, tint = UrbanColors.OnGold, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.CameraAlt, null, tint = UrbanColors.OnGold, modifier = Modifier.size(13.dp))
                 }
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(name, style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(name, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(email, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     roles.take(2).forEach { UrbanRolePill(it) }
                 }
             }
         }
         if (stats.isNotEmpty()) {
-            Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
-            Box(Modifier.fillMaxWidth().height(1.dp).background(UrbanColors.Gold.copy(alpha = 0.22f)))
-            Spacer(Modifier.height(if (compact) 10.dp else 14.dp))
-            // En pantallas angostas (menos de ~340 dp de tarjeta) los datos van uno debajo del otro:
-            // lado a lado, "Caballero" se cortaba en "Caball…" (checklist CN-095).
+            Spacer(Modifier.height(12.dp))
+            // En pantallas angostas los datos van uno debajo del otro (checklist CN-095).
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                if (maxWidth < 300.dp) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        stats.forEach { (label, value, icon) -> UrbanHeroStat(label, value, icon) }
+                if (maxWidth < 280.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        stats.forEach { (label, value, icon) -> MemberStat(label, value, icon) }
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        stats.forEach { (label, value, icon) -> UrbanHeroStat(label, value, icon, Modifier.weight(1f)) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        stats.forEach { (label, value, icon) -> MemberStat(label, value, icon, Modifier.weight(1f)) }
                     }
                 }
             }
         }
         footnote?.let {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+    }
+}
+
+/** Dato de la tarjeta de miembro: icono pequeño, valor y etiqueta, sin caja. */
+@Composable
+private fun MemberStat(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(value, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
     }
 }
