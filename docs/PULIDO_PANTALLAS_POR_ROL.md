@@ -448,3 +448,12 @@ Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físi
   `UrbanModuleScreen` y `SocialFeedScreen`). Con cinco destinos las etiquetas usan una talla menos.
 - Pendiente de verificar en el teléfono: que «Inspiración» no se corte a 320 dp y con fuente grande, y el
   regreso desde el atajo del inicio del cliente.
+
+## Aviso al reportante (5 de noviembre de 2026)
+
+- Backend (rama `feat/aviso-reportante`, commit local sin subir): al resolver los reportes de un comentario,
+  cada reportante recibe un aviso una sola vez («eliminamos el comentario» o «cumple con las reglas, se
+  conserva»), sin revelar al autor. Canal de Android nuevo «comunidad», tipo `report_resolved`, ruta `social`.
+- App: `PushChannel.COMUNIDAD`, `report_resolved` → pantalla `social`, ícono propio en la bandeja y pruebas.
+- Pendiente: el backend debe publicarse por PR y desplegarse antes de que el aviso llegue; verificar en el
+  teléfono cuando esté desplegado.

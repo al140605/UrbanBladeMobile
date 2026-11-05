@@ -56,7 +56,7 @@ class PushContentTest {
     @Test
     fun `todos los canales que manda el backend existen en la app`() {
         // Misma lista que App\Services\Push\PushRouting::CHANNELS.
-        val backend = listOf("citas", "pagos", "pedidos", "fidelidad", "promociones", "operacion")
+        val backend = listOf("citas", "pagos", "pedidos", "fidelidad", "promociones", "operacion", "comunidad")
         backend.forEach { assertEquals(it, PushChannel.from(it).id) }
         assertEquals(backend.size, PushChannel.entries.size)
     }
@@ -75,7 +75,7 @@ class NotificationRouteTest {
         val tipos = listOf(
             "appointment", "review_request", "payment", "transfer_receipt", "membership_invoice", "order_delivered", "order_expired",
             "loyalty_level_up", "loyalty_level_downgraded", "loyalty_points_expired", "raffle_win", "client_birthday",
-            "promotion", "service_overrun", "inventory_low_stock"
+            "promotion", "service_overrun", "inventory_low_stock", "report_resolved"
         )
         tipos.forEach { tipo ->
             val ruta = routeForNotificationType(tipo)
@@ -89,6 +89,14 @@ class NotificationRouteTest {
         assertEquals("orders", routeForNotificationType("order_delivered"))
         assertEquals("appointments", routeForNotificationType("appointment"))
         assertEquals("wallet", routeForNotificationType("raffle_win"))
+    }
+
+    @Test
+    fun `la respuesta a un reporte abre el muro y su canal es comunidad`() {
+        assertEquals("social", routeForNotificationType("report_resolved"))
+        assertEquals("social", safePushRoute("social"))
+        assertEquals(PushChannel.COMUNIDAD, PushChannel.from("comunidad"))
+        assertTrue(!PushChannel.COMUNIDAD.important)
     }
 
     @Test

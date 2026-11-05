@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -276,6 +277,7 @@ private fun notificationLook(n: NotificationItem): Pair<ImageVector, Color> {
         type == "inventory_low_stock" -> Icons.Default.Inventory2 to UrbanColors.Warning
         type == "barber_review_flagged" -> Icons.Default.Flag to UrbanColors.Danger
         type in setOf("barber_performance_report", "daily_summary") -> Icons.Default.Assessment to UrbanColors.Info
+        type == "report_resolved" -> Icons.Default.VerifiedUser to UrbanColors.Info
         type == "membership_invoice" -> Icons.Default.ReceiptLong to UrbanColors.Success
         type == "review_request" -> Icons.Default.RateReview to UrbanColors.Gold
         type in setOf("appointment", "cita") -> Icons.Default.CalendarMonth to UrbanColors.Gold
