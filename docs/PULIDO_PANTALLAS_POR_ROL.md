@@ -331,3 +331,32 @@ teléfono, porque cortar la red falla todas las consultas a la vez: lo cubren la
 cierres.
 
 Con esta tanda las doce listas de administración y operación usan los estados únicos.
+
+### Incremento 4 de coherencia: una ficha de KPI y una pastilla (5 de noviembre de 2026)
+
+Regla de uso en [la auditoría](AUDITORIA_COHERENCIA_UI_2026-11-05.md#regla-de-uso-de-tarjetas-y-pastillas).
+`UrbanMetricCard` se retira y sus ocho usos (Campañas, detalle de cliente y Dashboard) pasan a
+`UrbanStatCard`, la ficha plana con la etiqueta arriba que admite tendencia. `UrbanRolePill` y
+`SimpleStatusPill` delegan en `UrbanTonePill`, que gana un color de texto opcional (el rol conserva
+su dorado legible), de modo que hay una sola implementación del tinte, el borde y el texto para 16
+usos. El relleno de `UrbanPremiumCard` pasa de 18 a 16 dp (`UrbanSpace.Md`). La medición previa se
+corrigió: eran tres superficies con roles distintos y dos fichas de KPI duplicadas, no seis tipos
+de tarjeta; y el contraste de `SimpleStatusPill` ya pasaba AA en Libreta (5,2 a 5,6), de modo que
+la fusión es de mantenimiento y no de accesibilidad.
+
+Validación: 488 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, en el tema «Sastrería Nocturna» y en «Libreta de Barbero» (el
+único claro): fichas de KPI en Campañas y en el detalle de cliente, pastillas «Stock bajo» en
+Inventario, roles en Usuarios e inicio del administrador con las tarjetas destacadas. Las fichas
+planas se leen limpias en ambos temas y «Stock bajo» mantiene buen contraste en el claro. El tema
+de la variante de auditoría se devolvió a «Sastrería Nocturna». No se revisaron «Taller de Acero» ni
+«Salón Inglés».
+
+Hallazgo durante el recorrido, previo al incremento: el detalle de cliente mostraba «No se pudo
+cargar el cliente». El backend resuelve `admin/clients/{client}` por slug (el modelo `Client` usa
+`HasSlug`) y la app llamaba con el id, de modo que el detalle, la edición y la baja respondían 404;
+ya ocurría antes de esta rama. La lista navega ahora con `ClientRow.routeKey()` (el slug, con el id
+como respaldo) y se añaden tres pruebas. Con el cambio el detalle carga y muestra sus seis fichas.
+
+Pendiente: el botón flotante de «Nueva campaña» sigue tapando parte del texto del estado vacío
+mientras la lista está en lo alto; al desplazar se contrae y deja de tapar.

@@ -73,7 +73,6 @@ import com.urbanblade.mobile.ui.components.UrbanStaleContentNotice
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
-import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard

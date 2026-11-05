@@ -27,6 +27,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.*
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTonePill
 
 // ── Métricas del negocio ─────────────────────────────────────────────────
 
@@ -240,19 +241,8 @@ internal fun SimpleStatusPill(status: String, color: androidx.compose.ui.graphic
         "reclamado" -> UrbanColors.Info
         else -> UrbanColors.Muted
     }
-    Surface(
-        shape = CircleShape,
-        color = resolved.copy(alpha = 0.13f),
-        border = BorderStroke(1.dp, resolved.copy(alpha = 0.35f))
-    ) {
-        Text(
-            status.replaceFirstChar { it.uppercase() },
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = resolved,
-            maxLines = 1
-        )
-    }
+    // Misma pastilla que UrbanStatusPill y UrbanTrendPill: una sola implementación del tinte, el borde y el texto.
+    UrbanTonePill(label = status.replaceFirstChar { it.uppercase() }, icon = null, tone = resolved)
 }
 
 // ── Sorteos ──────────────────────────────────────────────────────────────

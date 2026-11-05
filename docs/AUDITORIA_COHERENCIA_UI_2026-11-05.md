@@ -70,6 +70,35 @@ cliente y conservan una etiqueta que sirve a ambos.
 6. Un único encabezado de inicio con variantes por rol, no cinco construcciones distintas.
 7. Lo «premium» se mide: movimiento, retroalimentación táctil, esqueletos y microcopy con el mismo criterio en todos los roles.
 
+## Corrección de la medición de tarjetas y pastillas (incremento 4)
+
+La primera lectura contaba seis tipos de tarjeta y cuatro de pastilla. Al leer las definiciones el
+desorden resultó menor y más concentrado:
+
+- Tarjetas: tres superficies con roles distintos (`UrbanCard`, `UrbanPremiumCard`, `UrbanHeroCard`),
+  tres envoltorios de la destacada (`UrbanAnalyticsCard`, `UrbanQuickAction` y la ficha de KPI) y
+  dos fichas de KPI duplicadas, `UrbanMetricCard` (destacada, con icono a la izquierda) y
+  `UrbanStatCard` (plana, con la etiqueta arriba y tendencia).
+- Pastillas: una implementación real (`UrbanTonePill`, que usan `UrbanStatusPill` y
+  `UrbanTrendPill`) y dos copias a mano, `UrbanRolePill` y `SimpleStatusPill`, con valores
+  ligeramente distintos.
+- Una sospecha descartada: `SimpleStatusPill` pinta el texto con el color puro del tono, pero en
+  Libreta esos colores ya están oscurecidos y el contraste calculado es de 5,2 a 5,6 (mínimo AA,
+  4,5). No era un problema de accesibilidad; la fusión es de mantenimiento y coherencia.
+
+### Regla de uso de tarjetas y pastillas
+
+| Pieza | Cuándo | No usar para |
+| --- | --- | --- |
+| `UrbanCard` | Una entidad en una lista o un bloque de datos: cliente, pedido, producto, pago | Resúmenes destacados |
+| `UrbanPremiumCard` | Un resumen destacado o una acción principal (con degradado) | Cada fila de una lista |
+| `UrbanHeroCard` | El dato principal de un módulo, sobre la foto de la barbería | Más de una por pantalla |
+| `UrbanStatCard` | Un KPI: etiqueta, valor y, si hay con qué compararlo, su tendencia | Cifras sueltas dentro de otra tarjeta (usar `UrbanStatStrip`) |
+| `UrbanTonePill` | Cualquier pastilla de estado, rol o variación; `UrbanStatusPill`, `UrbanTrendPill`, `UrbanRolePill` y `SimpleStatusPill` son solo atajos que la usan | Crear otra superficie de pastilla a mano |
+
+`UrbanCard` y `UrbanPremiumCard` no se fusionan: la diferencia de superficie (plana o con
+degradado) y de esquina (16 o 24 dp) comunica la jerarquía. El relleno de ambas es de 16 dp.
+
 ## Plan por incrementos
 
 Cada incremento termina con pruebas, lint, APK `.audit` y recorrido físico registrado.

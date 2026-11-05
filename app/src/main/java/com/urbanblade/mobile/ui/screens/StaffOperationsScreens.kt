@@ -95,7 +95,7 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
         refreshing = state.loading
     ) {
         // Tres números en una sola tarjeta (UrbanStatStrip), como pide la skill: con tres
-        // UrbanMetricCard angostas la etiqueta "Entradas" se partía como "Entrad / as" a 360 dp.
+        // fichas de KPI angostas la etiqueta "Entradas" se partía como "Entrad / as" a 360 dp.
         if (state.loaded) item {
             UrbanStatStrip(
                 listOf(

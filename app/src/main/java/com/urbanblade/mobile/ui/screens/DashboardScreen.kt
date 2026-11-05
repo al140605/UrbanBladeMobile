@@ -17,6 +17,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.DashboardViewModel
 import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanStatCard
 
 @Composable
 fun DashboardScreen(
@@ -123,7 +124,7 @@ fun DashboardScreen(
                 items(kpis.chunked(2)) { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         row.forEach { (label, value) ->
-                            UrbanMetricCard(
+                            UrbanStatCard(
                                 label = label,
                                 value = value,
                                 icon = iconForKpi(label),

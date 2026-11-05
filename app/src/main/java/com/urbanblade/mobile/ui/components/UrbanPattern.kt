@@ -282,7 +282,7 @@ fun UrbanMascotState(
 
 /**
  * Tres o cuatro números en una sola tarjeta, cada uno en su columna. Reemplaza a varias
- * UrbanMetricCard angostas en fila, que partían las etiquetas a media palabra.
+ * fichas de KPI angostas en fila, que partían las etiquetas a media palabra.
  */
 @Composable
 fun UrbanStatStrip(stats: List<Triple<String, String, Color>>, onClick: (() -> Unit)? = null) {

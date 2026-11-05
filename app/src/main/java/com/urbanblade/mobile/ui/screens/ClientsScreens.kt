@@ -28,6 +28,7 @@ import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanTextButton
 import com.urbanblade.mobile.ui.components.urbanListFeedback
+import com.urbanblade.mobile.ui.components.UrbanStatCard
 import com.urbanblade.mobile.data.model.ClientRow
 
 private val SEGMENT_LABEL = mapOf(
@@ -264,26 +265,21 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        UrbanMetricCard("Nivel", d.nivel?.replaceFirstChar { it.uppercase() } ?: "—", Icons.Default.Star, Modifier.weight(1f))
-                        UrbanMetricCard("Puntos", d.puntos.toString(), Icons.Default.Toll, Modifier.weight(1f))
+                        UrbanStatCard("Nivel", d.nivel?.replaceFirstChar { it.uppercase() } ?: "—", Modifier.weight(1f), icon = Icons.Default.Star)
+                        UrbanStatCard("Puntos", d.puntos.toString(), Modifier.weight(1f), icon = Icons.Default.Toll)
                     }
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        UrbanMetricCard("Citas totales", d.totalAppointments.toString(), Icons.Default.CalendarMonth, Modifier.weight(1f))
-                        UrbanMetricCard("Total gastado", UrbanFormat.moneyShort(d.totalSpent), Icons.Default.Payments, Modifier.weight(1f))
+                        UrbanStatCard("Citas totales", d.totalAppointments.toString(), Modifier.weight(1f), icon = Icons.Default.CalendarMonth)
+                        UrbanStatCard("Total gastado", UrbanFormat.moneyShort(d.totalSpent), Modifier.weight(1f), icon = Icons.Default.Payments)
                     }
                 }
                 if (d.averageSpent > 0) {
                     item {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            UrbanMetricCard("Ticket promedio", UrbanFormat.moneyShort(d.averageSpent), Icons.Default.Receipt, Modifier.weight(1f))
-                            UrbanMetricCard(
-                                "Días sin venir",
-                                d.daysSinceLastAppointment?.toString() ?: "—",
-                                Icons.Default.Schedule,
-                                Modifier.weight(1f)
-                            )
+                            UrbanStatCard("Ticket promedio", UrbanFormat.moneyShort(d.averageSpent), Modifier.weight(1f), icon = Icons.Default.Receipt)
+                            UrbanStatCard("Días sin venir", d.daysSinceLastAppointment?.toString() ?: "—", Modifier.weight(1f), icon = Icons.Default.Schedule)
                         }
                     }
                 }

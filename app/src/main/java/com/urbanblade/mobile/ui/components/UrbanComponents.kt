@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Envoltura para contenido de formulario (diálogos, columnas planas) que debe
@@ -222,7 +223,7 @@ fun UrbanPremiumCard(
         .border(1.dp, UrbanColors.Line, shape)
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
 
-    Column(base.padding(18.dp), content = content)
+    Column(base.padding(UrbanSpace.Md), content = content)
 }
 
 @Composable
@@ -240,35 +241,6 @@ fun UrbanCard(
         tonalElevation = 0.dp
     ) {
         Column(Modifier.padding(16.dp), content = content)
-    }
-}
-
-@Composable
-fun UrbanMetricCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    UrbanPremiumCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    // Caja neutra e icono dorado: con el tinte dorado en cada tarjeta el dorado
-                    // dejaba de ser énfasis (auditoría, P2-3).
-                    .background(UrbanColors.CardAlt),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(value, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-                Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-        }
     }
 }
 
@@ -310,10 +282,10 @@ fun UrbanQuickAction(
  * crema de "Libreta" (lo mismo que ya hacía UrbanStatusPill).
  */
 @Composable
-internal fun UrbanTonePill(label: String, icon: ImageVector?, tone: Color, modifier: Modifier = Modifier) {
+internal fun UrbanTonePill(label: String, icon: ImageVector?, tone: Color, modifier: Modifier = Modifier, textColor: Color? = null) {
     // El tono ya viene resuelto a Color (StatusTone.color() lo resuelve quien llama).
     val color = tone
-    val content = androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f)
+    val content = textColor ?: androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f)
     Surface(
         modifier = modifier,
         shape = CircleShape,
@@ -342,18 +314,13 @@ fun UrbanStatusPill(status: String) {
 
 @Composable
 fun UrbanRolePill(role: String) {
-    Surface(
-        shape = CircleShape,
-        color = UrbanColors.Gold.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.33f))
-    ) {
-        Text(
-            role.replace('_', ' ').replaceFirstChar { it.uppercase() },
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = UrbanColors.GoldText
-        )
-    }
+    // Misma pastilla que los estados; el rol conserva su dorado legible en cada tema (GoldText).
+    UrbanTonePill(
+        label = role.replace('_', ' ').replaceFirstChar { it.uppercase() },
+        icon = null,
+        tone = UrbanColors.Gold,
+        textColor = UrbanColors.GoldText
+    )
 }
 
 @Composable

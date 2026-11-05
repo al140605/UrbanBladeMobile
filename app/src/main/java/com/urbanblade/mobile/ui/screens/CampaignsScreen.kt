@@ -58,7 +58,6 @@ import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
-import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
@@ -77,6 +76,7 @@ import java.time.ZoneOffset
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
 import com.urbanblade.mobile.ui.components.urbanListFeedback
+import com.urbanblade.mobile.ui.components.UrbanStatCard
 
 /** Campañas de marketing por segmento (solo administrador): historial y envío inmediato o programado. */
 @Composable
@@ -111,7 +111,7 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
                     data.segmentCounts.entries.chunked(2).forEach { row ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             row.forEach { (key, count) ->
-                                UrbanMetricCard(labels[key] ?: key, count.toString(), Icons.Default.Groups, Modifier.weight(1f))
+                                UrbanStatCard(labels[key] ?: key, count.toString(), Modifier.weight(1f), icon = Icons.Default.Groups)
                             }
                             if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
