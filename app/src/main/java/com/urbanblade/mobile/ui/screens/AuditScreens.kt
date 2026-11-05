@@ -31,7 +31,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load(rating = ratingFilter) }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(busy) { vm.load(rating = ratingFilter) } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
@@ -39,10 +39,12 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { UrbanPageHeader(title = "Reseñas", subtitle = "Lo que opinan tus clientes de cada barbero.", eyebrow = "Calidad") }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-
-            if (!loadedOnce && error == null) item { UrbanSkeletonList(1) }
+            urbanListFeedback(
+                loadedOnce, busy, reviews.data.isNotEmpty(), error,
+                "No pudimos cargar las reseñas",
+                if (ratingFilter == null) "Aún no hay reseñas" else "Sin reseñas de ${ratingFilter}★",
+                if (ratingFilter == null) "Aquí aparecerán las opiniones de tus clientes." else "Prueba con otra calificación."
+            ) { vm.load(rating = ratingFilter) }
             if (loadedOnce) item {
                 UrbanStatStrip(
                     listOf(
@@ -62,15 +64,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
                 }
             }
 
-            if (loadedOnce && reviews.data.isEmpty() && !busy && error == null) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (ratingFilter == null) "Aún no hay reseñas" else "Sin reseñas de ${ratingFilter}★",
-                        if (ratingFilter == null) "Se piden al cliente dos horas después de completar su cita." else "Prueba con otra calificación."
-                    )
-                }
-            }
+
 
             items(reviews.data) { review ->
                 UrbanCard(Modifier.fillMaxWidth()) {
@@ -118,7 +112,11 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
         onRefresh = { reload() },
         refreshing = busy
     ) {
-        if (!loadedOnce && error == null) item { UrbanSkeletonList(1) }
+        urbanListFeedback(
+            loadedOnce, busy, logs.data.isNotEmpty(), error,
+            "No pudimos cargar la bitácora", "Sin registros",
+            "No hay actividad que coincida con la búsqueda o el filtro."
+        ) { reload() }
         if (loadedOnce) item {
             UrbanHeroCard {
                 UrbanHeroLabel("Actividad de hoy")
@@ -170,31 +168,20 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
             }
         }
 
-        when {
-            error != null && logs.data.isEmpty() -> item {
-                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar la bitácora", error, "Reintentar") { reload() }
-            }
-            loadedOnce && logs.data.isEmpty() && !busy -> item {
-                UrbanMascotState(UrbanStateKind.EMPTY, "Sin registros", "No hay actividad que coincida con la búsqueda o el filtro.")
-            }
-            else -> {
-                error?.let { item { UrbanErrorBanner(it) } }
-                items(logs.data) { log ->
-                    val (label, tone) = logEventStyle(log.event)
-                    UrbanAttentionRow(
-                        icon = when (log.event?.lowercase()) {
-                            "created" -> Icons.Default.AddCircle
-                            "updated" -> Icons.Default.Edit
-                            "deleted" -> Icons.Default.RemoveCircle
-                            else -> Icons.Default.History
-                        },
-                        text = log.description ?: log.logName ?: "—",
-                        subtitle = listOfNotNull(log.causer?.name ?: "Sistema", log.createdAt).joinToString(" · "),
-                        tone = tone,
-                        trailing = { SimpleStatusPill(label, tone) }
-                    )
-                }
-            }
+        items(logs.data) { log ->
+            val (label, tone) = logEventStyle(log.event)
+            UrbanAttentionRow(
+                icon = when (log.event?.lowercase()) {
+                    "created" -> Icons.Default.AddCircle
+                    "updated" -> Icons.Default.Edit
+                    "deleted" -> Icons.Default.RemoveCircle
+                    else -> Icons.Default.History
+                },
+                text = log.description ?: log.logName ?: "—",
+                subtitle = listOfNotNull(log.causer?.name ?: "Sistema", log.createdAt).joinToString(" · "),
+                tone = tone,
+                trailing = { SimpleStatusPill(label, tone) }
+            )
         }
     }
 }

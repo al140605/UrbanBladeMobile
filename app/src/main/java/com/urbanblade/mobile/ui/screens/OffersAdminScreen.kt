@@ -64,6 +64,7 @@ import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
 import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanPageHeader
@@ -94,7 +95,7 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
         containerColor = Color.Transparent,
         topBar = {
             UrbanTopBar("", onBack) {
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+                UrbanRefreshButton(state.loading || state.saving) { vm.load() }
             }
         },
         floatingActionButton = {

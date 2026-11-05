@@ -60,6 +60,7 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
 import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanStateKind
@@ -96,7 +97,7 @@ fun InventoryMovementsScreen(onBack: () -> Unit, vm: InventoryMovementsViewModel
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(state.loading) { vm.load() } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
@@ -191,7 +192,7 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(state.loading) { vm.load() } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),

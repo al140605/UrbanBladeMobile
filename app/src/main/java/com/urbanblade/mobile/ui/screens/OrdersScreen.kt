@@ -62,6 +62,7 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
 import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ORDER_PAYMENT_METHODS
@@ -90,7 +91,7 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(state.loading || state.loadingMore || state.busyOrderId != null) { vm.load() } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),

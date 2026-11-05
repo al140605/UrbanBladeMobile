@@ -44,6 +44,10 @@ siete pruebas del verificador de paquetes, además de builds y escaneo de secret
 Consultar [alcance y resultados](REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md);
 la nueva comprobación de Logcat en dispositivo está pendiente.
 
+La [unificación de módulos por rol](PULIDO_PANTALLAS_POR_ROL.md) registra el
+incremento posterior: 446 pruebas Android, lint, APK debug y cinco consultas de
+lectura a la API QA; la revisión física de ese bloque sigue pendiente.
+
 ## Revisión funcional
 
 Usar [verificación manual](VERIFICACION_MANUAL_P0.md) y [contrato de experiencia](UI_UX_CONTRATO_MOVIL.md). Registrar commit, variante, API efectiva, rol, dispositivo, datos de prueba y resultado. Comprobar estados vacíos, errores, reconexión, permisos y accesibilidad. Las capturas históricas ilustran la interfaz, no reemplazan esa ejecución.

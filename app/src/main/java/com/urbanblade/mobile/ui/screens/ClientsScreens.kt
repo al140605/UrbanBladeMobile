@@ -39,6 +39,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
     val error by vm.error.collectAsState()
     val hasMore by vm.hasMore.collectAsState()
     val loadingMore by vm.loadingMore.collectAsState()
+    val saving by vm.saving.collectAsState()
     var search by remember { mutableStateOf("") }
     var segment by remember { mutableStateOf<String?>(null) }
     var showCreate by remember { mutableStateOf(false) }
@@ -53,6 +54,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             UrbanTopBar("", onBack) {
+                UrbanRefreshButton(busy || loadingMore || saving) { vm.load(search.takeIf { it.isNotBlank() }, segment) }
                 IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
             }
         }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.ensureActive
 import com.urbanblade.mobile.data.repository.UrbanRepository
 
@@ -180,12 +181,30 @@ class SystemStatusViewModel : ViewModel() {
     fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _status.value = repo.systemStatus() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo cargar el estado del sistema.") } finally { _busy.value = false } }
 }
 
-class RafflesViewModel : ViewModel() {
-    private val repo = AppContainer.urbanRepository
+class RafflesViewModel @JvmOverloads constructor(private val repo: UrbanRepository = AppContainer.urbanRepository) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false); val hasLoaded = _hasLoaded.asStateFlow()
     private val _raffles = MutableStateFlow(RaffleResponse()); val raffles = _raffles.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
-    fun load() = viewModelScope.launch { _busy.value = true; _error.value = null; try { _raffles.value = repo.raffles() } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los sorteos.") } finally { _busy.value = false } }
+    private var loadRequest: Job? = null
+
+    fun load() {
+        loadRequest?.cancel()
+        _busy.value = true
+        _error.value = null
+        loadRequest = viewModelScope.launch {
+            try {
+                val result = repo.raffles()
+                coroutineContext.ensureActive()
+                _raffles.value = result
+                _hasLoaded.value = true
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _error.value = e.toFriendlyMessage("No se pudieron cargar los sorteos.")
+            } finally { if (coroutineContext.isActive) _busy.value = false }
+        }
+    }
 }
 
 class ClientsViewModel : ViewModel() {
@@ -585,12 +604,24 @@ class ReviewsViewModel @JvmOverloads constructor(private val repo: UrbanReposito
     private val _reviews = MutableStateFlow(ReviewsResponse()); val reviews = _reviews.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
-    fun load(barberId: String? = null, rating: Int? = null) = viewModelScope.launch {
-        _busy.value = true; _error.value = null
-        try { _reviews.value = repo.reviews(barberId, rating); _hasLoaded.value = true }
-        catch (e: CancellationException) { throw e }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar las reseñas.") }
-        finally { _busy.value = false }
+    private var loadRequest: Job? = null
+
+    fun load(barberId: String? = null, rating: Int? = null) {
+        loadRequest?.cancel()
+        _busy.value = true
+        _error.value = null
+        loadRequest = viewModelScope.launch {
+            try {
+                val result = repo.reviews(barberId, rating)
+                coroutineContext.ensureActive()
+                _reviews.value = result
+                _hasLoaded.value = true
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _error.value = e.toFriendlyMessage("No se pudieron cargar las reseñas.")
+            } finally { if (coroutineContext.isActive) _busy.value = false }
+        }
     }
 }
 
@@ -599,12 +630,24 @@ class LogsViewModel @JvmOverloads constructor(private val repo: UrbanRepository 
     private val _logs = MutableStateFlow(LogsResponse()); val logs = _logs.asStateFlow()
     private val _busy = MutableStateFlow(false); val busy = _busy.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
-    fun load(search: String? = null, logName: String? = null, event: String? = null) = viewModelScope.launch {
-        _busy.value = true; _error.value = null
-        try { _logs.value = repo.logs(search, logName, event); _hasLoaded.value = true }
-        catch (e: CancellationException) { throw e }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron cargar los logs.") }
-        finally { _busy.value = false }
+    private var loadRequest: Job? = null
+
+    fun load(search: String? = null, logName: String? = null, event: String? = null) {
+        loadRequest?.cancel()
+        _busy.value = true
+        _error.value = null
+        loadRequest = viewModelScope.launch {
+            try {
+                val result = repo.logs(search, logName, event)
+                coroutineContext.ensureActive()
+                _logs.value = result
+                _hasLoaded.value = true
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                coroutineContext.ensureActive()
+                _error.value = e.toFriendlyMessage("No se pudieron cargar los logs.")
+            } finally { if (coroutineContext.isActive) _busy.value = false }
+        }
     }
 }
 

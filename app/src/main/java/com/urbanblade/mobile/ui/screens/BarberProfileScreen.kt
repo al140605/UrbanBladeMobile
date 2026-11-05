@@ -59,7 +59,7 @@ fun BarberProfileScreen(
         com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("perfil_barbero_visto")
     }
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load(slug) }, enabled = !loading) { Icon(Icons.Default.Refresh, "Actualizar perfil") } } }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(loading) { vm.load(slug) } } }) { padding ->
         val data = profile
         when {
             data == null && loading -> Box(Modifier.padding(padding).padding(18.dp)) { UrbanSkeletonList(4) }

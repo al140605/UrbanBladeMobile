@@ -68,6 +68,7 @@ import com.urbanblade.mobile.ui.components.UrbanRolePill
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
 import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.UsersAdminViewModel
@@ -93,7 +94,7 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
         topBar = {
             UrbanTopBar("", onBack) {
                 IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+                UrbanRefreshButton(state.loading || state.loadingMore || state.saving) { vm.load() }
             }
         }
     ) { padding ->

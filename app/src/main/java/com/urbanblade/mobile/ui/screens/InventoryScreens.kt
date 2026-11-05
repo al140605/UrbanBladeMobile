@@ -67,7 +67,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
                     IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
                 }
                 IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+                UrbanRefreshButton(busy) { vm.load() }
             }
         }
     ) { padding ->

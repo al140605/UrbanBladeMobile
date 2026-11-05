@@ -258,6 +258,7 @@ internal fun SimpleStatusPill(status: String, color: androidx.compose.ui.graphic
 @Composable
 fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
     val raffles by vm.raffles.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
@@ -276,7 +277,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(busy) { vm.load() } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
@@ -284,10 +285,14 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item { UrbanPageHeader(title = "Sorteos", subtitle = "Ganadores del sorteo mensual y si ya reclamaron su premio.", eyebrow = "Marketing") }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
+            urbanListFeedback(
+                loadedOnce, busy, shown.isNotEmpty(), error,
+                "No pudimos cargar los sorteos",
+                if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
+                if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado."
+            ) { vm.load() }
 
-            item {
+            if (loadedOnce) item {
                 // Tres números en una sola tarjeta: en tres tarjetas angostas las etiquetas se partían.
                 UrbanStatStrip(
                     listOf(
@@ -307,15 +312,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
                     }
                 }
             }
-            if (shown.isEmpty() && !busy && error == null) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
-                        if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado."
-                    )
-                }
-            }
+
 
             items(shown) { raffle ->
                 UrbanCard(Modifier.fillMaxWidth()) {
@@ -509,7 +506,7 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
+        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(busy) { vm.load() } } }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),

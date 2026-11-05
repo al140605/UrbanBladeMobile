@@ -59,4 +59,31 @@ class SharedRefreshTest {
         compose.onNodeWithText("Reintentar actualización").performClick()
         assertEquals(1, retries)
     }
+
+    @Test fun `section action follows the title with large font and stays reachable`() {
+        var clicks = 0
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                MaterialTheme { UrbanSectionTitle("Trabajos y disponibilidad", "Consulta tu agenda", "Ver agenda") { clicks++ } }
+            }
+        }
+        val title = compose.onNodeWithText("Trabajos y disponibilidad")
+        val action = compose.onNodeWithText("Ver agenda")
+        title.assertIsDisplayed()
+        action.assertIsDisplayed().assertTouchTargetAtLeast(48.dp)
+        org.junit.Assert.assertTrue(action.fetchSemanticsNode().boundsInRoot.top >= title.fetchSemanticsNode().boundsInRoot.bottom)
+        action.performClick()
+        assertEquals(1, clicks)
+    }
+
+    @Test fun `initial list error offers retry without claiming the list is empty`() {
+        var retries = 0
+        compose.setContent { MaterialTheme {
+            UrbanListFeedback(ListFeedbackState.INITIAL_ERROR, "Sin conexión", "No pudimos cargar", "Sin elementos", "Vacío confirmado", { retries++ })
+        } }
+        compose.onNodeWithText("Sin elementos").assertDoesNotExist()
+        compose.onNodeWithText("Reintentar").performClick()
+        assertEquals(1, retries)
+    }
 }

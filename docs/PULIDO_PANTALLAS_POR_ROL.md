@@ -74,3 +74,43 @@ recorridos físicos se registran por separado; no certifican todos los módulos.
 
 El recorrido físico se limita al inicio y su actualización. No acredita todavía
 todos los botones, edición, borrado, cuatro temas ni TalkBack de la matriz.
+
+## Incremento de unificación de módulos
+
+Se reutiliza `UrbanRefreshButton` en quince pantallas: clientes, inventario,
+movimientos, lista de espera, pedidos, cobros, corte, servicios, barberos,
+membresías/paquetes, campañas, sorteos, reseñas, usuarios y perfil público del
+barbero. Conserva los filtros al actualizar y deshabilita el control durante
+carga y, donde existe ese estado, guardado, envío o procesamiento de una fila.
+No cambia rutas, permisos ni operaciones del servidor.
+
+`UrbanSectionTitle` comparte el criterio adaptable del encabezado principal:
+acciones debajo del título a menos de 360 dp o con fuente desde 130 %, semántica
+de encabezado y objetivo táctil mínimo de 48 dp.
+
+Reseñas, bitácora y sorteos reutilizan `urbanListFeedback` para distinguir:
+primera consulta, error inicial con reintento, datos anteriores tras un fallo,
+actualización, vacío confirmado y contenido disponible. Los errores de guardar
+o ejecutar operaciones mantienen sus avisos específicos; no se presentan como
+fallos de consulta.
+
+Sus ViewModels cancelan la consulta anterior y comprueban que siga activa antes
+de publicar datos o errores. Una finalización cancelada no apaga el indicador de
+la nueva consulta. Sorteos ya no presenta estadísticas cero antes de recibir una
+respuesta válida.
+
+### Validación de este incremento
+
+- 446 pruebas Android, sin fallos, errores u omitidas; lint y APK debug correctos.
+- Regresiones de respuestas tardías, cambios de filtro, errores y reintento;
+  componentes y acciones alcanzables a 320 dp con fuente al 200 %.
+- Cinco GET a la API QA local: dos filtros de reseñas, dos eventos de bitácora y
+  sorteos. Respondieron 200 con administrador o ingeniero según el módulo.
+- `git diff --check` y enlaces documentales correctos. Capturas o sesiones de QA
+  no se incorporan al repositorio.
+
+El teléfono no estaba conectado: no se instaló esta APK ni se certifica su
+recorrido visual físico. No se repitió release/R8 para este cambio de interfaz;
+los controles del incremento de seguridad continúan en el CI. Pendientes:
+recorridos completos, formularios, acciones de creación y validación en los cuatro
+temas y TalkBack. No se abre PR ni se despliega.

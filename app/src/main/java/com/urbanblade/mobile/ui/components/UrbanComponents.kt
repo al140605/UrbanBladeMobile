@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -177,17 +179,25 @@ fun UrbanSectionTitle(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+    val copy: @Composable (Modifier) -> Unit = { textModifier ->
+        Column(textModifier) {
+            Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
         }
-        if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) { Text(actionLabel) }
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (actionLabel != null && onAction != null && (maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f)) {
+            Column(Modifier.fillMaxWidth()) {
+                copy(Modifier.fillMaxWidth())
+                TextButton(onClick = onAction, modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) { Text(actionLabel) }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                copy(Modifier.weight(1f))
+                if (actionLabel != null && onAction != null) {
+                    TextButton(onClick = onAction, modifier = Modifier.heightIn(min = 48.dp)) { Text(actionLabel) }
+                }
+            }
         }
     }
 }
