@@ -1,7 +1,20 @@
 # Mejoras de UI/UX y compatibilidad con la API
 
-Revisión: 30 de octubre de 2026. Trabajo asociado a TT32 / HT-12.
+Revisión del plan: 4 de noviembre de 2026. Trabajo asociado a TT32 / HT-12.
+Las evidencias históricas de los incrementos conservan sus fechas y alcances.
 Rama de trabajo: `feat/mejoras-interfaz-mobile`. No abrir PR hasta completar los cambios y su validación; no fusionar ni publicar en Google Play durante esta fase.
+
+## Comparativa y prioridad vigente
+
+La [comparativa de Fresha, Booksy, Square y Baymard](COMPARATIVA_UX_PLATAFORMAS_2026-11-04.md)
+contrasta recorridos documentados con código y QA actuales. Prioridad recomendada:
+total exacto de transferencia, separación entre estado de cita y dinero, y recuperación
+sin duplicados tras interrupciones. Las siguientes mejoras de cancelación, lista de
+espera y repetición aprovechan funciones existentes. La investigación no afirma haber
+probado cuentas de los competidores ni medido una mejora de conversión.
+
+Ver los criterios UX-01 a UX-08 del informe antes de ampliar el rediseño. Se conservan
+la identidad, los cuatro temas y las decisiones visuales ya aprobadas.
 
 ## Punto de partida
 
