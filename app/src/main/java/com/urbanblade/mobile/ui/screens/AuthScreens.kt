@@ -1,6 +1,9 @@
 package com.urbanblade.mobile.ui.screens
 
 import android.util.Patterns
+import com.urbanblade.mobile.R
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -9,6 +12,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -71,7 +77,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.core.auth.GoogleAuthHelper
-import com.urbanblade.mobile.ui.components.UrbanPublicHero
 import com.urbanblade.mobile.ui.components.UrbanPublicPanel
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
 import com.urbanblade.mobile.ui.components.LegalConsentCheckbox
@@ -270,7 +275,7 @@ fun RegisterScreen(
         }
     ) {
         StaggerIn(0) {
-            Text("Paso ${step + 1} de 2", style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
+            StepBar(step = step, total = 2)
         }
         if (step == 0) {
             StaggerIn(1) {
@@ -451,6 +456,23 @@ fun ForgotPasswordScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
     }
 }
 
+/** Avance del registro: un segmento por paso, el actual y los anteriores en dorado. */
+@Composable
+private fun StepBar(step: Int, total: Int) {
+    Column(Modifier.semantics { contentDescription = "Paso ${step + 1} de $total" }) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(total) { index ->
+                Box(
+                    Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
+                        .background(if (index <= step) UrbanColors.Gold else UrbanColors.Line)
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("Paso ${step + 1} de $total", style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
+    }
+}
+
 @Composable
 private fun SwitchAuthRow(prompt: String, action: String, onClick: () -> Unit) {
     if (LocalDensity.current.fontScale > 1.15f) {
@@ -535,7 +557,11 @@ private fun GoogleSignInButton(
     }
 }
 
-/** Cabecera fotográfica y formulario opaco; con teclado el pie permanece accesible. */
+/**
+ * Mismo patrón que la bienvenida: fotografía a pantalla completa con velo, la marca oficial arriba y
+ * el título sobre la foto; el formulario va en un panel opaco abajo. Con el teclado abierto la foto y
+ * el título ceden el espacio y el pie queda fijo para no perder la acción principal.
+ */
 @Composable
 private fun AuthScaffold(
     eyebrow: String,
@@ -547,39 +573,70 @@ private fun AuthScaffold(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    Column(Modifier.fillMaxSize().background(UrbanColors.Background).systemBarsPadding().imePadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") }
-            } else Spacer(Modifier.size(48.dp))
-            UrbanBrandMark(compact = true, unboxed = true)
-            Spacer(Modifier.size(48.dp))
-        }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = UrbanSpace.Gutter),
-            verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            if (!keyboardOpen) {
-                UrbanPublicHero("El detalle hace el estilo.", "BARBERÍA · ESTILO · CUIDADO")
-            }
-            UrbanPublicPanel {
-                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, style = MaterialTheme.typography.headlineMedium, color = UrbanColors.Ink,
-                        modifier = Modifier.weight(1f).semantics { heading() })
-                    if (mood != MascotMood.DEFAULT) {
-                        Image(painterResource(UrbanColors.current.mascot(mood)), null,
-                            modifier = Modifier.size(56.dp), contentScale = ContentScale.Fit)
-                    }
+    val gold = Color(0xFFF0D68C)
+    Box(Modifier.fillMaxSize().background(Color(0xFF080808))) {
+        Image(
+            painterResource(R.drawable.public_welcome_portrait), null,
+            Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter
+        )
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+            0f to Color(0xA0000000),
+            0.22f to Color(0x80000000),
+            0.42f to Color(0xC0080808),
+            0.60f to Color(0xE6080808),
+            1f to Color(0xF2080808)
+        )))
+        Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = Color.White) }
+                } else Spacer(Modifier.size(48.dp))
+                Spacer(Modifier.width(4.dp))
+                Image(painterResource(R.drawable.ic_launcher_foreground), null, Modifier.size(44.dp))
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("URBANBLADE", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("BARBERÍA · ESTILO · CUIDADO", style = MaterialTheme.typography.labelSmall, color = gold)
                 }
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-                content()
-                if (!keyboardOpen) footer?.invoke()
             }
-            Spacer(Modifier.height(12.dp))
-        }
-        if (keyboardOpen && footer != null) {
-            Column(Modifier.fillMaxWidth().background(UrbanColors.Card).padding(horizontal = 24.dp, vertical = 8.dp)) {
-                footer()
+            BoxWithConstraints(Modifier.weight(1f)) {
+                val viewportHeight = maxHeight
+                Column(
+                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .heightIn(min = viewportHeight).padding(horizontal = UrbanSpace.Gutter),
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    if (!keyboardOpen) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Column(Modifier.weight(1f)) {
+                                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = gold)
+                                Spacer(Modifier.height(6.dp))
+                                Text(title, style = MaterialTheme.typography.displaySmall, color = Color.White,
+                                    modifier = Modifier.semantics { heading() })
+                                Spacer(Modifier.height(8.dp))
+                                Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE5E0D8))
+                            }
+                            if (mood != MascotMood.DEFAULT) {
+                                Spacer(Modifier.width(12.dp))
+                                Image(painterResource(UrbanColors.current.mascot(mood)), null,
+                                    modifier = Modifier.size(64.dp), contentScale = ContentScale.Fit)
+                            }
+                        }
+                        Spacer(Modifier.height(UrbanSpace.Md))
+                    }
+                    UrbanPublicPanel(outlined = true, spacing = 16.dp) {
+                        if (keyboardOpen) Text(title, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink,
+                            modifier = Modifier.semantics { heading() })
+                        content()
+                        if (!keyboardOpen) footer?.invoke()
+                    }
+                    Spacer(Modifier.height(UrbanSpace.Md))
+                }
+            }
+            if (keyboardOpen && footer != null) {
+                Column(Modifier.fillMaxWidth().background(UrbanColors.Card).padding(horizontal = 24.dp, vertical = 8.dp)) {
+                    footer()
+                }
             }
         }
     }

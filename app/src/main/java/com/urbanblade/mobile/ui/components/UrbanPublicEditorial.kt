@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -24,19 +25,25 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 
 /** Fotografía decorativa con velo y tinta clara, también sobre el tema Libreta. */
 @Composable
-fun UrbanPublicHero(title: String, subtitle: String, modifier: Modifier = Modifier, eyebrow: String = "URBANBLADE", compact: Boolean = false) {
+fun UrbanPublicHero(title: String, subtitle: String, modifier: Modifier = Modifier, eyebrow: String = "URBANBLADE", compact: Boolean = false, trailing: (@Composable () -> Unit)? = null) {
     Box(modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))) {
         Image(painterResource(R.drawable.public_barber_editorial), null,
             Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(
             listOf(Color(0x55000000), Color(0xDD080808)))))
-        Column(Modifier.padding(20.dp).heightIn(min = if (compact) 84.dp else 130.dp), verticalArrangement = Arrangement.Bottom) {
-            Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = Color(0xFFF0D68C))
-            Spacer(Modifier.height(8.dp))
-            Text(title, style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, color = Color.White,
-                modifier = Modifier.semantics { heading() })
-            Spacer(Modifier.height(6.dp))
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFE5E0D8))
+        Row(Modifier.padding(20.dp).heightIn(min = if (compact) 84.dp else 130.dp), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Bottom) {
+                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = Color(0xFFF0D68C))
+                Spacer(Modifier.height(8.dp))
+                Text(title, style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, color = Color.White,
+                    modifier = Modifier.semantics { heading() })
+                Spacer(Modifier.height(6.dp))
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFE5E0D8))
+            }
+            trailing?.let {
+                Spacer(Modifier.width(12.dp))
+                it()
+            }
         }
     }
 }

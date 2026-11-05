@@ -377,3 +377,16 @@ mientras la lista está en lo alto; al desplazar se contrae y deja de tapar.
   va a su lado, los datos secundarios van en una fila sin cajas de icono ni divisor, y el encabezado ya no
   apila actualizar y avatar bajo la fecha salvo por debajo de 300 dp (antes 360 dp, que en un teléfono de
   385 dp con márgenes los apilaba). Cada inicio recupera unos 75 dp de alto.
+
+## Bienvenida, acceso, registro y recuperación (5 de noviembre de 2026)
+
+Sin cambiar ninguna fotografía. Solo composición:
+
+- Bienvenida: marca más grande con la leyenda al lado, velo superior más firme, «gran corte.» en dorado,
+  tres beneficios en una línea y los botones sin el recuadro doble.
+- Acceso, registro y recuperación: ahora siguen el patrón de la bienvenida. Fotografía a pantalla completa
+  con velo, la misma marca oficial arriba (antes usaban otra variante del logotipo), el título sobre la foto y
+  el formulario en un panel opaco abajo. Con el teclado abierto la foto y el título ceden el espacio y el pie
+  queda fijo. La mascota de error o éxito va junto al título.
+- Registro: el avance es una barra de dos segmentos (con descripción para TalkBack).
+- Pendiente: probar Libreta, el teclado abierto y el estado «correo enviado» en el teléfono.
