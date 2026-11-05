@@ -360,3 +360,16 @@ como respaldo) y se añaden tres pruebas. Con el cambio el detalle carga y muest
 
 Pendiente: el botón flotante de «Nueva campaña» sigue tapando parte del texto del estado vacío
 mientras la lista está en lo alto; al desplazar se contrae y deja de tapar.
+
+## Incremento 5: inicios unificados (5 de noviembre de 2026)
+
+- `UrbanHomeHeader` (etiqueta de rol, «Hola, nombre», fecha, actualizar y avatar) sustituye las cuatro
+  construcciones a mano de Administración, Recepción, Ingeniería y Barbero; el barbero deja de usar el
+  tamaño `compact`.
+- `UrbanHeroSummary` sustituye los cuatro bloques de resumen copiados (con tendencia y pie opcionales,
+  tono por dato y clic opcional). El Cliente conserva su saludo dentro de `UrbanHeroCard`, con la campana.
+- Las acciones rápidas de Administración pasan a `UrbanModuleGrid` y `HomeTile` se elimina.
+- Ritmo único de 16 dp (`UrbanSpace.Md`) arriba y entre bloques en los cinco inicios.
+- Validación: lint, pruebas unitarias y APK `.audit` en verde. Recorrido físico (tema oscuro) con las
+  cuatro cuentas demo de personal: mismo encabezado, misma tarjeta de resumen y mismo ritmo.
+- Pendiente: revisar Libreta, los otros dos temas y 320 dp.

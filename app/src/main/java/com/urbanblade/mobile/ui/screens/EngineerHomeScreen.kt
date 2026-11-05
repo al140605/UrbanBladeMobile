@@ -83,21 +83,11 @@ fun EngineerHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanPageHeader(
-                title = "Hola, ${user.name.substringBefore(' ')}",
-                subtitle = UrbanFormat.date(LocalDate.now().toString()),
-                eyebrow = "INGENIERO",
-                trailing = {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        UrbanRefreshButton(loading || logsLoading) { systemVm.load(); logsVm.load(null, event = null) }
-                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
-                    }
-                }
-            )
+            UrbanHomeHeader("INGENIERO", user.name, user.avatarUrl, loading || logsLoading) { systemVm.load(); logsVm.load(null, event = null) }
         }
 
         if (error != null && status != null) item { UrbanStaleContentNotice(error.orEmpty()) { systemVm.load() } }
@@ -115,30 +105,26 @@ fun EngineerHomeScreen(
             }
             health != null -> {
                 item {
-                    UrbanHeroCard(Modifier.clickable { onNavigate("system") }) {
-                        UrbanHeroLabel("Estado del sistema")
-                        Spacer(Modifier.height(6.dp))
-                        Text(health.headline, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
-                        Spacer(Modifier.height(16.dp))
-                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                        Spacer(Modifier.height(14.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            UrbanHeroStat(
+                    UrbanHeroSummary(
+                        label = "Estado del sistema",
+                        headline = health.headline,
+                        large = false,
+                        onClick = { onNavigate("system") },
+                        stats = listOf(
+                            UrbanHeroStatSpec(
                                 "Base de datos",
                                 status?.database?.latencyMs?.let { "$it ms" } ?: "—",
                                 Icons.Default.Storage,
-                                Modifier.weight(1f),
-                                tone = serviceTone(status?.database?.status)
-                            )
-                            UrbanHeroStat(
+                                serviceTone(status?.database?.status)
+                            ),
+                            UrbanHeroStatSpec(
                                 "Fallidos en cola",
                                 status?.queue?.failed?.toString() ?: "—",
                                 Icons.Default.Dns,
-                                Modifier.weight(1f),
-                                tone = if ((status?.queue?.failed ?: 0) > 0) UrbanColors.Warning else UrbanColors.Gold
+                                if ((status?.queue?.failed ?: 0) > 0) UrbanColors.Warning else UrbanColors.Gold
                             )
-                        }
-                    }
+                        )
+                    )
                 }
                 if (health.issues.isNotEmpty()) {
                     item { UrbanSectionTitle("Requiere tu atención", "Ordenado de más a menos grave.") }

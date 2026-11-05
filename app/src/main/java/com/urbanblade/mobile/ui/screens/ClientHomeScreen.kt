@@ -140,8 +140,8 @@ fun ClientHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
             UrbanHeroCard {
@@ -328,36 +328,5 @@ private fun EmptyAgendaCard(onBook: () -> Unit) {
             icon = Icons.Default.ContentCut,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Composable
-internal fun HomeTile(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    highlighted: Boolean = false
-) {
-    UrbanCard(modifier.heightIn(min = 132.dp), onClick = onClick) {
-        Box(
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(if (highlighted) UrbanColors.Gold else UrbanColors.Gold.copy(alpha = 0.13f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                null,
-                tint = if (highlighted) UrbanColors.OnGold else UrbanColors.Gold,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-        Spacer(Modifier.height(2.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
     }
 }

@@ -49,21 +49,11 @@ fun ReceptionHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanPageHeader(
-                title = "Hola, ${user.name.substringBefore(' ')}",
-                subtitle = UrbanFormat.date(LocalDate.now().toString()),
-                eyebrow = "RECEPCIÓN",
-                trailing = {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        UrbanRefreshButton(loading) { vm.load() }
-                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
-                    }
-                }
-            )
+            UrbanHomeHeader("RECEPCIÓN", user.name, user.avatarUrl, loading) { vm.load() }
         }
 
         if (error != null && board != null) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load() } }
@@ -75,22 +65,14 @@ fun ReceptionHomeScreen(
             }
             board != null -> {
                 item {
-                    UrbanHeroCard {
-                        UrbanHeroLabel("Hoy en la barbería")
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            UrbanFormat.count(board.appointmentsToday, "cita", "citas"),
-                            style = MaterialTheme.typography.displaySmall,
-                            color = UrbanColors.Ink
+                    UrbanHeroSummary(
+                        label = "Hoy en la barbería",
+                        headline = UrbanFormat.count(board.appointmentsToday, "cita", "citas"),
+                        stats = listOf(
+                            UrbanHeroStatSpec("Cobrado hoy", UrbanFormat.moneyShort(board.collectedToday), Icons.Default.PointOfSale),
+                            UrbanHeroStatSpec("Clientes nuevos", board.newClientsToday.toString(), Icons.Default.PersonAdd)
                         )
-                        Spacer(Modifier.height(16.dp))
-                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                        Spacer(Modifier.height(14.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            UrbanHeroStat("Cobrado hoy", UrbanFormat.moneyShort(board.collectedToday), Icons.Default.PointOfSale, Modifier.weight(1f))
-                            UrbanHeroStat("Clientes nuevos", board.newClientsToday.toString(), Icons.Default.PersonAdd, Modifier.weight(1f))
-                        }
-                    }
+                    )
                 }
 
                 // Resumen del día con IA local: carga aparte, no frena el inicio.
