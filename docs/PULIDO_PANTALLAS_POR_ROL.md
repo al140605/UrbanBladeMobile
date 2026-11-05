@@ -442,11 +442,11 @@ Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físi
 
 ## Muro de Inspiración en la barra del cliente (5 de noviembre de 2026)
 
-- La barra inferior del cliente pasa de cuatro a cinco destinos: Inicio, Reservar, Mis citas, Inspiración y
-  Cuenta. El personal no cambia: lo sigue teniendo en «Más» y el barbero en su inicio.
+- La barra inferior del cliente pasa de cuatro a cinco destinos: Inicio, Reservar, Mis citas, Muro y
+  Cuenta (la etiqueta «Inspiración» se cortaba a 320 dp, «Inspiraci…»; «Muro» cabe). El personal no cambia: lo sigue teniendo en «Más» y el barbero en su inicio.
 - Como es una pestaña, el muro no muestra flecha de volver para el cliente (`onBack` ahora puede ser nulo en
   `UrbanModuleScreen` y `SocialFeedScreen`). Con cinco destinos las etiquetas usan una talla menos.
-- Pendiente de verificar en el teléfono: que «Inspiración» no se corte a 320 dp y con fuente grande, y el
+- Verificado en el teléfono a 320 dp (cliente demo): la barra completa se lee. Pendiente: fuente grande y el
   regreso desde el atajo del inicio del cliente.
 
 ## Aviso al reportante (5 de noviembre de 2026)

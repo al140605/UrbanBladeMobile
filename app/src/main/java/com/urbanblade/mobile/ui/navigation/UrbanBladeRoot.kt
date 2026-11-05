@@ -154,7 +154,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
             NavItem("appointments", "Mis citas", Icons.Default.CalendarMonth),
             // El muro es sobre todo del cliente (ve trabajos y reserva con el barbero): va en la barra; el
             // personal lo sigue encontrando en «Más».
-            NavItem("social", "Inspiración", Icons.Default.PhotoLibrary),
+            NavItem("social", "Muro", Icons.Default.PhotoLibrary),
             NavItem("profile", "Cuenta", Icons.Default.Person)
         )
     } else {
