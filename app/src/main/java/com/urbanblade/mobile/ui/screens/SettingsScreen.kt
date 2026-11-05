@@ -85,7 +85,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     fun err(field: String) = if (submitted) errors[field] else null
 
     UrbanModuleScreen(
-        eyebrow = "Sistema",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Configuración",
         subtitle = "Datos del negocio, horario, datos bancarios y modo mantenimiento.",
         onBack = onBack

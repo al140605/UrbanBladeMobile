@@ -75,7 +75,7 @@ fun CatalogScreen(
             ) else UrbanPageHeader(
                 title = if (canBook) "Reservar" else "Servicios y barberos",
                 subtitle = if (canBook) "Elige un servicio o un barbero y un horario real." else "Consulta servicios, precios y perfiles del equipo.",
-                eyebrow = if (canBook) "Reserva" else "Catálogo"
+                eyebrow = if (canBook) "Reserva" else "GENERAL"
             )
         }
         if (isGuest) {

@@ -41,7 +41,7 @@ fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel
 
     UrbanModuleScreen(
         eyebrow = "ANÁLISIS",
-        title = "Métricas del negocio",
+        title = "Métricas",
         subtitle = "Lo acumulado: ingresos, clientes y cancelaciones.",
         onBack = onBack,
         onRefresh = { vm.load() },
@@ -278,7 +278,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
     }
 
     UrbanModuleScreen(
-        eyebrow = "Marketing",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Sorteos",
         subtitle = "Ganadores del sorteo mensual y si ya reclamaron su premio.",
         onBack = onBack,
@@ -504,8 +504,8 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
     var showConfirm by remember { mutableStateOf(false) }
 
     UrbanModuleScreen(
-        eyebrow = "Corte de caja",
-        title = "Cierre de hoy",
+        eyebrow = "OPERACIÓN",
+        title = "Corte de caja",
         subtitle = "${preview.fecha?.let { UrbanFormat.date(it) } ?: "Hoy"} · Revisa y concilia la caja.",
         onBack = onBack,
         onRefresh = { vm.load() },

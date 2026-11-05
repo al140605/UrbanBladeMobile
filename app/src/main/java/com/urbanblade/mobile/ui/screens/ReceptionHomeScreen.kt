@@ -147,8 +147,8 @@ fun ReceptionHomeScreen(
         item {
             UrbanModuleGrid(
                 tiles = listOf(
-                    Triple("Agenda", "Citas del día y de la semana", Icons.Default.CalendarMonth),
-                    Triple("Cobros", "Pagos y comprobantes", Icons.Default.Payments),
+                    Triple("Citas", "Citas del día y de la semana", Icons.Default.CalendarMonth),
+                    Triple("Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments),
                     Triple("Clientes", "Buscar y registrar", Icons.Default.People),
                     Triple("Lista de espera", "Clientes esperando horario", Icons.Default.HourglassTop),
                     Triple("Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard),

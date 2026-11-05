@@ -87,7 +87,7 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
 
     UrbanModuleScreen(
         eyebrow = "ADMINISTRACIÓN",
-        title = "Usuarios y personal",
+        title = "Usuarios",
         subtitle = "Administra accesos y roles del equipo.",
         onBack = onBack,
         actions = { IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }

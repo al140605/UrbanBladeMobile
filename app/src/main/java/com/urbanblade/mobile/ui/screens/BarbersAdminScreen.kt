@@ -77,7 +77,7 @@ fun BarbersAdminScreen(onBack: () -> Unit, vm: BarbersAdminViewModel = viewModel
     LaunchedEffect(Unit) { vm.load() }
 
     UrbanModuleScreen(
-        eyebrow = "Equipo",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Barberos",
         subtitle = "Perfil, especialidad, horario y rendimiento de tu equipo.",
         onBack = onBack,

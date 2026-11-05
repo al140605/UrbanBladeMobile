@@ -167,3 +167,24 @@ Pendiente: el botón flotante de campañas y servicios se superpone al estado va
 última tarjeta cuando la pantalla no se desplaza (incremento 3); buscadores, filtros y
 resúmenes numéricos siguen con formas distintas (incrementos 3 y 4); cuatro temas, 320 dp y
 TalkBack no se revisaron para este incremento.
+
+### Incremento 2 de coherencia: vocabulario único (5 de noviembre de 2026)
+
+Regla aplicada: el título del menú «Más» es el título de la pantalla, y la etiqueta superior
+de cada pantalla es el grupo del menú. Los módulos de administración pasan a ADMINISTRACIÓN
+(antes siete etiquetas distintas y el grupo ADMIN); «Analítica» pasa de GENERAL a ANÁLISIS;
+«Pagos» se llama «Cobros y pagos»; «Logs» se llama «Bitácora»; «Métricas», «Usuarios» y «Corte
+de caja» usan el mismo título en el menú y en la pantalla; «Muro de Inspiración» también.
+Los atajos de recepción e ingeniería usan los mismos nombres. Solo cambian textos: no cambian
+rutas, permisos, orden de las secciones ni contratos del servidor. La tabla de vocabulario de
+la auditoría se corrigió, porque la primera versión confundía subtítulos con títulos.
+
+Validación: 450 pruebas Android sin fallos, lint y APK de auditoría correctos. En el Samsung
+SM-S731B con la variante `.audit`, el administrador abrió los veintitrés módulos de «Más» y
+comparó el título y la etiqueta de cada pantalla con el menú: veintidós coinciden; la
+excepción prevista es «Muro de Inspiración», que conserva su etiqueta porque también lo usa
+el cliente. Los atajos de recepción (Citas, Cobros y pagos) e ingeniería (Bitácora, Estado del
+sistema) se leyeron en pantalla. Sin cierres inesperados en el registro del dispositivo.
+
+Pendiente: revisar los cuatro temas, 320 dp y TalkBack con los nombres nuevos; los nombres
+internos de rutas (`logs`, `payments`) no cambian a propósito.

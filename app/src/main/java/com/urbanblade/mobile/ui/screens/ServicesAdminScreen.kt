@@ -82,7 +82,7 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
     LaunchedEffect(Unit) { vm.load() }
 
     UrbanModuleScreen(
-        eyebrow = "Catálogo",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Servicios",
         subtitle = "Precio, duración y lo que ven tus clientes al reservar.",
         onBack = onBack,

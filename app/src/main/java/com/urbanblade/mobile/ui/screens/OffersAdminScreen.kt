@@ -87,7 +87,7 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
     LaunchedEffect(Unit) { vm.load() }
 
     UrbanModuleScreen(
-        eyebrow = "Beneficios",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Membresías y paquetes",
         subtitle = "Planes mensuales con descuento y usos pagados por adelantado.",
         onBack = onBack,

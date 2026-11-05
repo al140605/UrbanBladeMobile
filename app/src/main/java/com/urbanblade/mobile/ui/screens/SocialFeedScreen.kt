@@ -41,7 +41,7 @@ fun SocialFeedScreen(
     LaunchedEffect(canBook) { vm.load(canBook) }
     UrbanModuleScreen(
         eyebrow = "URBANBLADE",
-        title = "Inspiración",
+        title = "Muro de Inspiración",
         subtitle = "Trabajos del equipo. Desliza las fotos y encuentra tu próximo estilo.",
         onBack = onBack,
         onRefresh = { vm.load(canBook) },

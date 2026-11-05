@@ -91,7 +91,7 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
     LaunchedEffect(Unit) { vm.load() }
 
     UrbanModuleScreen(
-        eyebrow = "Marketing",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Campañas",
         subtitle = "Promociones por correo y notificación para cada segmento de clientes.",
         onBack = onBack,

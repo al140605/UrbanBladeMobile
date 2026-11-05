@@ -30,7 +30,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
     LaunchedEffect(ratingFilter) { vm.load(rating = ratingFilter) }
 
     UrbanModuleScreen(
-        eyebrow = "Calidad",
+        eyebrow = "ADMINISTRACIÓN",
         title = "Reseñas",
         subtitle = "Lo que opinan tus clientes de cada barbero.",
         onBack = onBack,
@@ -103,7 +103,7 @@ fun LogsScreen(onBack: () -> Unit, vm: LogsViewModel = viewModel()) {
 
     UrbanModuleScreen(
         eyebrow = "ANÁLISIS",
-        title = "Logs de actividad",
+        title = "Bitácora",
         subtitle = "Quién hizo qué y cuándo en el sistema.",
         onBack = onBack,
         onRefresh = { reload() },

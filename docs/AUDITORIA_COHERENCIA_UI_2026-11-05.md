@@ -36,21 +36,29 @@ Inicios (capturas de QA del 4 de noviembre con cuentas ficticias):
 - Barra inferior: cliente cuatro destinos (Reservar), personal cuatro (Citas, Más),
   ingeniería tres. El personal no tiene un atajo equivalente a Reservar.
 
-Vocabulario del menú «Más» frente al título de cada pantalla:
+Vocabulario del menú «Más» frente al título de cada pantalla (corregido el 5 de noviembre:
+la primera versión de esta tabla confundía subtítulos con títulos):
 
-| Menú | Título de la pantalla | Etiqueta superior de la pantalla |
+| Título en el menú | Título de la pantalla | Etiqueta superior de la pantalla |
 | --- | --- | --- |
 | Pagos | Cobros y pagos | OPERACIÓN |
-| Datos del negocio | Reportes | ANÁLISIS |
+| Corte de caja | Cierre de hoy | CORTE DE CAJA |
 | Logs | Logs de actividad | ANÁLISIS |
-| KPIs operativos | Métricas del negocio | ANÁLISIS |
-| Roles y accesos | Usuarios y personal | ADMINISTRACIÓN |
-| Servicios y salud | Estado del sistema | SISTEMA |
-| Resumen de turno | Cierre de hoy | CORTE DE CAJA |
+| Métricas | Métricas del negocio | ANÁLISIS |
+| Usuarios | Usuarios y personal | ADMINISTRACIÓN |
+| Muro de Inspiración | Inspiración | URBANBLADE |
 
-Los grupos del menú son GENERAL, OPERACIÓN, ANÁLISIS, ADMIN y SISTEMA; las etiquetas de
-las pantallas añaden CALIDAD, EQUIPO, CATÁLOGO, MARKETING, BENEFICIOS, AGENDA y BARBERO.
-Un mismo módulo se llama de dos maneras y se agrupa de dos maneras.
+Los grupos del menú son GENERAL, OPERACIÓN, ANÁLISIS, ADMIN y SISTEMA. Las pantallas de
+administración usaban siete etiquetas distintas (CALIDAD, EQUIPO, CATÁLOGO, MARKETING,
+BENEFICIOS, SISTEMA y ADMINISTRACIÓN) y «Corte de caja» usaba una propia. Los atajos de los
+inicios repetían otros nombres («Cobros», «Logs», «Sistema», «Agenda»).
+
+Estado: el incremento 2 aplica una regla única. El título del menú es el título de la pantalla,
+y la etiqueta superior de cada pantalla de «Más» es el grupo del menú. Los módulos de
+administración se agrupan bajo ADMINISTRACIÓN (antes ADMIN); «Analítica» pasa de GENERAL a
+ANÁLISIS; «Logs» se llama «Bitácora», como ya decía la documentación. Excepciones a
+propósito: Notificaciones, Muro de Inspiración y Reservar/Catálogo se comparten con el
+cliente y conservan una etiqueta que sirve a ambos.
 
 ## Principios propuestos
 

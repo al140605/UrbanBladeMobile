@@ -340,10 +340,9 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
             add(ModuleItem("social", "Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups, "GENERAL"))
         }
         add(ModuleItem("notifications", "Notificaciones", "Novedades de tu cuenta", Icons.Default.Notifications, "GENERAL"))
-        add(ModuleItem("analytics", "Analítica", "Actividad y rendimiento", Icons.Default.QueryStats, "GENERAL"))
         add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, "GENERAL"))
         if (staff || client) {
-            add(ModuleItem("payments", "Pagos", "Historial y comprobantes", Icons.Default.Payments, "OPERACIÓN"))
+            add(ModuleItem("payments", "Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments, "OPERACIÓN"))
             add(ModuleItem("orders", "Pedidos", "Tienda y entregas", Icons.Default.ReceiptLong, "OPERACIÓN"))
         }
         if (staff) {
@@ -359,21 +358,22 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
             add(ModuleItem("barber_portfolio", "Portafolio", "Muestra tus trabajos", Icons.Default.PhotoLibrary, "BARBERO"))
             add(ModuleItem("barber_schedule", "Mi horario", "Disponibilidad semanal", Icons.Default.Schedule, "BARBERO"))
         }
+        add(ModuleItem("analytics", "Analítica", "Actividad y rendimiento", Icons.Default.QueryStats, "ANÁLISIS"))
         if (admin || engineer) {
             add(ModuleItem("reports", "Reportes", "Datos del negocio", Icons.Default.Assessment, "ANÁLISIS"))
-            add(ModuleItem("logs", "Logs", "Trazabilidad del sistema", Icons.Default.Terminal, "ANÁLISIS"))
+            add(ModuleItem("logs", "Bitácora", "Trazabilidad del sistema", Icons.Default.Terminal, "ANÁLISIS"))
             add(ModuleItem("admin_metrics", "Métricas", "KPIs operativos", Icons.Default.MonitorHeart, "ANÁLISIS"))
             add(ModuleItem("insights", "Insights IA", "Señales y predicciones", Icons.Default.AutoAwesome, "ANÁLISIS"))
         }
         if (admin) {
-            add(ModuleItem("offers_admin", "Membresías y paquetes", "Planes mensuales y paquetes de usos", Icons.Default.CardMembership, "ADMIN"))
-            add(ModuleItem("barbers_admin", "Barberos", "Equipo, comisiones y rendimiento", Icons.Default.Badge, "ADMIN"))
-            add(ModuleItem("services_admin", "Servicios", "Catálogo, precios y duración", Icons.Default.ContentCut, "ADMIN"))
-            add(ModuleItem("campaigns", "Campañas", "Marketing y alcance", Icons.Default.Campaign, "ADMIN"))
-            add(ModuleItem("raffles", "Sorteos", "Lealtad y promociones", Icons.Default.EmojiEvents, "ADMIN"))
-            add(ModuleItem("reviews", "Reseñas", "Opiniones de clientes", Icons.Default.Star, "ADMIN"))
-            add(ModuleItem("users", "Usuarios", "Roles y accesos", Icons.Default.ManageAccounts, "ADMIN"))
-            add(ModuleItem("settings", "Configuración", "Ajustes del negocio", Icons.Default.Settings, "ADMIN"))
+            add(ModuleItem("offers_admin", "Membresías y paquetes", "Planes mensuales y paquetes de usos", Icons.Default.CardMembership, "ADMINISTRACIÓN"))
+            add(ModuleItem("barbers_admin", "Barberos", "Equipo, comisiones y rendimiento", Icons.Default.Badge, "ADMINISTRACIÓN"))
+            add(ModuleItem("services_admin", "Servicios", "Catálogo, precios y duración", Icons.Default.ContentCut, "ADMINISTRACIÓN"))
+            add(ModuleItem("campaigns", "Campañas", "Marketing y alcance", Icons.Default.Campaign, "ADMINISTRACIÓN"))
+            add(ModuleItem("raffles", "Sorteos", "Lealtad y promociones", Icons.Default.EmojiEvents, "ADMINISTRACIÓN"))
+            add(ModuleItem("reviews", "Reseñas", "Opiniones de clientes", Icons.Default.Star, "ADMINISTRACIÓN"))
+            add(ModuleItem("users", "Usuarios", "Roles y accesos", Icons.Default.ManageAccounts, "ADMINISTRACIÓN"))
+            add(ModuleItem("settings", "Configuración", "Ajustes del negocio", Icons.Default.Settings, "ADMINISTRACIÓN"))
         }
         if (engineer || admin) add(ModuleItem("system", "Estado del sistema", "Servicios y salud", Icons.Default.Dns, "SISTEMA"))
     }

@@ -173,11 +173,11 @@ fun EngineerHomeScreen(
             UrbanModuleGrid(
                 tiles = listOf(
                     Triple("Reportes", "Ingresos, citas e inventario", Icons.Default.Assessment),
-                    Triple("Logs", "Quién hizo qué y cuándo", Icons.Default.Terminal),
+                    Triple("Bitácora", "Quién hizo qué y cuándo", Icons.Default.Terminal),
                     Triple("Métricas", "KPIs del negocio", Icons.Default.MonitorHeart),
                     Triple("Insights IA", "Tendencias y alertas", Icons.Default.AutoAwesome),
                     Triple("Analítica", "Operación y clientes", Icons.Default.QueryStats),
-                    Triple("Sistema", "Servicios y tareas", Icons.Default.Dns),
+                    Triple("Estado del sistema", "Servicios y tareas", Icons.Default.Dns),
                 ),
                 routes = listOf("reports", "logs", "admin_metrics", "insights", "analytics", "system"),
                 onNavigate = onNavigate
