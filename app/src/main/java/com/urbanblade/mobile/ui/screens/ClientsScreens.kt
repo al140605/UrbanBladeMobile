@@ -28,6 +28,7 @@ import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanTextButton
 import com.urbanblade.mobile.ui.components.urbanListFeedback
+import com.urbanblade.mobile.data.model.ClientRow
 
 private val SEGMENT_LABEL = mapOf(
     "vip" to "VIP",
@@ -35,6 +36,13 @@ private val SEGMENT_LABEL = mapOf(
     "active" to "Activo",
     "inactive" to "Inactivo",
 )
+
+/**
+ * Clave con la que el servidor resuelve a un cliente en `admin/clients/{client}`: el slug (el modelo usa
+ * `HasSlug`), no el id. Con el id el detalle, la edición y la baja respondían 404. Si el slug falta se
+ * conserva el id, que es lo que se enviaba hasta ahora.
+ */
+internal fun ClientRow.routeKey(): String = slug?.takeIf { it.isNotBlank() } ?: id
 
 @Composable
 fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: () -> Unit, vm: ClientsViewModel = viewModel()) {
@@ -97,7 +105,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
             item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
         }
         items(clients.data) { client ->
-            UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
+            UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.routeKey()) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
                     Spacer(Modifier.width(12.dp))
