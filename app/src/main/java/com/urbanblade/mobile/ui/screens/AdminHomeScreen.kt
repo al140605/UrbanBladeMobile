@@ -84,6 +84,7 @@ import com.urbanblade.mobile.ui.viewmodel.AdminHomeViewModel
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.abs
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 private fun JsonObject?.number(key: String): Double? =
     this?.get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble
@@ -110,7 +111,7 @@ fun AdminHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {

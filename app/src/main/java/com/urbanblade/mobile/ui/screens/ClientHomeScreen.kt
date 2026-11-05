@@ -87,6 +87,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.Stars
 import com.urbanblade.mobile.ui.viewmodel.LoyaltySummaryViewModel
 import java.time.LocalTime
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Inicio del cliente: su próxima cita con "Reservar cita" a la vista (o una invitación a
@@ -139,7 +140,7 @@ fun ClientHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {

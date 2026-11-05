@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 private enum class BookingStep(val label: String, val title: String, val hint: String) {
     SERVICE("Servicio", "Elige tu servicio", "Precio y duración reales de UrbanBlade."),
@@ -288,7 +289,7 @@ fun BookingScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 18.dp)
+                            .padding(horizontal = UrbanSpace.Gutter)
                     ) {
                         Text(nextActionHint, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
@@ -368,14 +369,14 @@ fun BookingScreen(
                         TextButton(onClick = { vm.loadTransferQuote(serviceId, transferTip) }) { Text("Reintentar cotización") }
                     }
                     (localError ?: error)?.let {
-                        Box(Modifier.padding(horizontal = 18.dp)) { UrbanErrorBanner(it) }
+                        Box(Modifier.padding(horizontal = UrbanSpace.Gutter)) { UrbanErrorBanner(it) }
                         Spacer(Modifier.height(8.dp))
                     }
 
                     if (step == BookingStep.PAY) {
                         Row(
                             Modifier.fillMaxWidth().clickable(enabled = !busy) { acceptsNoShowFee = !acceptsNoShowFee }
-                                .padding(horizontal = 18.dp, vertical = 6.dp),
+                                .padding(horizontal = UrbanSpace.Gutter, vertical = 6.dp),
                             verticalAlignment = Alignment.Top
                         ) {
                             Checkbox(checked = acceptsNoShowFee, onCheckedChange = { acceptsNoShowFee = it }, enabled = !busy)
@@ -394,7 +395,7 @@ fun BookingScreen(
             if (selectedService != null) {
                 HorizontalDivider(color = UrbanColors.Line)
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp),
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -415,7 +416,7 @@ fun BookingScreen(
                 }
             }
             FlowRow(
-                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 maxItemsInEachRow = if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f) 1 else 2
@@ -482,7 +483,7 @@ fun BookingScreen(
 /** Encabezado del paso con el patrón de la app: eyebrow con el paso, título serif, avance y resumen. */
 @Composable
 private fun BookingHeader(step: BookingStep, summary: String?) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter)) {
         UrbanPageHeader(
             title = step.title,
             subtitle = step.hint,

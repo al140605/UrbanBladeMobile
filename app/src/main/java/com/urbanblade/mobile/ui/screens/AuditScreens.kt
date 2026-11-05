@@ -3,7 +3,6 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,6 +17,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.LogsViewModel
 import com.urbanblade.mobile.ui.viewmodel.ReviewsViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 @Composable
 fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
@@ -29,54 +29,51 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
 
     LaunchedEffect(ratingFilter) { vm.load(rating = ratingFilter) }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(busy) { vm.load(rating = ratingFilter) } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Reseñas", subtitle = "Lo que opinan tus clientes de cada barbero.", eyebrow = "Calidad") }
-            urbanListFeedback(
-                loadedOnce, busy, reviews.data.isNotEmpty(), error,
-                "No pudimos cargar las reseñas",
-                if (ratingFilter == null) "Aún no hay reseñas" else "Sin reseñas de ${ratingFilter}★",
-                if (ratingFilter == null) "Aquí aparecerán las opiniones de tus clientes." else "Prueba con otra calificación."
-            ) { vm.load(rating = ratingFilter) }
-            if (loadedOnce) item {
-                UrbanStatStrip(
-                    listOf(
-                        Triple("Total", reviews.stats.total.toString(), UrbanColors.Ink),
-                        Triple("Promedio", "%.1f★".format(reviews.stats.promedio), UrbanColors.Gold),
-                        Triple("Bajas (≤2★)", reviews.stats.bajas.toString(), if (reviews.stats.bajas > 0) UrbanColors.Danger else UrbanColors.Ink)
-                    )
+    UrbanModuleScreen(
+        eyebrow = "Calidad",
+        title = "Reseñas",
+        subtitle = "Lo que opinan tus clientes de cada barbero.",
+        onBack = onBack,
+        onRefresh = { vm.load(rating = ratingFilter) },
+        refreshing = busy
+    ) {
+        urbanListFeedback(
+            loadedOnce, busy, reviews.data.isNotEmpty(), error,
+            "No pudimos cargar las reseñas",
+            if (ratingFilter == null) "Aún no hay reseñas" else "Sin reseñas de ${ratingFilter}★",
+            if (ratingFilter == null) "Aquí aparecerán las opiniones de tus clientes." else "Prueba con otra calificación."
+        ) { vm.load(rating = ratingFilter) }
+        if (loadedOnce) item {
+            UrbanStatStrip(
+                listOf(
+                    Triple("Total", reviews.stats.total.toString(), UrbanColors.Ink),
+                    Triple("Promedio", "%.1f★".format(reviews.stats.promedio), UrbanColors.Gold),
+                    Triple("Bajas (≤2★)", reviews.stats.bajas.toString(), if (reviews.stats.bajas > 0) UrbanColors.Danger else UrbanColors.Ink)
                 )
-            }
+            )
+        }
 
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = ratingFilter == null, onClick = { ratingFilter = null }, label = { Text("Todas") }, colors = urbanFilterChipColors())
-                    (5 downTo 1).forEach { r ->
-                        FilterChip(selected = ratingFilter == r, onClick = { ratingFilter = if (ratingFilter == r) null else r }, label = { Text("$r★") }, colors = urbanFilterChipColors())
-                    }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = ratingFilter == null, onClick = { ratingFilter = null }, label = { Text("Todas") }, colors = urbanFilterChipColors())
+                (5 downTo 1).forEach { r ->
+                    FilterChip(selected = ratingFilter == r, onClick = { ratingFilter = if (ratingFilter == r) null else r }, label = { Text("$r★") }, colors = urbanFilterChipColors())
                 }
             }
+        }
 
 
 
-            items(reviews.data) { review ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(review.barber?.name ?: "Barbero", style = MaterialTheme.typography.titleMedium)
-                        Text("${review.rating}★", style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
-                    }
-                    Text(review.client?.name ?: "Cliente anónimo", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                    review.comment?.takeIf { it.isNotBlank() }?.let {
-                        Spacer(Modifier.height(6.dp))
-                        Text(it, style = MaterialTheme.typography.bodyMedium)
-                    }
+        items(reviews.data) { review ->
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(review.barber?.name ?: "Barbero", style = MaterialTheme.typography.titleMedium)
+                    Text("${review.rating}★", style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
+                }
+                Text(review.client?.name ?: "Cliente anónimo", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                review.comment?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

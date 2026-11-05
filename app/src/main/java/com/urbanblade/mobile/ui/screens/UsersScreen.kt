@@ -3,7 +3,6 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,17 +60,16 @@ import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanRolePill
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
 import com.urbanblade.mobile.ui.components.UrbanRefreshButton
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.UsersAdminViewModel
 import com.urbanblade.mobile.ui.viewmodel.passwordProblem
 import kotlinx.coroutines.delay
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 /** Cuentas de acceso al sistema (solo administrador): buscar, filtrar por rol, crear, editar y eliminar. */
 @Composable
@@ -89,99 +85,85 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
         vm.load()
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
-                UrbanRefreshButton(state.loading || state.loadingMore || state.saving) { vm.load() }
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Usuarios y personal",
+        subtitle = "Administra accesos y roles del equipo.",
+        onBack = onBack,
+        actions = { IconButton(onClick = { vm.clearMessages(); creating = true }) { Icon(Icons.Default.PersonAdd, "Agregar usuario") }
+                UrbanRefreshButton(state.loading || state.loadingMore || state.saving) { vm.load() } }
+    ) {
+        item {
+            UrbanTextField(
+                value = state.query,
+                onValueChange = vm::setQuery,
+                label = "Buscar por nombre o correo",
+                leadingIcon = Icons.Default.Search,
+                imeAction = ImeAction.Search,
+                onImeAction = { vm.load() },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (state.roles.isNotEmpty()) {
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = state.roleFilter == null, onClick = { vm.setRoleFilter(null) }, label = { Text("Todos") })
+                    state.roles.forEach { role ->
+                        FilterChip(
+                            selected = state.roleFilter == role,
+                            onClick = { vm.setRoleFilter(if (state.roleFilter == role) null else role) },
+                            label = { Text(role.replace('_', ' ').replaceFirstChar { it.uppercase() }) }
+                        )
+                    }
+                }
             }
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                UrbanPageHeader(
-                    title = "Usuarios y personal",
-                    subtitle = "Administra accesos y roles del equipo.",
-                    eyebrow = "ADMINISTRACIÓN"
-                )
-            }
-            item {
-                UrbanTextField(
-                    value = state.query,
-                    onValueChange = vm::setQuery,
-                    label = "Buscar por nombre o correo",
-                    leadingIcon = Icons.Default.Search,
-                    imeAction = ImeAction.Search,
-                    onImeAction = { vm.load() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            if (state.roles.isNotEmpty()) {
-                item {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = state.roleFilter == null, onClick = { vm.setRoleFilter(null) }, label = { Text("Todos") })
-                        state.roles.forEach { role ->
-                            FilterChip(
-                                selected = state.roleFilter == role,
-                                onClick = { vm.setRoleFilter(if (state.roleFilter == role) null else role) },
-                                label = { Text(role.replace('_', ' ').replaceFirstChar { it.uppercase() }) }
-                            )
-                        }
-                    }
-                }
-            }
-            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (!creating && editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
-            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
+        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        if (!creating && editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
+        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
 
-            if (state.items.isNotEmpty()) {
-                item {
-                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                        Text("EQUIPO CON ACCESO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
-                        Text(
-                            UrbanFormat.count(state.total, "cuenta registrada", "cuentas registradas"),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = UrbanColors.Ink
-                        )
-                        Text(
-                            UrbanFormat.count(state.roles.size, "rol disponible", "roles disponibles"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = UrbanColors.Muted
-                        )
-                    }
-                }
-            }
-
-            if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item { UrbanEmptyState("Sin usuarios", "No hay cuentas que coincidan con la búsqueda.", Icons.Default.ManageAccounts) }
-            }
-            if (state.items.isNotEmpty()) {
-                item { UrbanSectionTitle("Cuentas", UrbanFormat.count(state.total, "usuario", "usuarios")) }
-            }
-            items(state.items, key = { it.id }) { user ->
-                UserCard(
-                    user = user,
-                    isSelf = user.id == currentUserId,
-                    onEdit = { vm.clearMessages(); editing = user },
-                    onDelete = { vm.clearMessages(); deleting = user }
-                )
-            }
-            if (state.hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (state.loadingMore) "Cargando…" else "Cargar más usuarios",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        modifier = Modifier.fillMaxWidth()
+        if (state.items.isNotEmpty()) {
+            item {
+                UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                    Text("EQUIPO CON ACCESO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
+                    Text(
+                        UrbanFormat.count(state.total, "cuenta registrada", "cuentas registradas"),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UrbanColors.Ink
+                    )
+                    Text(
+                        UrbanFormat.count(state.roles.size, "rol disponible", "roles disponibles"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = UrbanColors.Muted
                     )
                 }
+            }
+        }
+
+        if (!state.loading && state.items.isEmpty() && state.error == null) {
+            item { UrbanEmptyState("Sin usuarios", "No hay cuentas que coincidan con la búsqueda.", Icons.Default.ManageAccounts) }
+        }
+        if (state.items.isNotEmpty()) {
+            item { UrbanSectionTitle("Cuentas", UrbanFormat.count(state.total, "usuario", "usuarios")) }
+        }
+        items(state.items, key = { it.id }) { user ->
+            UserCard(
+                user = user,
+                isSelf = user.id == currentUserId,
+                onEdit = { vm.clearMessages(); editing = user },
+                onDelete = { vm.clearMessages(); deleting = user }
+            )
+        }
+        if (state.hasMore) {
+            item {
+                UrbanOutlineButton(
+                    text = if (state.loadingMore) "Cargando…" else "Cargar más usuarios",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

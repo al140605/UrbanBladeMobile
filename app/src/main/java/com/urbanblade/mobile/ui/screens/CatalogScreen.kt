@@ -31,6 +31,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.CatalogViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,7 +64,7 @@ fun CatalogScreen(
         // Como invitado no hay Scaffold que reserve la barra de estado (AuthenticatedNav sí),
         // así que el contenido quedaba debajo del reloj y la barra de gestos.
         Modifier.fillMaxSize().then(if (isGuest) Modifier.systemBarsPadding() else Modifier),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {

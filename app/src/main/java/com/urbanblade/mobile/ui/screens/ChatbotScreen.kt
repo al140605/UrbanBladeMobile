@@ -79,6 +79,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
 import com.urbanblade.mobile.ui.viewmodel.ChatBubble
 import com.urbanblade.mobile.ui.viewmodel.ChatbotViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Preguntas rápidas: temas que el backend reconoce por palabra clave (precio, horario,
@@ -172,7 +173,7 @@ fun ChatbotScreen(onBack: () -> Unit, onBook: (serviceId: String) -> Unit = {}, 
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             state = listState,
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = UrbanSpace.Gutter, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {

@@ -20,6 +20,7 @@ import com.urbanblade.mobile.data.model.SocialWork
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.SocialFeedViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /** Muro de trabajos reales: carruseles, perfil público, reacciones y comentarios recientes. */
 @Composable
@@ -133,7 +134,7 @@ private fun WorkPost(
     val barberName = work.barber?.name ?: "Equipo UrbanBlade"
     if (commenting) ModalBottomSheet(onDismissRequest = { commenting = false }, containerColor = UrbanColors.Surface,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).imePadding().clipToBounds().padding(horizontal = 18.dp, vertical = 12.dp)) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).imePadding().clipToBounds().padding(horizontal = UrbanSpace.Gutter, vertical = 12.dp)) {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().clipToBounds(),
             contentPadding = PaddingValues(bottom = 12.dp),

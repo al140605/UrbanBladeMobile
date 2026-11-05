@@ -21,6 +21,7 @@ import com.urbanblade.mobile.core.config.UrbanRemoteConfig
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BenefitPurchaseViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /** Acciones reales de autoservicio: la compra la confirma Laravel mediante el webhook de Stripe. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,7 +78,7 @@ internal fun BenefitShop(onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = v
             containerColor = UrbanColors.Background
         ) {
             Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                .padding(horizontal = UrbanSpace.Gutter, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(if (selected == "packages") "Paquetes de servicios" else "Tarjeta regalo",
                     style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
                 error?.let { UrbanErrorBanner(it) }

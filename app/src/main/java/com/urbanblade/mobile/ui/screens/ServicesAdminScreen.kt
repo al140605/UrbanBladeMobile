@@ -5,7 +5,6 @@ import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,15 +63,13 @@ import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanRefreshButton
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
 import com.urbanblade.mobile.ui.viewmodel.ServicesAdminViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 /** Catálogo de servicios del administrador: buscar, filtrar, crear, editar, activar y eliminar. */
 @Composable
@@ -86,13 +81,13 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                UrbanRefreshButton(state.loading || state.loadingMore || state.saving) { vm.load() }
-            }
-        },
+    UrbanModuleScreen(
+        eyebrow = "Catálogo",
+        title = "Servicios",
+        subtitle = "Precio, duración y lo que ven tus clientes al reservar.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.loadingMore || state.saving,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { vm.clearMessages(); creating = true },
@@ -102,79 +97,72 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
                 text = { Text("Nuevo servicio", fontWeight = FontWeight.Bold) }
             )
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Servicios", subtitle = "Precio, duración y lo que ven tus clientes al reservar.", eyebrow = "Catálogo") }
+    ) {
+        item {
+            UrbanTextField(
+                value = state.query,
+                onValueChange = vm::setQuery,
+                label = "Buscar servicio",
+                leadingIcon = Icons.Default.Search,
+                imeAction = ImeAction.Search,
+                onImeAction = { vm.load() },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ServiceStatusFilter.entries.forEach { filter ->
+                    FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) }, colors = urbanFilterChipColors())
+                }
+            }
+        }
+        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con el formulario abierto el error se muestra dentro de la hoja, no aquí.
+        if (editing == null && !creating) state.error?.let { msg ->
             item {
-                UrbanTextField(
-                    value = state.query,
-                    onValueChange = vm::setQuery,
-                    label = "Buscar servicio",
-                    leadingIcon = Icons.Default.Search,
-                    imeAction = ImeAction.Search,
-                    onImeAction = { vm.load() },
+                if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los servicios", msg, "Reintentar") { vm.load() }
+                else UrbanErrorBanner(msg)
+            }
+        }
+
+        if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
+
+        if (!state.loading && state.items.isEmpty() && state.error == null) {
+            item {
+                val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+                UrbanMascotState(
+                    UrbanStateKind.EMPTY,
+                    if (firstTime) "Aún no hay servicios" else "Sin resultados",
+                    if (firstTime) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
+                    actionLabel = if (firstTime) "Nuevo servicio" else null,
+                    actionIcon = Icons.Default.Add,
+                    onAction = if (firstTime) { { creating = true } } else null
+                )
+            }
+        }
+
+        if (state.items.isNotEmpty()) {
+            item { UrbanSectionTitle("Catálogo", UrbanFormat.count(state.total, "servicio", "servicios")) }
+        }
+        items(state.items, key = { it.id }) { service ->
+            ServiceAdminCard(
+                service = service,
+                onOpen = { vm.clearMessages(); editing = service },
+                onToggle = { vm.toggleActive(service) }
+            )
+        }
+        if (state.hasMore) {
+            item {
+                UrbanOutlineButton(
+                    text = if (state.loadingMore) "Cargando…" else "Cargar más servicios",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ServiceStatusFilter.entries.forEach { filter ->
-                        FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) }, colors = urbanFilterChipColors())
-                    }
-                }
-            }
-            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            // Con el formulario abierto el error se muestra dentro de la hoja, no aquí.
-            if (editing == null && !creating) state.error?.let { msg ->
-                item {
-                    if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los servicios", msg, "Reintentar") { vm.load() }
-                    else UrbanErrorBanner(msg)
-                }
-            }
-
-            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
-
-            if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item {
-                    val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (firstTime) "Aún no hay servicios" else "Sin resultados",
-                        if (firstTime) "Crea el primero para que tus clientes puedan reservar." else "Prueba con otra búsqueda o filtro.",
-                        actionLabel = if (firstTime) "Nuevo servicio" else null,
-                        actionIcon = Icons.Default.Add,
-                        onAction = if (firstTime) { { creating = true } } else null
-                    )
-                }
-            }
-
-            if (state.items.isNotEmpty()) {
-                item { UrbanSectionTitle("Catálogo", UrbanFormat.count(state.total, "servicio", "servicios")) }
-            }
-            items(state.items, key = { it.id }) { service ->
-                ServiceAdminCard(
-                    service = service,
-                    onOpen = { vm.clearMessages(); editing = service },
-                    onToggle = { vm.toggleActive(service) }
-                )
-            }
-            if (state.hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (state.loadingMore) "Cargando…" else "Cargar más servicios",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-            item { Spacer(Modifier.height(80.dp)) }
         }
+        item { Spacer(Modifier.height(80.dp)) }
     }
 
     if (creating || editing != null) {

@@ -37,6 +37,7 @@ import com.urbanblade.mobile.data.model.BarberWork
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarberProfileViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Ficha del barbero para el cliente (como /equipo/{slug} en la web): foto, especialidades,
@@ -68,7 +69,7 @@ fun BarberProfileScreen(
             }
             data != null -> LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 error?.let { item { UrbanErrorBanner(it) } }

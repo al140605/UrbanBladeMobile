@@ -41,6 +41,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.LogsViewModel
 import com.urbanblade.mobile.ui.viewmodel.SystemStatusViewModel
 import java.time.LocalDate
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 internal fun healthTone(level: HealthLevel): Color = when (level) {
     HealthLevel.OK -> UrbanColors.Success
@@ -82,7 +83,7 @@ fun EngineerHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {

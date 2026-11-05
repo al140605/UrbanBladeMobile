@@ -2,7 +2,6 @@ package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +24,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_trabajo" to "Insumo de trabajo")
 
@@ -59,79 +59,69 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
     val attentionProducts = remember(visibleProducts) { visibleProducts.filter { it.lowStock || it.pendingRestock } }
     val regularProducts = remember(visibleProducts, attentionProducts) { visibleProducts.filterNot { it in attentionProducts } }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                if (isAdmin) {
+    val subtitle = when {
+    !hasLoaded -> "Consulta las existencias y sus movimientos."
+    response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
+    else -> "Existencias de la tienda al día."
+    }
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Inventario",
+        subtitle = subtitle,
+        onBack = onBack,
+        actions = { if (isAdmin) {
                     IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
                 }
                 IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
-                UrbanRefreshButton(busy) { vm.load() }
-            }
+                UrbanRefreshButton(busy) { vm.load() } }
+    ) {
+        if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        error?.let { item { UrbanErrorBanner(it) } }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+
+        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+        if (hasLoaded) item {
+            UrbanStatStrip(listOf(
+                Triple("Productos", response.meta.stats.total.toString(), UrbanColors.Ink),
+                Triple("Por reponer", response.meta.stats.bajoStock.toString(), if (response.meta.stats.bajoStock > 0) UrbanColors.Warning else UrbanColors.Ink),
+                Triple("Valor inventario", UrbanFormat.moneyShort(response.meta.stats.valorTotal), UrbanColors.Ink)
+            ))
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+
+        if (response.meta.categorias.isNotEmpty()) {
             item {
-                val subtitle = when {
-                    !hasLoaded -> "Consulta las existencias y sus movimientos."
-                    response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
-                    else -> "Existencias de la tienda al día."
-                }
-                UrbanPageHeader(title = "Inventario", subtitle = subtitle, eyebrow = "OPERACIÓN")
-            }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-
-            if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
-            if (hasLoaded) item {
-                UrbanStatStrip(listOf(
-                    Triple("Productos", response.meta.stats.total.toString(), UrbanColors.Ink),
-                    Triple("Por reponer", response.meta.stats.bajoStock.toString(), if (response.meta.stats.bajoStock > 0) UrbanColors.Warning else UrbanColors.Ink),
-                    Triple("Valor inventario", UrbanFormat.moneyShort(response.meta.stats.valorTotal), UrbanColors.Ink)
-                ))
-            }
-
-            if (response.meta.categorias.isNotEmpty()) {
-                item {
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(selected = categoryFilter == null, onClick = { categoryFilter = null }, label = { Text("Todas") })
-                        response.meta.categorias.forEach { cat ->
-                            FilterChip(selected = categoryFilter == cat, onClick = { categoryFilter = if (categoryFilter == cat) null else cat }, label = { Text(cat) })
-                        }
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(selected = categoryFilter == null, onClick = { categoryFilter = null }, label = { Text("Todas") })
+                    response.meta.categorias.forEach { cat ->
+                        FilterChip(selected = categoryFilter == cat, onClick = { categoryFilter = if (categoryFilter == cat) null else cat }, label = { Text(cat) })
                     }
                 }
             }
+        }
 
-            if (visibleProducts.isEmpty() && hasLoaded && !busy && error == null) {
-                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
+        if (visibleProducts.isEmpty() && hasLoaded && !busy && error == null) {
+            item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
+        }
+
+        if (attentionProducts.isNotEmpty()) {
+            item {
+                UrbanSectionTitle(
+                    "Requiere atención",
+                    UrbanFormat.count(attentionProducts.size, "producto en esta vista necesita revisión", "productos en esta vista necesitan revisión")
+                )
             }
-
-            if (attentionProducts.isNotEmpty()) {
-                item {
-                    UrbanSectionTitle(
-                        "Requiere atención",
-                        UrbanFormat.count(attentionProducts.size, "producto en esta vista necesita revisión", "productos en esta vista necesitan revisión")
-                    )
-                }
-                items(attentionProducts, key = { it.id }) { product ->
-                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
-                }
+            items(attentionProducts, key = { it.id }) { product ->
+                InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
             }
+        }
 
-            if (regularProducts.isNotEmpty()) {
-                item { UrbanSectionTitle("Existencias", UrbanFormat.count(regularProducts.size, "producto disponible", "productos disponibles")) }
-                items(regularProducts, key = { it.id }) { product ->
-                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
-                }
+        if (regularProducts.isNotEmpty()) {
+            item { UrbanSectionTitle("Existencias", UrbanFormat.count(regularProducts.size, "producto disponible", "productos disponibles")) }
+            items(regularProducts, key = { it.id }) { product ->
+                InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
             }
         }
     }

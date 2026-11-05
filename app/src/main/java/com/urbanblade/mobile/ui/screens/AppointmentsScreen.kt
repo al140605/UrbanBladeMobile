@@ -49,6 +49,7 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -810,7 +811,7 @@ internal fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, on
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Card) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter, vertical = 8.dp)) {
             UrbanSectionTitle("Reagendar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 
@@ -1008,7 +1009,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
         } else {
             // Con carrusel de tarjetas el contenido supera la altura de pantallas chicas: la hoja se desplaza
             // para que el botón de pagar siempre se pueda alcanzar.
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 8.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = UrbanSpace.Gutter, vertical = 8.dp)) {
             UrbanSectionTitle("Pagar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 

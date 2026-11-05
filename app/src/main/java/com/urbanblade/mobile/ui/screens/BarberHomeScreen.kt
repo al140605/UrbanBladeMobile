@@ -37,6 +37,7 @@ import com.urbanblade.mobile.ui.viewmodel.DashboardViewModel
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Inicio del barbero: "Mi día". Qué cita sigue, qué falta confirmar y sus accesos. Antes veía
@@ -63,7 +64,7 @@ fun BarberHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {

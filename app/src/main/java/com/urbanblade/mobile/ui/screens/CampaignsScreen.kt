@@ -3,14 +3,12 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,10 +66,7 @@ import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanRefreshButton
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanStatStrip
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
@@ -84,6 +78,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 /** Campañas de marketing por segmento (solo administrador): historial y envío inmediato o programado. */
 @Composable
@@ -95,9 +90,13 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(state.loading || state.sending) { vm.load() } } },
+    UrbanModuleScreen(
+        eyebrow = "Marketing",
+        title = "Campañas",
+        subtitle = "Promociones por correo y notificación para cada segmento de clientes.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.sending,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { vm.clearMessages(); creating = true },
@@ -107,46 +106,39 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
                 text = { Text("Nueva campaña", fontWeight = FontWeight.Bold) }
             )
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Campañas", subtitle = "Promociones por correo y notificación para cada segmento de clientes.", eyebrow = "Marketing") }
-            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
+    ) {
+        if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
 
-            if (data.segmentCounts.isNotEmpty()) {
-                item { UrbanSectionTitle("Clientes por segmento", "A quién puedes llegar") }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        data.segmentCounts.entries.chunked(2).forEach { row ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                row.forEach { (key, count) ->
-                                    UrbanMetricCard(labels[key] ?: key, count.toString(), Icons.Default.Groups, Modifier.weight(1f))
-                                }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
+        if (data.segmentCounts.isNotEmpty()) {
+            item { UrbanSectionTitle("Clientes por segmento", "A quién puedes llegar") }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    data.segmentCounts.entries.chunked(2).forEach { row ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { (key, count) ->
+                                UrbanMetricCard(labels[key] ?: key, count.toString(), Icons.Default.Groups, Modifier.weight(1f))
                             }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
-
-            item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
-            if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
-            if (!state.loading && data.data.isEmpty() && state.error == null) {
-                item {
-                    // Sin botón propio: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
-                    )
-                }
-            }
-            items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
-            item { Spacer(Modifier.height(80.dp)) }
         }
+
+        item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
+        if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
+        if (!state.loading && data.data.isEmpty() && state.error == null) {
+            item {
+                // Sin botón propio: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
+                UrbanMascotState(
+                    UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
+                )
+            }
+        }
+        items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
+        item { Spacer(Modifier.height(80.dp)) }
     }
 
     if (creating) {

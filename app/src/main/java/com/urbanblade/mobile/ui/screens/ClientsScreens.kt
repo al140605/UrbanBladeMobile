@@ -24,6 +24,8 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ClientsViewModel
 import kotlinx.coroutines.delay
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 private val SEGMENT_LABEL = mapOf(
     "vip" to "VIP",
@@ -50,87 +52,77 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
         vm.load(search.takeIf { it.isNotBlank() }, segment)
     }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                UrbanRefreshButton(busy || loadingMore || saving) { vm.load(search.takeIf { it.isNotBlank() }, segment) }
-                IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Clientes",
+        subtitle = "Busca, registra y revisa el historial de cada cliente.",
+        onBack = onBack,
+        onRefresh = { vm.load(search.takeIf { it.isNotBlank() }, segment) },
+        refreshing = busy || loadingMore || saving,
+        actions = {
+            IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
+        },
+        pinned = {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                placeholder = { Text("Buscar por nombre, correo o teléfono…") },
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.load(search.takeIf { it.isNotBlank() }, segment) }),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
+            )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = segment == null, onClick = { segment = null }, label = { Text("Todos") })
+                SEGMENT_LABEL.forEach { (key, label) ->
+                    FilterChip(selected = segment == key, onClick = { segment = if (segment == key) null else key }, label = { Text(label) })
+                }
             }
         }
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
-                UrbanPageHeader(title = "Clientes", subtitle = "Busca, registra y revisa el historial de cada cliente.", eyebrow = "OPERACIÓN")
-                Spacer(Modifier.height(14.dp))
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text("Buscar por nombre, correo o teléfono…") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { vm.load(search.takeIf { it.isNotBlank() }, segment) }),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = segment == null, onClick = { segment = null }, label = { Text("Todos") })
-                    SEGMENT_LABEL.forEach { (key, label) ->
-                        FilterChip(selected = segment == key, onClick = { segment = if (segment == key) null else key }, label = { Text(label) })
-                    }
-                }
+    ) {
+            urbanLoadingItem(busy, clients.data.isEmpty())
+            error?.let { item { UrbanErrorBanner(it) } }
+            if (clients.data.isNotEmpty()) {
+                item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
             }
-
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                urbanLoadingItem(busy, clients.data.isEmpty())
-                error?.let { item { UrbanErrorBanner(it) } }
-                if (clients.data.isNotEmpty()) {
-                    item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
-                }
-                if (clients.data.isEmpty() && !busy && error == null) {
-                    item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin clientes", "No hay clientes que coincidan con la búsqueda.", "Registrar cliente", Icons.Default.PersonAdd) { showCreate = true } }
-                }
-                items(clients.data) { client ->
-                    UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(client.name ?: "Sin nombre", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(client.email ?: client.telefono ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(
-                                    client.lastAppointment?.let { "Última visita: ${UrbanFormat.dateShort(it)}" } ?: "Aún sin visitas",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = UrbanColors.Muted
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                client.segment?.let { SimpleStatusPill(SEGMENT_LABEL[it] ?: it, color = if (it == "vip") UrbanColors.Gold else null) }
-                                Spacer(Modifier.height(4.dp))
-                                Text(UrbanFormat.moneyShort(client.totalSpent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                                Text(UrbanFormat.count(client.totalAppointments, "cita", "citas"), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
-                            }
+            if (clients.data.isEmpty() && !busy && error == null) {
+                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin clientes", "No hay clientes que coincidan con la búsqueda.", "Registrar cliente", Icons.Default.PersonAdd) { showCreate = true } }
+            }
+            items(clients.data) { client ->
+                UrbanCard(Modifier.fillMaxWidth(), onClick = { onClientClick(client.id) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        UrbanAvatar(client.name ?: "?", Modifier.size(48.dp), imageUrl = client.avatarUrl)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(client.name ?: "Sin nombre", style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(client.email ?: client.telefono ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                client.lastAppointment?.let { "Última visita: ${UrbanFormat.dateShort(it)}" } ?: "Aún sin visitas",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = UrbanColors.Muted
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            client.segment?.let { SimpleStatusPill(SEGMENT_LABEL[it] ?: it, color = if (it == "vip") UrbanColors.Gold else null) }
+                            Spacer(Modifier.height(4.dp))
+                            Text(UrbanFormat.moneyShort(client.totalSpent), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                            Text(UrbanFormat.count(client.totalAppointments, "cita", "citas"), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted)
                         }
                     }
                 }
-                if (hasMore) {
-                    item {
-                        UrbanOutlineButton(
-                            text = if (loadingMore) "Cargando…" else "Cargar más clientes",
-                            onClick = { vm.loadMore() },
-                            icon = Icons.Default.ExpandMore,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            }
+            if (hasMore) {
+                item {
+                    UrbanOutlineButton(
+                        text = if (loadingMore) "Cargando…" else "Cargar más clientes",
+                        onClick = { vm.loadMore() },
+                        icon = Icons.Default.ExpandMore,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
-        }
     }
 
     if (showCreate) {
@@ -216,7 +208,7 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+            contentPadding = PaddingValues(horizontal = UrbanSpace.Gutter, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }

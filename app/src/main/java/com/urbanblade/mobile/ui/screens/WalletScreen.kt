@@ -8,7 +8,6 @@ import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.urbanblade.mobile.BuildConfig
 import com.urbanblade.mobile.core.payment.rememberStripeReady
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +33,8 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import com.urbanblade.mobile.ui.viewmodel.WalletViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Beneficios del cliente: puntos/nivel, membresía, paquetes, gift cards y referidos (endpoints
@@ -87,112 +88,104 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
     // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
     val nothingYet = data.packages.isEmpty() && data.giftCards.isEmpty()
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
-    LazyColumn(
-        Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    UrbanModuleScreen(
+        eyebrow = "Cuenta",
+        title = "Beneficios",
+        subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
+        onBack = onBack
     ) {
-        item {
-            UrbanPageHeader(
-                title = "Beneficios",
-                subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
-                eyebrow = "Cuenta"
-            )
+    message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+
+    when {
+        error != null && !data.hasContent && !loading -> item {
+            UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus beneficios", error, "Reintentar") { vm.load() }
         }
-        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-
-        when {
-            error != null && !data.hasContent && !loading -> item {
-                UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus beneficios", error, "Reintentar") { vm.load() }
-            }
-            loading && !data.hasContent -> item { UrbanSkeletonList(2) }
-            else -> {
-                error?.let { item { UrbanErrorBanner(it) } }
-                data.loyalty?.let { loyalty ->
-                    item { LoyaltyCard(loyalty) }
-                    loyalty.wonRaffle?.takeIf { !it.isExpired && it.premio != null }?.let { raffle ->
-                        item {
-                            UrbanAttentionRow(
-                                Icons.Default.EmojiEvents,
-                                "Ganaste el sorteo${raffle.mes?.let { " de $it" } ?: ""}: ${raffle.premio}",
-                                raffle.venceEn?.let { "Reclámalo en recepción antes del $it." } ?: "Reclámalo en recepción.",
-                                UrbanColors.Success
-                            )
-                        }
-                    }
-                }
-
-                if (nothingYet) {
+        loading && !data.hasContent -> item { UrbanSkeletonList(2) }
+        else -> {
+            error?.let { item { UrbanErrorBanner(it) } }
+            data.loyalty?.let { loyalty ->
+                item { LoyaltyCard(loyalty) }
+                loyalty.wonRaffle?.takeIf { !it.isExpired && it.premio != null }?.let { raffle ->
                     item {
                         UrbanAttentionRow(
-                            Icons.Default.Redeem,
-                            "Aún no tienes paquetes ni tarjetas regalo",
-                            "Consulta los paquetes y tarjetas regalo en Descubre más.",
-                            UrbanColors.Gold
-                        )
-                    }
-                } else {
-                    if (data.packages.isNotEmpty()) {
-                        item { UrbanSectionTitle("Mis paquetes", null) }
-                        items(data.packages, key = { it.id }) { PackageCard(it) }
-                    }
-                    if (data.giftCards.isNotEmpty()) {
-                        item { UrbanSectionTitle("Mis tarjetas regalo", null) }
-                        items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
-                    }
-                }
-
-                val membership = data.membership
-                item { UrbanSectionTitle(if (membership != null) "Mi membresía" else "Membresías", if (membership == null) "Un descuento fijo en cada servicio, pagado mes a mes." else null) }
-                when {
-                    membership != null -> item {
-                        MembershipCard(
-                            membership,
-                            busy,
-                            onCancel = { confirmCancelMembership = true },
-                            // El primer cobro no se completó: se puede pagar de nuevo la misma suscripción.
-                            onCompletePayment = membership.plan?.takeIf { cardAvailable && membership.estado == "pendiente" }
-                                ?.let { plan -> { sheetError = null; checkoutPlan = plan } }
-                        )
-                    }
-                    cardAvailable && data.plans.isNotEmpty() -> items(data.plans, key = { "plan-${it.id}" }) { plan ->
-                        MembershipPlanCard(plan, busy) { sheetError = null; checkoutPlan = plan }
-                    }
-                    else -> item {
-                        UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
-                    }
-                }
-
-                item { UrbanSectionTitle("Descubre más", "Planes y opciones para tu próxima visita.") }
-                item { BenefitShop(onRefresh = { vm.load() }) }
-                data.loyalty?.let { loyalty ->
-                    if (loyalty.levels.size > 1) {
-                        item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
-                        item { LevelLadder(loyalty) }
-                    }
-                    item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
-                    item { PointsCard(loyalty, onBook) }
-                }
-                data.referrals?.let { referrals ->
-                    item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
-                    item {
-                        ReferralCard(
-                            referrals,
-                            copied = copied,
-                            onCopyCode = { clipboard.setText(AnnotatedString(it)); copied = true },
-                            onShare = { code ->
-                                val text = "Te invito a UrbanBlade: regístrate con mi código $code y agenda tu primera cita."
-                                val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
-                                context.startActivity(Intent.createChooser(send, "Compartir mi código"))
-                            }
+                            Icons.Default.EmojiEvents,
+                            "Ganaste el sorteo${raffle.mes?.let { " de $it" } ?: ""}: ${raffle.premio}",
+                            raffle.venceEn?.let { "Reclámalo en recepción antes del $it." } ?: "Reclámalo en recepción.",
+                            UrbanColors.Success
                         )
                     }
                 }
             }
+
+            if (nothingYet) {
+                item {
+                    UrbanAttentionRow(
+                        Icons.Default.Redeem,
+                        "Aún no tienes paquetes ni tarjetas regalo",
+                        "Consulta los paquetes y tarjetas regalo en Descubre más.",
+                        UrbanColors.Gold
+                    )
+                }
+            } else {
+                if (data.packages.isNotEmpty()) {
+                    item { UrbanSectionTitle("Mis paquetes", null) }
+                    items(data.packages, key = { it.id }) { PackageCard(it) }
+                }
+                if (data.giftCards.isNotEmpty()) {
+                    item { UrbanSectionTitle("Mis tarjetas regalo", null) }
+                    items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
+                }
+            }
+
+            val membership = data.membership
+            item { UrbanSectionTitle(if (membership != null) "Mi membresía" else "Membresías", if (membership == null) "Un descuento fijo en cada servicio, pagado mes a mes." else null) }
+            when {
+                membership != null -> item {
+                    MembershipCard(
+                        membership,
+                        busy,
+                        onCancel = { confirmCancelMembership = true },
+                        // El primer cobro no se completó: se puede pagar de nuevo la misma suscripción.
+                        onCompletePayment = membership.plan?.takeIf { cardAvailable && membership.estado == "pendiente" }
+                            ?.let { plan -> { sheetError = null; checkoutPlan = plan } }
+                    )
+                }
+                cardAvailable && data.plans.isNotEmpty() -> items(data.plans, key = { "plan-${it.id}" }) { plan ->
+                    MembershipPlanCard(plan, busy) { sheetError = null; checkoutPlan = plan }
+                }
+                else -> item {
+                    UrbanInlineEmpty("Sin membresía activa", Icons.Default.CardMembership, subtitle = "Pregunta en recepción por los planes disponibles.")
+                }
+            }
+
+            item { UrbanSectionTitle("Descubre más", "Planes y opciones para tu próxima visita.") }
+            item { BenefitShop(onRefresh = { vm.load() }) }
+            data.loyalty?.let { loyalty ->
+                if (loyalty.levels.size > 1) {
+                    item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
+                    item { LevelLadder(loyalty) }
+                }
+                item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
+                item { PointsCard(loyalty, onBook) }
+            }
+            data.referrals?.let { referrals ->
+                item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
+                item {
+                    ReferralCard(
+                        referrals,
+                        copied = copied,
+                        onCopyCode = { clipboard.setText(AnnotatedString(it)); copied = true },
+                        onShare = { code ->
+                            val text = "Te invito a UrbanBlade: regístrate con mi código $code y agenda tu primera cita."
+                            val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
+                            context.startActivity(Intent.createChooser(send, "Compartir mi código"))
+                        }
+                    )
+                }
+            }
         }
-        item { Spacer(Modifier.height(8.dp)) }
     }
+    item { Spacer(Modifier.height(8.dp)) }
     }
 
     checkoutPlan?.let { plan ->
@@ -415,7 +408,7 @@ private fun MembershipCheckoutSheet(
         Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp)
+            .padding(horizontal = UrbanSpace.Gutter)
             .padding(bottom = 24.dp)
     ) {
         UrbanHeroCard {

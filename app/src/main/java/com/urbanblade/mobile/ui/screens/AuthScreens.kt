@@ -88,6 +88,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 private fun isValidEmail(value: String) = Patterns.EMAIL_ADDRESS.matcher(value.trim()).matches()
 
@@ -555,7 +556,7 @@ private fun AuthScaffold(
             UrbanBrandMark(compact = true, unboxed = true)
             Spacer(Modifier.size(48.dp))
         }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp),
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = UrbanSpace.Gutter),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (!keyboardOpen) {
                 UrbanPublicHero("El detalle hace el estilo.", "BARBERÍA · ESTILO · CUIDADO")

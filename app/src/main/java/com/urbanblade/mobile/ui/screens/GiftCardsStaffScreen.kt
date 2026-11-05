@@ -4,14 +4,12 @@ import android.content.Intent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CardGiftcard
@@ -21,7 +19,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,12 +42,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanFormat
@@ -58,6 +53,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MAX
 import com.urbanblade.mobile.ui.viewmodel.GIFT_CARD_MIN
 import com.urbanblade.mobile.ui.viewmodel.GiftCardsStaffViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 private val PRESETS = listOf(200, 500, 1000, 2000)
 
@@ -82,115 +78,110 @@ fun GiftCardsStaffScreen(onBack: () -> Unit, vm: GiftCardsStaffViewModel = viewM
     }
     val emailError = if (submitted && email.isNotBlank() && !email.contains("@")) "Escribe un correo válido." else null
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                UrbanPageHeader("Tarjetas regalo", "Vende una tarjeta en mostrador o consulta su saldo.", "OPERACIÓN")
-            }
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Tarjetas regalo",
+        subtitle = "Vende una tarjeta en mostrador o consulta su saldo.",
+        onBack = onBack
+    ) {
+        state.sold?.let { sold ->
+            item { SoldCard(code = sold.code, saldo = sold.saldo, onNew = vm::clearSold) }
+        }
 
-            state.sold?.let { sold ->
-                item { SoldCard(code = sold.code, saldo = sold.saldo, onNew = vm::clearSold) }
-            }
-
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    UrbanSectionTitle("Vender en efectivo", "Cobra el monto y entrega el código al cliente")
-                    Spacer(Modifier.height(12.dp))
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PRESETS.forEach { preset ->
-                            FilterChip(
-                                selected = montoValue == preset.toDouble(),
-                                onClick = { monto = preset.toString() },
-                                label = { Text(money(preset.toDouble())) }
-                            )
-                        }
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                UrbanSectionTitle("Vender en efectivo", "Cobra el monto y entrega el código al cliente")
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PRESETS.forEach { preset ->
+                        FilterChip(
+                            selected = montoValue == preset.toDouble(),
+                            onClick = { monto = preset.toString() },
+                            label = { Text(money(preset.toDouble())) }
+                        )
                     }
-                    Spacer(Modifier.height(10.dp))
-                    UrbanTextField(
-                        value = monto,
-                        onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                        label = "Monto (MXN)",
-                        error = montoError,
-                        helper = "Mínimo ${money(GIFT_CARD_MIN)}, máximo ${money(GIFT_CARD_MAX)}.",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    UrbanTextField(
-                        value = comprador,
-                        onValueChange = { comprador = it },
-                        label = "Nombre de quien compra (opcional)",
-                        capitalization = KeyboardCapitalization.Words,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    UrbanTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = "Correo de quien la recibe (opcional)",
-                        error = emailError,
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Done,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    state.sellError?.let {
-                        Spacer(Modifier.height(10.dp))
-                        UrbanErrorBanner(it)
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    UrbanPrimaryButton(
-                        text = "Vender en efectivo",
-                        onClick = {
-                            submitted = true
-                            val valid = montoValue != null && montoValue in GIFT_CARD_MIN..GIFT_CARD_MAX &&
-                                (email.isBlank() || email.contains("@"))
-                            if (valid) confirm = true
-                        },
-                        loading = state.selling,
-                        icon = Icons.Default.CardGiftcard,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
-            }
-
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    UrbanSectionTitle("Consultar saldo", "Con el código de la tarjeta")
-                    Spacer(Modifier.height(12.dp))
-                    UrbanTextField(
-                        value = code,
-                        onValueChange = { code = it },
-                        label = "Código",
-                        leadingIcon = Icons.Default.Search,
-                        imeAction = ImeAction.Search,
-                        onImeAction = { vm.lookup(code) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                Spacer(Modifier.height(10.dp))
+                UrbanTextField(
+                    value = monto,
+                    onValueChange = { monto = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                    label = "Monto (MXN)",
+                    error = montoError,
+                    helper = "Mínimo ${money(GIFT_CARD_MIN)}, máximo ${money(GIFT_CARD_MAX)}.",
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+                UrbanTextField(
+                    value = comprador,
+                    onValueChange = { comprador = it },
+                    label = "Nombre de quien compra (opcional)",
+                    capitalization = KeyboardCapitalization.Words,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+                UrbanTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Correo de quien la recibe (opcional)",
+                    error = emailError,
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                state.sellError?.let {
                     Spacer(Modifier.height(10.dp))
-                    UrbanOutlineButton("Consultar", { vm.lookup(code) }, Modifier.fillMaxWidth(), Icons.Default.Search)
-                    state.lookupError?.let {
-                        Spacer(Modifier.height(10.dp))
-                        UrbanErrorBanner(it)
-                    }
-                    state.found?.let { card ->
-                        Spacer(Modifier.height(14.dp))
-                        Text("Saldo disponible", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
-                        Text(
-                            money(card.saldo),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = UrbanColors.GoldText
-                        )
-                        Text(
-                            "de ${money(card.montoInicial)} iniciales" + (card.estado?.let { " · ${it.replaceFirstChar { c -> c.uppercase() }}" } ?: ""),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = UrbanColors.Muted
-                        )
-                    }
+                    UrbanErrorBanner(it)
+                }
+                Spacer(Modifier.height(14.dp))
+                UrbanPrimaryButton(
+                    text = "Vender en efectivo",
+                    onClick = {
+                        submitted = true
+                        val valid = montoValue != null && montoValue in GIFT_CARD_MIN..GIFT_CARD_MAX &&
+                            (email.isBlank() || email.contains("@"))
+                        if (valid) confirm = true
+                    },
+                    loading = state.selling,
+                    icon = Icons.Default.CardGiftcard,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                UrbanSectionTitle("Consultar saldo", "Con el código de la tarjeta")
+                Spacer(Modifier.height(12.dp))
+                UrbanTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = "Código",
+                    leadingIcon = Icons.Default.Search,
+                    imeAction = ImeAction.Search,
+                    onImeAction = { vm.lookup(code) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+                UrbanOutlineButton("Consultar", { vm.lookup(code) }, Modifier.fillMaxWidth(), Icons.Default.Search)
+                state.lookupError?.let {
+                    Spacer(Modifier.height(10.dp))
+                    UrbanErrorBanner(it)
+                }
+                state.found?.let { card ->
+                    Spacer(Modifier.height(14.dp))
+                    Text("Saldo disponible", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                    Text(
+                        money(card.saldo),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = UrbanColors.GoldText
+                    )
+                    Text(
+                        "de ${money(card.montoInicial)} iniciales" + (card.estado?.let { " · ${it.replaceFirstChar { c -> c.uppercase() }}" } ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = UrbanColors.Muted
+                    )
                 }
             }
         }

@@ -29,6 +29,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.RowScope
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -65,8 +69,17 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
  */
 
 /**
- * Esqueleto común de un módulo: barra con volver y actualizar, encabezado con eyebrow y el
+ * Esqueleto único de un módulo: barra con volver y actualizar, encabezado con eyebrow y el
  * contenido en una lista. El título vive en el encabezado (no se repite en la barra).
+ *
+ * Todo módulo (operación, administración, análisis, cuenta) usa este andamio para que el
+ * encabezado, el margen, el ritmo vertical y la posición de «Actualizar» sean idénticos.
+ *
+ * @param actions acciones extra de la barra (por ejemplo «Agregar»), a la derecha de actualizar.
+ * @param floatingActionButton botón flotante del módulo; reserva espacio al final de la lista.
+ * @param listState estado de la lista, para módulos con paginación o desplazamiento controlado.
+ * @param pinned contenido fijo bajo el encabezado (buscador, filtros): el encabezado y este
+ * bloque no se desplazan con la lista.
  */
 @Composable
 fun UrbanModuleScreen(
@@ -76,6 +89,10 @@ fun UrbanModuleScreen(
     onBack: () -> Unit,
     onRefresh: (() -> Unit)? = null,
     refreshing: Boolean = false,
+    actions: @Composable RowScope.() -> Unit = {},
+    floatingActionButton: (@Composable () -> Unit)? = null,
+    listState: LazyListState = rememberLazyListState(),
+    pinned: (@Composable ColumnScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit
 ) {
     Scaffold(
@@ -85,17 +102,36 @@ fun UrbanModuleScreen(
                 if (onRefresh != null) {
                     UrbanRefreshButton(refreshing, onRefresh)
                 }
+                actions()
             }
-        }
+        },
+        floatingActionButton = { floatingActionButton?.invoke() }
     ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.
-            item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
-            content()
+            if (pinned != null) {
+                Column(
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Xxs),
+                    verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
+                ) {
+                    UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true)
+                    pinned()
+                }
+            }
+            LazyColumn(
+                Modifier.fillMaxWidth().weight(1f),
+                state = listState,
+                contentPadding = PaddingValues(
+                    start = UrbanSpace.Gutter,
+                    end = UrbanSpace.Gutter,
+                    top = if (pinned != null) UrbanSpace.Md else UrbanSpace.Xxs,
+                    bottom = if (floatingActionButton != null) UrbanSpace.FabClearance else UrbanSpace.Xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
+            ) {
+                if (pinned == null) item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
+                content()
+            }
         }
     }
 }
