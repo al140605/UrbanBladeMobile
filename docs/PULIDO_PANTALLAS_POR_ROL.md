@@ -373,3 +373,7 @@ mientras la lista está en lo alto; al desplazar se contrae y deja de tapar.
 - Validación: lint, pruebas unitarias y APK `.audit` en verde. Recorrido físico (tema oscuro) con las
   cuatro cuentas demo de personal: mismo encabezado, misma tarjeta de resumen y mismo ritmo.
 - Pendiente: revisar Libreta, los otros dos temas y 320 dp.
+- Ajuste tras la primera revisión: el resumen ocupaba demasiado. Ahora la cifra es más pequeña, la tendencia
+  va a su lado, los datos secundarios van en una fila sin cajas de icono ni divisor, y el encabezado ya no
+  apila actualizar y avatar bajo la fecha salvo por debajo de 300 dp (antes 360 dp, que en un teléfono de
+  385 dp con márgenes los apilaba). Cada inicio recupera unos 75 dp de alto.

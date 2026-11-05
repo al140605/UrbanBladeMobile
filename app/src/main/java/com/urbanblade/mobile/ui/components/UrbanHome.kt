@@ -2,11 +2,14 @@ package com.urbanblade.mobile.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 import java.time.LocalDate
@@ -52,9 +57,9 @@ data class UrbanHeroStatSpec(
 )
 
 /**
- * Resumen destacado de un inicio sobre [UrbanHeroCard]: etiqueta, cifra o titular, un espacio opcional
- * (tendencia, próxima cita), los datos secundarios en fila y una nota al pie opcional. Sustituye las
- * copias de Administración, Recepción, Ingeniería y Barbero con el mismo ritmo en todas.
+ * Resumen destacado de un inicio sobre [UrbanHeroCard], en poco alto: etiqueta, cifra o titular (con una
+ * tendencia opcional a su lado), un detalle opcional y los datos secundarios en una sola fila, sin cajas
+ * de icono ni nota al pie aparte. Sustituye las copias de Administración, Recepción, Ingeniería y Barbero.
  */
 @Composable
 fun UrbanHeroSummary(
@@ -64,30 +69,40 @@ fun UrbanHeroSummary(
     modifier: Modifier = Modifier,
     large: Boolean = true,
     onClick: (() -> Unit)? = null,
-    belowHeadline: (@Composable () -> Unit)? = null,
-    footer: String? = null
+    headlineTrailing: (@Composable () -> Unit)? = null,
+    belowHeadline: (@Composable () -> Unit)? = null
 ) {
     UrbanHeroCard(if (onClick != null) modifier.clickable(onClick = onClick) else modifier) {
         UrbanHeroLabel(label)
         Spacer(Modifier.height(UrbanSpace.Xxs))
-        Text(
-            headline,
-            style = if (large) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall,
-            color = UrbanColors.Ink
-        )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                headline,
+                style = if (large) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
+                color = UrbanColors.Ink,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            headlineTrailing?.let {
+                Spacer(Modifier.width(UrbanSpace.Xs))
+                it()
+            }
+        }
         belowHeadline?.let {
-            Spacer(Modifier.height(UrbanSpace.Xs))
+            Spacer(Modifier.height(UrbanSpace.Xxs))
             it()
         }
-        Spacer(Modifier.height(UrbanSpace.Md))
-        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
         Spacer(Modifier.height(UrbanSpace.Sm))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)) {
-            stats.forEach { UrbanHeroStat(it.label, it.value, it.icon, Modifier.weight(1f), tone = it.tone) }
-        }
-        footer?.let {
-            Spacer(Modifier.height(UrbanSpace.Sm))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            stats.forEach { stat ->
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(stat.icon, null, tint = stat.tone, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(UrbanSpace.Xs))
+                    Column {
+                        Text(stat.value, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stat.label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    }
+                }
+            }
         }
     }
 }

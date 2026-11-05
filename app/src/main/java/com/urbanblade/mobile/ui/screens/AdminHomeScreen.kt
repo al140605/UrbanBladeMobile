@@ -206,11 +206,17 @@ private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
             UrbanHeroStatSpec("Citas hoy", appointmentsToday.toString(), Icons.Default.CalendarMonth),
             UrbanHeroStatSpec("Ocupación", occupancyRate?.let { "$it%" } ?: "—", Icons.Default.People)
         ),
-        belowHeadline = growth?.let { { UrbanTrendPill(delta = it, suffix = "vs. mes pasado") } },
-        footer = buildString {
-            append("Esta semana: ")
-            append(incomeWeek?.let { UrbanFormat.moneyShort(it) } ?: "—")
-            if (appointmentsWeek != null) append(" · ${UrbanFormat.count(appointmentsWeek, "cita", "citas")}")
+        headlineTrailing = growth?.let { { UrbanTrendPill(delta = it, suffix = null) } },
+        belowHeadline = {
+            Text(
+                buildString {
+                    append("vs. mes pasado · semana: ")
+                    append(incomeWeek?.let { UrbanFormat.moneyShort(it) } ?: "—")
+                    if (appointmentsWeek != null) append(" · ${UrbanFormat.count(appointmentsWeek, "cita", "citas")}")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
     )
 }

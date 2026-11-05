@@ -157,7 +157,7 @@ fun UrbanPageHeader(
         }
     }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f
+        val stacked = maxWidth < 300.dp || LocalDensity.current.fontScale >= 1.3f
         if (stacked && trailing != null) {
             Column(Modifier.fillMaxWidth()) {
                 copy(Modifier.fillMaxWidth())
