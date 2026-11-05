@@ -138,3 +138,32 @@ datos, no se confirmó ningún cobro ni se subió un comprobante, y la base loca
 registró pagos nuevos. El registro del dispositivo no mostró cierres inesperados.
 No acredita formularios, acciones de creación, cuatro temas, 320 dp, TalkBack,
 cuentas con varios roles ni el perfil público del barbero; siguen pendientes.
+
+### Incremento 1 de coherencia: escala de espaciado y andamio único (5 de noviembre de 2026)
+
+Plan en [la auditoría de coherencia](AUDITORIA_COHERENCIA_UI_2026-11-05.md). `UrbanSpace`
+define la retícula de 4 dp y un margen lateral único de 16 dp, aplicado a 40 márgenes de
+18 dp. `UrbanModuleScreen` admite acciones extra, botón flotante, estado de lista y un bloque
+fijo; diecisiete módulos lo usan en lugar de recomponer `Scaffold`, barra y encabezado. En el
+cierre de caja el encabezado ya no queda debajo de los avisos. No cambian rutas, permisos ni
+contratos del servidor. Quedan fuera, a propósito: tienda con barra inferior, reserva, chat,
+calendario de citas y los detalles de cliente y barbero, que no son módulos de lista.
+
+Validación: 450 pruebas Android, sin fallos, errores ni omitidas; lint y APK de auditoría
+correctos. Recorrido físico en el Samsung SM-S731B con la variante `.audit`, API local y
+cuentas ficticias: dieciséis módulos de administración capturados en vertical (cobros,
+pedidos, clientes, inventario, movimientos, lista de espera, tarjetas regalo, cierre de caja,
+barberos, servicios, campañas, membresías, sorteos, reseñas, usuarios y configuración). Todos
+muestran la misma barra superior, el mismo encabezado y el mismo margen. Las capturas se
+conservan fuera de Git.
+
+Hallazgo durante el recorrido: Configuración mostraba «No se pudo cargar la configuración»
+cuando el negocio no tiene redes sociales, porque Laravel devuelve `redes_sociales` como `[]`
+y el modelo esperaba un objeto. No procede de este incremento. Se corrige con un lector
+tolerante (`[]` y `null` equivalen a «sin redes») y cuatro pruebas de lectura; con la
+corrección la pantalla carga.
+
+Pendiente: el botón flotante de campañas y servicios se superpone al estado vacío o a la
+última tarjeta cuando la pantalla no se desplaza (incremento 3); buscadores, filtros y
+resúmenes numéricos siguen con formas distintas (incrementos 3 y 4); cuatro temas, 320 dp y
+TalkBack no se revisaron para este incremento.
