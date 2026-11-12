@@ -254,6 +254,8 @@ dependencies {
 
     // Pruebas JVM de ViewModels/contrato -- ver app/src/test
     testImplementation("junit:junit:4.13.2")
+    // Solo para las pruebas de contrato: distingue propiedades no nulas de Kotlin en los modelos de respuesta.
+    testImplementation("org.jetbrains.kotlin:kotlin-reflect:2.2.10")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     // Certificados falsos para probar el certificate pinning (CertificatePinsTest).

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.urbanblade.mobile.core.media.MediaUploadHelper
 import com.urbanblade.mobile.core.media.UploadPolicy
+import com.urbanblade.mobile.core.network.ApiGson
 import com.urbanblade.mobile.core.network.UrbanBladeApi
 import com.urbanblade.mobile.core.session.SessionManager
 import com.urbanblade.mobile.data.model.*
@@ -172,7 +173,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     // crudo. Se extrae aquí sin tocar el resto de DashboardResponse.
     suspend fun clientLoyalty(): ClientLoyalty? {
         val loyaltyJson = api.dashboard().data.getAsJsonObject("loyalty") ?: return null
-        return com.google.gson.Gson().fromJson(loyaltyJson, ClientLoyalty::class.java)
+        return ApiGson.instance.fromJson(loyaltyJson, ClientLoyalty::class.java)
     }
     suspend fun profile() = api.profile().user
     suspend fun updateProfile(body: UpdateProfileRequest) = api.updateProfile(body)
