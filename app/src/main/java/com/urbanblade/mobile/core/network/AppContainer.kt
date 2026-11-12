@@ -65,7 +65,7 @@ object AppContainer {
         api = Retrofit.Builder()
             .baseUrl(BuildConfig.API_BASE_URL)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(ApiGson.instance))
             .build()
             .create(UrbanBladeApi::class.java)
 

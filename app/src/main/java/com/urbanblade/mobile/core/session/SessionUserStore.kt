@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.google.gson.Gson
+import com.urbanblade.mobile.core.network.ApiGson
 import com.urbanblade.mobile.data.model.AuthUser
 import kotlinx.coroutines.flow.first
 
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.first
  */
 class SessionUserStore(
     private val dataStore: DataStore<Preferences>,
-    private val gson: Gson = Gson()
+    private val gson: Gson = ApiGson.instance
 ) {
     private val userKey = stringPreferencesKey("session_user")
 

@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.urbanblade.mobile.core.network.ApiGson
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.SuggestedService
 import com.urbanblade.mobile.data.repository.UrbanRepository
@@ -69,7 +70,7 @@ class ChatbotViewModel @JvmOverloads constructor(
                 .mapNotNull { k -> r.get(k)?.takeIf { !it.isJsonNull }?.asString }
                 .firstOrNull() ?: "No encontré una respuesta. Intenta preguntarlo de otra forma."
             val suggestion = runCatching {
-                r.get("suggested_service")?.takeIf { it.isJsonObject }?.let { com.google.gson.Gson().fromJson(it, SuggestedService::class.java) }
+                r.get("suggested_service")?.takeIf { it.isJsonObject }?.let { ApiGson.instance.fromJson(it, SuggestedService::class.java) }
             }.getOrNull()
             _state.update { it.copy(messages = it.messages + ChatBubble(ids.incrementAndGet(), false, answer, question = question, suggestion = suggestion)) }
         } catch (e: Exception) {
