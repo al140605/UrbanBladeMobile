@@ -40,7 +40,7 @@ Laravel conserva la autorización y las reglas de precios, stock y disponibilida
 | JVM de Gradle | JetBrains JDK 21 |
 | Bytecode | Java y Kotlin 17 |
 | Android | SDK de compilación y destino 36; mínimo 26 |
-| Versión de la app | 3.0.0, código 3 |
+| Versión de la app | 3.1.0, código 4 (la 3.0.0 / código 3 es la de la prueba cerrada) |
 
 Instalar Android Studio, SDK 36 y JDK 21. Abrir la raíz del repositorio y configurar `sdk.dir` en `local.properties` o `ANDROID_HOME`. El archivo local es privado y no se versiona.
 

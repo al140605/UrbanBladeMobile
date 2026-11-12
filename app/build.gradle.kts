@@ -75,8 +75,8 @@ android {
         applicationId = "com.urbanblade.mobile"
         minSdk = 26
         targetSdk = 36   // Play exige API 36 en apps nuevas desde 31-ago-2026
-        versionCode = 3
-        versionName = "3.0.0"
+        versionCode = 4
+        versionName = "3.1.0"
 
         // Credential Manager solicita un ID token para el mismo Web Client ID
         // que Laravel verifica. Se inyecta desde local.properties (ignorado por
