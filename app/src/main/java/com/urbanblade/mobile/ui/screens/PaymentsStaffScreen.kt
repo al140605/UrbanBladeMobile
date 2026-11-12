@@ -15,14 +15,12 @@ import com.urbanblade.mobile.ui.components.UrbanHeroLabel
 import com.urbanblade.mobile.ui.components.UrbanHeroStat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -40,7 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,16 +67,14 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanStateKind
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.PaymentMethodFilter
 import com.urbanblade.mobile.ui.viewmodel.PaymentsStaffViewModel
 import com.urbanblade.mobile.ui.viewmodel.REJECT_REASON_MAX
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanTextButton
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private fun money(value: Double) = UrbanFormat.money(value)
 private fun moneyShort(value: Double) = UrbanFormat.moneyShort(value)
@@ -110,139 +105,147 @@ fun PaymentsStaffScreen(onBack: () -> Unit, vm: PaymentsStaffViewModel = viewMod
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+    val toReview = state.pending.size + state.deposits.size
+    val pendingLabel = UrbanFormat.count(toReview, "comprobante requiere tu revisión", "comprobantes requieren tu revisión")
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Cobros y pagos",
+        subtitle = when {
+            !state.loaded -> "Consulta los comprobantes por revisar y el historial."
+            toReview > 0 -> pendingLabel
+            // Si la consulta de comprobantes o anticipos falló, «todo al día» sería una afirmación sin base.
+            state.reviewUnknown -> "No pudimos confirmar los comprobantes por revisar."
+            else -> "Todo al día. Consulta el historial cuando lo necesites."
+        },
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.loadingMore || state.busyPaymentId != null || state.busyFeeId != null
+    ) {
+        // El progreso de la consulta lo muestra urbanListFeedback; aquí solo el de aprobar, rechazar o cobrar.
+        if (state.busyPaymentId != null || state.busyFeeId != null) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Errores de aprobar, rechazar, cobrar o condonar; con el diálogo de rechazo abierto se muestran dentro de él.
+        if (rejecting == null) state.error?.let { item { UrbanErrorBanner(it) } }
+        // Fallo parcial: el historial cargó, pero alguna lista de revisión puede estar incompleta.
+        state.reviewListsError?.let { msg ->
             item {
-                val toReview = state.pending.size + state.deposits.size
-                val pendingLabel = UrbanFormat.count(toReview, "comprobante requiere tu revisión", "comprobantes requieren tu revisión")
-                UrbanPageHeader(
-                    title = "Cobros y pagos",
-                    subtitle = if (toReview > 0) pendingLabel else "Todo al día. Consulta el historial cuando lo necesites.",
-                    eyebrow = "OPERACIÓN"
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    UrbanErrorBanner(msg)
+                    UrbanTextButton(onClick = { vm.load() }) { Text("Reintentar") }
+                }
+            }
+        }
+
+        if (state.loaded) item {
+            UrbanHeroCard {
+                UrbanHeroLabel("Cobrado hoy")
+                Spacer(Modifier.height(6.dp))
+                Text(moneyShort(state.stats.totalHoy), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    UrbanHeroStat("Este mes", moneyShort(state.stats.totalMes), Icons.Default.Payments, Modifier.weight(1f))
+                    UrbanHeroStat("Pagos", state.stats.count.toString(), Icons.Default.ReceiptLong, Modifier.weight(1f))
+                }
+            }
+        }
+        if (state.pending.isNotEmpty()) {
+            item {
+                val pendingAmount = state.pending.sumOf { it.monto }
+                UrbanSectionTitle(
+                    "Por revisar ahora",
+                    "${UrbanFormat.count(state.pending.size, "comprobante pendiente", "comprobantes pendientes")} · ${money(pendingAmount)}"
                 )
             }
-            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (rejecting == null) state.error?.let { item { UrbanErrorBanner(it) } }
-
+            items(state.pending, key = { it.id }) { payment ->
+                PendingCard(
+                    payment = payment,
+                    deposit = false,
+                    busy = state.busyPaymentId == payment.id,
+                    onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
+                    onApprove = { approving = ReviewTarget(payment, false) },
+                    onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, false) }
+                )
+            }
+        }
+        if (state.deposits.isNotEmpty()) {
             item {
-                UrbanHeroCard {
-                    UrbanHeroLabel("Cobrado hoy")
-                    Spacer(Modifier.height(6.dp))
-                    Text(moneyShort(state.stats.totalHoy), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                    Spacer(Modifier.height(14.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        UrbanHeroStat("Este mes", moneyShort(state.stats.totalMes), Icons.Default.Payments, Modifier.weight(1f))
-                        UrbanHeroStat("Pagos", state.stats.count.toString(), Icons.Default.ReceiptLong, Modifier.weight(1f))
-                    }
-                }
+                UrbanSectionTitle(
+                    "Anticipos por revisar",
+                    "${UrbanFormat.count(state.deposits.size, "cliente pagó", "clientes pagaron")} al reservar · ${money(state.deposits.sumOf { it.monto })}"
+                )
             }
-            if (state.pending.isNotEmpty()) {
-                item {
-                    val pendingAmount = state.pending.sumOf { it.monto }
-                    UrbanSectionTitle(
-                        "Por revisar ahora",
-                        "${UrbanFormat.count(state.pending.size, "comprobante pendiente", "comprobantes pendientes")} · ${money(pendingAmount)}"
-                    )
-                }
-                items(state.pending, key = { it.id }) { payment ->
-                    PendingCard(
-                        payment = payment,
-                        deposit = false,
-                        busy = state.busyPaymentId == payment.id,
-                        onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
-                        onApprove = { approving = ReviewTarget(payment, false) },
-                        onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, false) }
-                    )
-                }
+            items(state.deposits, key = { "d-" + it.id }) { payment ->
+                PendingCard(
+                    payment = payment,
+                    deposit = true,
+                    busy = state.busyPaymentId == payment.id,
+                    onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
+                    onApprove = { approving = ReviewTarget(payment, true) },
+                    onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, true) }
+                )
             }
-            if (state.deposits.isNotEmpty()) {
-                item {
-                    UrbanSectionTitle(
-                        "Anticipos por revisar",
-                        "${UrbanFormat.count(state.deposits.size, "cliente pagó", "clientes pagaron")} al reservar · ${money(state.deposits.sumOf { it.monto })}"
-                    )
-                }
-                items(state.deposits, key = { "d-" + it.id }) { payment ->
-                    PendingCard(
-                        payment = payment,
-                        deposit = true,
-                        busy = state.busyPaymentId == payment.id,
-                        onReceipt = { payment.comprobanteUrl?.let(::openUrl) },
-                        onApprove = { approving = ReviewTarget(payment, true) },
-                        onReject = { vm.clearMessages(); rejecting = ReviewTarget(payment, true) }
-                    )
-                }
-            }
+        }
 
-            if (state.fees.isNotEmpty()) {
-                item {
-                    UrbanSectionTitle(
-                        "Adeudos por inasistencia",
-                        "${UrbanFormat.count(state.fees.size, "cliente no puede", "clientes no pueden")} reservar hasta pagar · ${money(state.fees.sumOf { it.monto })}"
-                    )
-                }
-                items(state.fees, key = { "fee-" + it.id }) { fee ->
-                    FeeCard(
-                        fee = fee,
-                        busy = state.busyFeeId == fee.id,
-                        onPay = { metodo -> vm.payFee(fee.id, metodo) },
-                        onWaive = { vm.clearMessages(); waiving = fee }
-                    )
-                }
-            }
-
-            item { UrbanSectionTitle("Historial", "Pagos registrados en UrbanBlade") }
+        if (state.fees.isNotEmpty()) {
             item {
-                UrbanTextField(
-                    value = state.query,
-                    onValueChange = vm::setQuery,
-                    label = "Buscar por cliente, servicio o barbero",
-                    leadingIcon = Icons.Default.Search,
-                    imeAction = ImeAction.Search,
-                    onImeAction = { vm.load() },
+                UrbanSectionTitle(
+                    "Adeudos por inasistencia",
+                    "${UrbanFormat.count(state.fees.size, "cliente no puede", "clientes no pueden")} reservar hasta pagar · ${money(state.fees.sumOf { it.monto })}"
+                )
+            }
+            items(state.fees, key = { "fee-" + it.id }) { fee ->
+                FeeCard(
+                    fee = fee,
+                    busy = state.busyFeeId == fee.id,
+                    onPay = { metodo -> vm.payFee(fee.id, metodo) },
+                    onWaive = { vm.clearMessages(); waiving = fee }
+                )
+            }
+        }
+
+        item { UrbanSectionTitle("Historial", "Pagos registrados en UrbanBlade") }
+        item {
+            UrbanTextField(
+                value = state.query,
+                onValueChange = vm::setQuery,
+                label = "Buscar por cliente, servicio o barbero",
+                leadingIcon = Icons.Default.Search,
+                imeAction = ImeAction.Search,
+                onImeAction = { vm.load() },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PaymentMethodFilter.entries.forEach { m ->
+                    FilterChip(selected = state.method == m, onClick = { vm.setMethod(m) }, label = { Text(m.label) })
+                }
+            }
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ReportRange.entries.forEach { r ->
+                    FilterChip(selected = state.range == r, onClick = { vm.setRange(r) }, label = { Text(if (r == ReportRange.All) "Todo el tiempo" else r.label) })
+                }
+            }
+        }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los pagos", "No hay pagos con estos filtros", "Prueba con otro método o rango de fechas."
+        ) { vm.load() }
+        items(state.items, key = { it.id }) { payment ->
+            PaymentCard(payment, onReceipt = { vm.receiptUrl(payment.id, ::openUrl) })
+        }
+        if (state.hasMore) {
+            item {
+                UrbanOutlineButton(
+                    text = if (state.loadingMore) "Cargando…" else "Cargar más pagos",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
                     modifier = Modifier.fillMaxWidth()
                 )
-            }
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PaymentMethodFilter.entries.forEach { m ->
-                        FilterChip(selected = state.method == m, onClick = { vm.setMethod(m) }, label = { Text(m.label) })
-                    }
-                }
-            }
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReportRange.entries.forEach { r ->
-                        FilterChip(selected = state.range == r, onClick = { vm.setRange(r) }, label = { Text(if (r == ReportRange.All) "Todo el tiempo" else r.label) })
-                    }
-                }
-            }
-            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
-            if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item { UrbanMascotState(UrbanStateKind.EMPTY, "No hay pagos con estos filtros", "Prueba con otro método o rango de fechas.") }
-            }
-            items(state.items, key = { it.id }) { payment ->
-                PaymentCard(payment, onReceipt = { vm.receiptUrl(payment.id, ::openUrl) })
-            }
-            if (state.hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (state.loadingMore) "Cargando…" else "Cargar más pagos",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
         }
     }
@@ -370,7 +373,7 @@ private fun FeeCard(fee: NoShowFeeItem, busy: Boolean, onPay: (String) -> Unit, 
             UrbanPrimaryButton("Efectivo", { onPay("efectivo") }, Modifier.weight(1f), enabled = !busy, icon = Icons.Default.Payments, loading = busy)
             UrbanOutlineButton("Transferencia", { onPay("transferencia") }, Modifier.weight(1f))
         }
-        TextButton(onClick = onWaive, enabled = !busy) { Text("Condonar (solo administración)", color = UrbanColors.Muted) }
+        UrbanTextButton(onClick = onWaive, enabled = !busy) { Text("Condonar (solo administración)", color = UrbanColors.Muted) }
     }
 }
 

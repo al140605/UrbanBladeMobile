@@ -27,6 +27,7 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarberAgendaViewModel
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val ESTADOS = listOf("pendiente", "confirmada", "en_proceso", "completada", "cancelada", "no_asistio")
 
@@ -44,6 +45,7 @@ private fun nextStatesFor(estado: String): List<String> = when (estado) {
 fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel()) {
     val agenda by vm.agenda.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val updating by vm.updating.collectAsState()
     val error by vm.error.collectAsState()
     val ticket by vm.ticket.collectAsState()
@@ -84,14 +86,15 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = period == "day", onClick = { period = "day"; offset = 0 }, label = { Text("Día") })
-                    FilterChip(selected = period == "week", onClick = { period = "week"; offset = 0 }, label = { Text("Semana") })
-                }
+                UrbanPillTabs(
+                    tabs = listOf("Día" to Icons.Default.Today, "Semana" to Icons.Default.DateRange),
+                    selected = if (period == "day") 0 else 1,
+                    onSelect = { period = if (it == 0) "day" else "week"; offset = 0 }
+                )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { offset -= 1 }) { Icon(Icons.Default.ChevronLeft, "Anterior") }
                     Text(
-                        agenda.range.label ?: "—",
+                        agenda.range.label ?: "Consultando periodo…",
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
@@ -101,19 +104,18 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             }
         }
 
-        item {
+        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+        if (hasLoaded) item {
             UrbanHeroCard {
-                UrbanHeroLabel(if (period == "day") "Tu día" else "Tu semana")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     UrbanFormat.count(agenda.stats.totalPeriod, "cita", "citas"),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.titleLarge,
                     color = UrbanColors.Ink
                 )
                 Text("Productividad ${agenda.stats.productivity}%", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Terminadas", agenda.stats.completedPeriod.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
                     UrbanHeroStat("Tus ingresos", UrbanFormat.moneyShort(agenda.stats.incomeTotal), Icons.Default.Payments, Modifier.weight(1f))
@@ -139,7 +141,7 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
             error != null && agenda.data.isEmpty() -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu agenda", error, "Reintentar") { reload() }
             }
-            agenda.data.isEmpty() && !busy -> item {
+            agenda.data.isEmpty() && hasLoaded && !busy -> item {
                 UrbanMascotState(
                     UrbanStateKind.EMPTY,
                     if (estadoFilter == null) "Sin citas en este periodo" else "Sin citas con este estado",
@@ -285,7 +287,7 @@ private fun AgendaCard(
             if (next.size > 1) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     next.drop(1).forEach { estado ->
-                        TextButton(onClick = { onChangeStatus(estado) }, enabled = !updating) {
+                        UrbanTextButton(onClick = { onChangeStatus(estado) }, enabled = !updating) {
                             Text(statusActionLabel(estado), color = if (isDestructiveStatus(estado)) UrbanColors.Danger else UrbanColors.Gold)
                         }
                     }

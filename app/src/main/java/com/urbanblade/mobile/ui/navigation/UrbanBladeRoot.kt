@@ -9,8 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,12 +23,12 @@ import kotlinx.coroutines.launch
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.UrbanBladeBackground
 import com.urbanblade.mobile.ui.components.UrbanBrandMark
+import com.urbanblade.mobile.ui.components.UrbanBottomDestination
+import com.urbanblade.mobile.ui.components.UrbanBottomNavigation
 import com.urbanblade.mobile.ui.screens.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AuthState
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
-
-private data class NavItem(val route: String, val label: String, val icon: ImageVector)
 
 private const val BOOKING_ROUTE_PATTERN = "booking?serviceId={serviceId}&barberId={barberId}"
 
@@ -143,22 +141,25 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val clientOnly = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
     val engineerOnly = com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)
 
-    // Nav por rol. Cliente (propuesta A, 25-sep): cuatro pestañas con un solo verbo para
+    // Nav por rol. Cliente: cinco pestañas con un solo verbo para
     // reservar; Beneficios, pagos y pedidos viven en Cuenta y en el Inicio, ya no en la barra.
     // Cada pestaña se llama igual que el título de su pantalla.
     val items = if (clientOnly) {
         listOf(
-            NavItem("home", "Inicio", Icons.Default.Home),
-            NavItem("catalog", "Reservar", Icons.Default.ContentCut),
-            NavItem("appointments", "Mis citas", Icons.Default.CalendarMonth),
-            NavItem("profile", "Cuenta", Icons.Default.Person)
+            UrbanBottomDestination("home", "Inicio", Icons.Default.Home),
+            UrbanBottomDestination("catalog", "Reservar", Icons.Default.ContentCut),
+            UrbanBottomDestination("appointments", "Mis citas", Icons.Default.CalendarMonth),
+            // El muro es sobre todo del cliente (ve trabajos y reserva con el barbero): va en la barra; el
+            // personal lo sigue encontrando en «Más».
+            UrbanBottomDestination("social", "Muro", Icons.Default.PhotoLibrary),
+            UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person)
         )
     } else {
         buildList {
-            add(NavItem("home", "Inicio", Icons.Default.Home))
-            if (!engineerOnly) add(NavItem("appointments", "Citas", Icons.Default.CalendarMonth))
-            add(NavItem("more", "Más", Icons.Default.GridView))
-            add(NavItem("profile", "Cuenta", Icons.Default.Person))
+            add(UrbanBottomDestination("home", "Inicio", Icons.Default.Home))
+            if (!engineerOnly) add(UrbanBottomDestination("appointments", "Citas", Icons.Default.CalendarMonth))
+            add(UrbanBottomDestination("more", "Más", Icons.Default.GridView))
+            add(UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person))
         }
     }
     val rootRoutes = items.map { it.route }
@@ -224,29 +225,11 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         tonalElevation = 0.dp,
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     ) {
-                        NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
-                            items.forEach { item ->
-                                NavigationBarItem(
-                                    selected = current == item.route,
-                                    onClick = {
-                                        nav.navigate(item.route) {
-                                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = { Icon(item.icon, item.label) },
-                                    label = { Text(item.label, style = MaterialTheme.typography.labelMedium) },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = UrbanColors.OnGold,
-                                        selectedTextColor = UrbanColors.GoldText,
-                                        indicatorColor = UrbanColors.Gold,
-                                        unselectedIconColor = UrbanColors.Muted,
-                                        unselectedTextColor = UrbanColors.Muted
-                                    )
-                                )
-                            }
-                        }
+                        UrbanBottomNavigation(
+                            destinations = items,
+                            selectedRoute = current,
+                            onSelect = { nav.openDestination(it, rootRoutes) }
+                        )
                     }
                 }
             }
@@ -260,18 +243,18 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("home") {
                     DashboardScreen(
                         user = user,
-                        onAppointments = { nav.navigate("appointments") },
+                        onAppointments = { nav.openDestination("appointments", rootRoutes) },
                         onBook = { nav.openBooking("booking") },
                         onWallet = { nav.navigate("wallet") },
                         onStore = { nav.navigate("store") },
-                        onExplore = { nav.navigate("catalog") },
-                        onNavigate = { route -> nav.navigate(route) }
+                        onExplore = { nav.openDestination("catalog", rootRoutes) },
+                        onNavigate = { route -> nav.openDestination(route, rootRoutes) }
                     )
                 }
                 composable("appointments") {
                     // El cliente tiene su propia vista (Próximas / Historial); el personal, la agenda del negocio.
                     if (clientOnly) {
-                        ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { nav.navigate(it) })
+                        ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { nav.openDestination(it, rootRoutes) })
                     } else {
                         AppointmentsScreen(user = user, onBook = { nav.openBooking("booking") })
                     }
@@ -300,7 +283,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         canBook = com.urbanblade.mobile.core.access.UserExperience.canBook(user.roles),
                         onBook = { serviceId, barberId -> nav.openBooking(bookingRoute(serviceId, barberId)) },
                         onOpenStore = { nav.navigate("store") },
-                        onOpenInspiration = { nav.navigate("social") },
+                        onOpenInspiration = { nav.openDestination("social", rootRoutes) },
                         onOpenBarber = { slug -> nav.navigate("barber_profile/$slug") }
                     )
                 }
@@ -322,13 +305,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }
                 composable("notifications") {
-                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> nav.navigate(route) { launchSingleTop = true } })
+                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> nav.openDestination(route, rootRoutes, singleTop = true) })
                 }
                 composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId ->
                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_reservar")
                     nav.openBooking(bookingRoute(serviceId, null))
                 }) }
-                composable("more") { MoreScreen(user = user, onNavigate = { nav.navigate(it) }) }
+                composable("more") { MoreScreen(user = user, onNavigate = { nav.openDestination(it, rootRoutes) }) }
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
                         user = user,
@@ -340,7 +323,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                 authViewModel.logout()
                             }
                         },
-                        onNavigate = { nav.navigate(it) },
+                        onNavigate = { nav.openDestination(it, rootRoutes) },
                         onUserChanged = { authViewModel.refreshUser() }
                     )
                 }
@@ -348,7 +331,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
                 composable("social") {
                     SocialFeedScreen(
-                        onBack = { nav.popBackStack() },
+                        // Para el cliente es una pestaña de la barra: sin flecha de volver.
+                        onBack = if (clientOnly) null else ({ nav.popBackStack() }),
                         onOpenBarber = { slug -> nav.navigate("barber_profile/${android.net.Uri.encode(slug)}") },
                         // Solo el cliente reserva desde el muro; el personal lo ve como galería.
                         onBookBarber = if (clientOnly) { barberId -> nav.openBooking(bookingRoute(null, barberId)) } else null

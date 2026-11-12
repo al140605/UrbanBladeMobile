@@ -49,6 +49,11 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.rememberFabExpanded
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,22 +129,16 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
         if (isClient) vm.loadWaitlist()
     }
 
+    val listState = rememberLazyListState()
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (canBook) {
-                ExtendedFloatingActionButton(
-                    onClick = onBook,
-                    containerColor = UrbanColors.Gold,
-                    contentColor = UrbanColors.OnGold,
-                    icon = { Icon(Icons.Default.Add, null) },
-                    text = { Text("Nueva cita", fontWeight = FontWeight.Bold) }
-                )
-            }
+            if (canBook) UrbanFab("Nueva cita", Icons.Default.Add, rememberFabExpanded(listState), onBook)
         }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
+            state = listState,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -738,13 +737,13 @@ private fun AppointmentCard(
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (canNoShow) {
-                            TextButton(onClick = { onStatus?.invoke("no_asistio") }, contentPadding = PaddingValues(0.dp)) {
+                            UrbanTextButton(onClick = { onStatus?.invoke("no_asistio") }, contentPadding = PaddingValues(0.dp)) {
                                 Text("No asistió", color = UrbanColors.Muted)
                             }
                             Spacer(Modifier.width(16.dp))
                         }
                         if (onReschedule != null) {
-                            TextButton(onClick = onReschedule, contentPadding = PaddingValues(0.dp)) {
+                            UrbanTextButton(onClick = onReschedule, contentPadding = PaddingValues(0.dp)) {
                                 Icon(Icons.Default.EditCalendar, null, modifier = Modifier.size(17.dp), tint = UrbanColors.Gold)
                                 Spacer(Modifier.width(5.dp))
                                 Text("Reagendar", color = UrbanColors.GoldText)
@@ -810,7 +809,7 @@ internal fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, on
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Card) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter, vertical = 8.dp)) {
             UrbanSectionTitle("Reagendar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 
@@ -928,6 +927,8 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
     val cardAvailable = remember { isStripeConfigured() }
     val response by vm.data.collectAsState()
     val error by vm.error.collectAsState()
+    val transferInfo by vm.transferInfo.collectAsState()
+    val transferInfoError by vm.transferInfoError.collectAsState()
     val context = LocalContext.current
 
     var method by remember { mutableStateOf<PaymentMethodChoice?>(null) }
@@ -950,13 +951,19 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
         else -> 0.0
     }
 
+    LaunchedEffect(method, appt.id, tipAmount) {
+        if (method == PaymentMethodChoice.TRANSFERENCIA) vm.loadTransferInfo(appt.id, tipAmount)
+    }
+    val validTransferQuote = transferInfo?.cotizacion?.matches(appointmentId = appt.id, tip = tipAmount) == true
+    val displayTransferInfo = transferInfo?.let { if (validTransferQuote) it else it.copy(cotizacion = null) }
+
     // La cita puede haberse marcado como pagada mientras la hoja sigue
     // abierta (confirmAppointmentPayment refresca la lista)
     val justPaid = response.data.firstOrNull { it.id == appt.id }?.hasPayment == true
 
     val pickReceipt = rememberSingleImagePicker { receiptUri = it }
 
-    val presentPaymentSheet = rememberUrbanPaymentSheet { result ->
+    val presentPaymentSheet = rememberUrbanPaymentSheet(onAuthorizationDenied = { vm.onStripeCanceled() }, onPreparationFailed = { vm.onStripeFailed(it.localizedMessage) }) { result ->
         when (result) {
             is PaymentSheetResult.Completed -> {
                 vm.clearStripeClientSecret()
@@ -979,10 +986,11 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
             is PaymentResult.Failed -> vm.onStripeFailed(result.throwable.localizedMessage)
         }
     }
+    val authorizeSavedPayment = com.urbanblade.mobile.core.payment.rememberPaymentAuthorization { vm.onStripeCanceled() }
     LaunchedEffect(savedCardConfirm) {
         val confirm = savedCardConfirm ?: return@LaunchedEffect
         vm.clearSavedCardConfirm()
-        confirm.paymentMethodId?.let { paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(it, confirm.clientSecret)) }
+        confirm.paymentMethodId?.let { id -> authorizeSavedPayment { paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(id, confirm.clientSecret)) } }
     }
     LaunchedEffect(cardAvailable) { if (cardAvailable) vm.loadSavedCards() }
 
@@ -999,16 +1007,17 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
         } else {
             // Con carrusel de tarjetas el contenido supera la altura de pantallas chicas: la hoja se desplaza
             // para que el botón de pagar siempre se pueda alcanzar.
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 8.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = UrbanSpace.Gutter, vertical = 8.dp)) {
             UrbanSectionTitle("Pagar cita", appt.service?.nombre)
             Spacer(Modifier.height(14.dp))
 
-            UrbanKeyValue("Servicio", "${UrbanFormat.moneyShort(basePrice)}")
-            if (tipAmount > 0) UrbanKeyValue("Propina", "${UrbanFormat.moneyShort(tipAmount)}")
-            UrbanKeyValue("Total estimado", "${UrbanFormat.moneyShort(basePrice + tipAmount)}")
+            val transferQuote = displayTransferInfo?.cotizacion.takeIf { method == PaymentMethodChoice.TRANSFERENCIA }
+            UrbanKeyValue(if (transferQuote != null) "Servicio con descuentos" else "Servicio", UrbanFormat.money(transferQuote?.serviceAmount ?: basePrice))
+            if (tipAmount > 0) UrbanKeyValue("Propina", "${UrbanFormat.money(tipAmount)}")
+            UrbanKeyValue(if (transferQuote != null) "Total a transferir" else "Total estimado", UrbanFormat.money(transferQuote?.total ?: (basePrice + tipAmount)))
             Spacer(Modifier.height(4.dp))
             Text(
-                "El monto final (con descuentos de nivel/membresía o tarjeta regalo aplicados) lo confirma UrbanBlade al procesar el pago.",
+                if (transferQuote != null) "Importe consultado con tus descuentos actuales. El comprobante queda pendiente de revisión." else "El monto final (con descuentos de nivel/membresía o tarjeta regalo aplicados) lo confirma UrbanBlade al procesar el pago.",
                 style = MaterialTheme.typography.bodySmall,
                 color = UrbanColors.Muted
             )
@@ -1035,11 +1044,14 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
             Spacer(Modifier.height(8.dp))
             // Gift card y puntos son poco frecuentes: se esconden para que el método de pago quede a la vista.
             val extrasOpen = showExtras || giftCardCode.isNotBlank() || puntos.isNotBlank()
-            TextButton(onClick = { showExtras = !extrasOpen }) {
+            if (method == PaymentMethodChoice.TRANSFERENCIA && (giftCardCode.isNotBlank() || puntos.isNotBlank())) {
+                Text("Para usar puntos o tarjeta regalo, selecciona Tarjeta. La transferencia no incluye esos beneficios.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            }
+            if (method != PaymentMethodChoice.TRANSFERENCIA) UrbanTextButton(onClick = { showExtras = !extrasOpen }) {
                 Text(if (extrasOpen) "Ocultar tarjeta regalo y puntos" else "¿Tienes tarjeta regalo o puntos?", color = UrbanColors.GoldText)
                 Icon(if (extrasOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, tint = UrbanColors.Gold)
             }
-            if (extrasOpen) {
+            if (extrasOpen && method != PaymentMethodChoice.TRANSFERENCIA) {
                 Spacer(Modifier.height(16.dp))
                 UrbanFieldLabel("Código de tarjeta regalo (opcional)")
                 Spacer(Modifier.height(8.dp))
@@ -1074,7 +1086,10 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                     UrbanChoice(PaymentMethodChoice.TRANSFERENCIA, "Transferencia", "SPEI", Icons.Default.AccountBalance)
                 ),
                 selected = method,
-                onSelect = { method = it }
+                onSelect = {
+                    method = it
+                    vm.clearError()
+                }
             )
             Text(
                 "¿Prefieres pagar en efectivo? Puedes hacerlo directamente en la barbería.",
@@ -1115,6 +1130,14 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                 }
                 PaymentMethodChoice.TRANSFERENCIA -> {
                     Spacer(Modifier.height(16.dp))
+                    if (transferInfoError != null) {
+                        UrbanErrorBanner(transferInfoError!!)
+                        UrbanTextButton(onClick = { vm.loadTransferInfo(appt.id, tipAmount) }) { Text("Reintentar cotización") }
+                    } else {
+                        TransferAccount(displayTransferInfo, basePrice + tipAmount)
+                        if (transferInfo != null && !validTransferQuote) UrbanInfoBanner("El servidor todavía no confirmó el importe. Reintenta la cotización o elige otro método.")
+                    }
+                    Spacer(Modifier.height(14.dp))
                     UrbanOutlineButton(
                         text = if (receiptUri != null) "Comprobante seleccionado" else "Elegir comprobante",
                         onClick = pickReceipt,
@@ -1131,7 +1154,7 @@ internal fun CheckoutSheet(appt: AppointmentRow, vm: AppointmentsViewModel, onDi
                                 vm.uploadPaymentReceipt(context, code, tipAmount, uri, onDismiss)
                             }
                         },
-                        enabled = receiptUri != null,
+                        enabled = receiptUri != null && validTransferQuote && transferInfo?.configurado == true,
                         loading = uploadingReceipt,
                         icon = Icons.Default.Upload,
                         modifier = Modifier.fillMaxWidth()

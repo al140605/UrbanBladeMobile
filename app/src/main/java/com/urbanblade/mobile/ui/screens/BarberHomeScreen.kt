@@ -37,6 +37,7 @@ import com.urbanblade.mobile.ui.viewmodel.DashboardViewModel
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Inicio del barbero: "Mi día". Qué cita sigue, qué falta confirmar y sus accesos. Antes veía
@@ -57,54 +58,50 @@ fun BarberHomeScreen(
     val dashboard by dashboardVm.data.collectAsState()
     LaunchedEffect(Unit) { dashboardVm.load() }
 
-    val now = remember { LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")) }
+    val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
     val day = barberDay(agenda.data, now)
-    val loadedOnce = agenda.range.label != null
+    val loadedOnce by vm.hasLoaded.collectAsState()
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanPageHeader(
-                title = "Hola, ${user.name.substringBefore(' ')}",
-                subtitle = UrbanFormat.date(LocalDate.now().toString()),
-                eyebrow = "BARBERO",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
-            )
+            UrbanHomeHeader("BARBERO", user.name, user.avatarUrl, busy) { vm.load("day", null, 0); dashboardVm.load() }
         }
+
+        if (error != null && loadedOnce) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load("day", null, 0) } }
 
         when {
             error != null && !loadedOnce -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu día", error, "Reintentar") { vm.load("day", null, 0) }
             }
-            busy && !loadedOnce -> item { UrbanSkeletonList(1) }
+            !loadedOnce -> item { UrbanSkeletonList(1) }
             else -> {
                 item {
-                    UrbanHeroCard(Modifier.clickable { onNavigate("barber_agenda") }) {
-                        UrbanHeroLabel(if (day.inProcess != null) "Atendiendo ahora" else "Tu siguiente cita")
-                        Spacer(Modifier.height(6.dp))
-                        val focus = day.inProcess ?: day.next
-                        if (focus != null) {
-                            Text(UrbanFormat.time(focus.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-                            Text(
-                                listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = UrbanColors.Ink
-                            )
-                        } else {
-                            Text("Sin citas pendientes hoy", style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
-                            Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                        Spacer(Modifier.height(14.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            UrbanHeroStat("Por atender", day.remaining.toString(), Icons.Default.Event, Modifier.weight(1f))
-                            UrbanHeroStat("Terminadas", day.done.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
-                        }
-                    }
+                    val focus = day.inProcess ?: day.next
+                    UrbanHeroSummary(
+                        label = if (day.inProcess != null) "Atendiendo ahora" else "Tu siguiente cita",
+                        headline = if (focus != null) UrbanFormat.time(focus.horaInicio) else "Sin citas pendientes hoy",
+                        large = false,
+                        onClick = { onNavigate("barber_agenda") },
+                        belowHeadline = {
+                            if (focus != null) {
+                                Text(
+                                    listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = UrbanColors.Ink
+                                )
+                            } else {
+                                Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                            }
+                        },
+                        stats = listOf(
+                            UrbanHeroStatSpec("Por atender", day.remaining.toString(), Icons.Default.Event),
+                            UrbanHeroStatSpec("Terminadas", day.done.toString(), Icons.Default.CheckCircle, UrbanColors.Success)
+                        )
+                    )
                 }
                 if (day.toConfirm > 0) {
                     item { UrbanSectionTitle("Requiere tu atención", "Tus clientes esperan respuesta.") }
@@ -121,13 +118,6 @@ fun BarberHomeScreen(
             }
         }
 
-        dashboard?.data.chartSeries("performanceChart")?.let { week ->
-            item { UrbanDashboardChart("Tu semana", "Citas de los últimos 7 días", week) }
-        }
-        dashboard?.data.chartSeries("servicesChart")?.let { services ->
-            item { UrbanDashboardChart("Tus servicios más pedidos", "Último año", services, categories = true) }
-        }
-
         item { UrbanSectionTitle("Tu trabajo", "Agenda, portafolio y horario.") }
         item {
             UrbanModuleGrid(
@@ -141,5 +131,13 @@ fun BarberHomeScreen(
                 onNavigate = onNavigate
             )
         }
+
+        dashboard?.data.chartSeries("performanceChart")?.let { week ->
+            item { UrbanDashboardChart("Tu semana", "Citas de los últimos 7 días", week) }
+        }
+        dashboard?.data.chartSeries("servicesChart")?.let { services ->
+            item { UrbanDashboardChart("Tus servicios más pedidos", "Último año", services, categories = true) }
+        }
+
     }
 }

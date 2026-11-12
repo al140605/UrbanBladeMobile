@@ -56,7 +56,7 @@ class PushContentTest {
     @Test
     fun `todos los canales que manda el backend existen en la app`() {
         // Misma lista que App\Services\Push\PushRouting::CHANNELS.
-        val backend = listOf("citas", "pagos", "pedidos", "fidelidad", "promociones", "operacion")
+        val backend = listOf("citas", "pagos", "pedidos", "fidelidad", "promociones", "operacion", "comunidad")
         backend.forEach { assertEquals(it, PushChannel.from(it).id) }
         assertEquals(backend.size, PushChannel.entries.size)
     }
@@ -75,7 +75,7 @@ class NotificationRouteTest {
         val tipos = listOf(
             "appointment", "review_request", "payment", "transfer_receipt", "membership_invoice", "order_delivered", "order_expired",
             "loyalty_level_up", "loyalty_level_downgraded", "loyalty_points_expired", "raffle_win", "client_birthday",
-            "promotion", "service_overrun", "inventory_low_stock"
+            "promotion", "service_overrun", "inventory_low_stock", "report_resolved"
         )
         tipos.forEach { tipo ->
             val ruta = routeForNotificationType(tipo)
@@ -92,8 +92,41 @@ class NotificationRouteTest {
     }
 
     @Test
+    fun `la respuesta a un reporte abre el muro y su canal es comunidad`() {
+        assertEquals("social", routeForNotificationType("report_resolved"))
+        assertEquals("social", safePushRoute("social"))
+        assertEquals(PushChannel.COMUNIDAD, PushChannel.from("comunidad"))
+        assertTrue(!PushChannel.COMUNIDAD.important)
+    }
+
+    @Test
     fun `un tipo desconocido o vacio no navega`() {
         assertNull(routeForNotificationType("algo_nuevo"))
         assertNull(routeForNotificationType(null))
+    }
+
+    @Test
+    fun `los tipos nuevos abren su pantalla`() {
+        assertEquals("barber_agenda", routeForNotificationType("service_ending"))
+        assertEquals("reviews", routeForNotificationType("barber_review_flagged"))
+        assertEquals("reports", routeForNotificationType("barber_performance_report"))
+        assertEquals("reviews", safePushRoute("reviews"))
+        assertEquals("reports", safePushRoute("reports"))
+        assertNull(routeForNotificationType("tipo_desconocido"))
+    }
+
+    @Test
+    fun `si el push trae la bandeja pero el tipo se conoce, abre la pantalla del tipo`() {
+        assertEquals("reviews", pushRoute("notifications", "barber_review_flagged"))
+        assertEquals("reviews", pushRoute(null, "barber_review_flagged"))
+        assertEquals("orders", pushRoute("orders", "barber_review_flagged")) // la ruta explicita manda
+        assertEquals("notifications", pushRoute("notifications", "tipo_desconocido"))
+        assertNull(pushRoute("https://malicioso.example", "tipo_desconocido"))
+    }
+
+    @Test
+    fun `el contenido del push usa el tipo cuando la ruta es generica`() {
+        val content = pushContent("Reseña señalada", "Revisa", mapOf("route" to "notifications", "type" to "barber_review_flagged"))
+        assertEquals("reviews", content?.route)
     }
 }

@@ -3,14 +3,12 @@ package com.urbanblade.mobile.ui.screens
 import com.urbanblade.mobile.ui.components.UrbanSwitch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Save
@@ -19,7 +17,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -48,14 +45,13 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanStatStrip
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.SettingsViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 
 /** Configuración del negocio (solo administrador). */
 @Composable
@@ -88,113 +84,111 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val errors = validateSettings(draft)
     fun err(field: String) = if (submitted) errors[field] else null
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item { UrbanPageHeader(title = "Configuración", subtitle = "Datos del negocio, horario, datos bancarios y modo mantenimiento.", eyebrow = "Sistema") }
-            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.error?.let { item { UrbanErrorBanner(it) } }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Configuración",
+        subtitle = "Datos del negocio, horario, datos bancarios y modo mantenimiento.",
+        onBack = onBack
+    ) {
+        if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.error?.let { item { UrbanErrorBanner(it) } }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Modo mantenimiento", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-                            Text(
-                                if (setting.maintenanceMode) "El sistema está fuera de línea para todos" else "El sistema está en línea",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (setting.maintenanceMode) UrbanColors.Danger else UrbanColors.Muted
-                            )
-                        }
-                        UrbanSwitch(
-                            checked = setting.maintenanceMode,
-                            onCheckedChange = { confirmMaintenance = true },
-                            tone = UrbanColors.Danger
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Modo mantenimiento", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                        Text(
+                            if (setting.maintenanceMode) "El sistema está fuera de línea para todos" else "El sistema está en línea",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (setting.maintenanceMode) UrbanColors.Danger else UrbanColors.Muted
                         )
                     }
+                    UrbanSwitch(
+                        checked = setting.maintenanceMode,
+                        onCheckedChange = { confirmMaintenance = true },
+                        tone = UrbanColors.Danger
+                    )
                 }
             }
+        }
 
-            item { UrbanSectionTitle("Identidad y contacto") }
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        UrbanTextField(draft.nombre, { draft = draft.copy(nombre = it) }, "Nombre del negocio", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.NOMBRE), capitalization = KeyboardCapitalization.Words)
-                        UrbanTextField(draft.direccion, { draft = draft.copy(direccion = it) }, "Dirección", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.DIRECCION), capitalization = KeyboardCapitalization.Sentences)
-                        UrbanTextField(draft.telefono, { draft = draft.copy(telefono = it) }, "Teléfono", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.TELEFONO), keyboardType = KeyboardType.Phone)
+        item { UrbanSectionTitle("Identidad y contacto") }
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    UrbanTextField(draft.nombre, { draft = draft.copy(nombre = it) }, "Nombre del negocio", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.NOMBRE), capitalization = KeyboardCapitalization.Words)
+                    UrbanTextField(draft.direccion, { draft = draft.copy(direccion = it) }, "Dirección", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.DIRECCION), capitalization = KeyboardCapitalization.Sentences)
+                    UrbanTextField(draft.telefono, { draft = draft.copy(telefono = it) }, "Teléfono", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.TELEFONO), keyboardType = KeyboardType.Phone)
+                }
+            }
+        }
+
+        item { UrbanSectionTitle("Horario y reservas") }
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TimeField("Apertura", draft.apertura, err(SettingsField.APERTURA), Modifier.weight(1f)) { draft = draft.copy(apertura = it) }
+                        TimeField("Cierre", draft.cierre, err(SettingsField.CIERRE), Modifier.weight(1f)) { draft = draft.copy(cierre = it) }
                     }
+                    UrbanTextField(
+                        draft.politica, { draft = draft.copy(politica = it.filter(Char::isDigit)) }, "Política de cancelación (horas)", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.POLITICA), keyboardType = KeyboardType.Number,
+                        helper = "Horas de anticipación con las que un cliente puede cancelar (1 a 168)."
+                    )
                 }
             }
+        }
 
-            item { UrbanSectionTitle("Horario y reservas") }
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            TimeField("Apertura", draft.apertura, err(SettingsField.APERTURA), Modifier.weight(1f)) { draft = draft.copy(apertura = it) }
-                            TimeField("Cierre", draft.cierre, err(SettingsField.CIERRE), Modifier.weight(1f)) { draft = draft.copy(cierre = it) }
-                        }
-                        UrbanTextField(
-                            draft.politica, { draft = draft.copy(politica = it.filter(Char::isDigit)) }, "Política de cancelación (horas)", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.POLITICA), keyboardType = KeyboardType.Number,
-                            helper = "Horas de anticipación con las que un cliente puede cancelar (1 a 168)."
-                        )
+        item { UrbanSectionTitle("Redes sociales") }
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    UrbanTextField(draft.instagram, { draft = draft.copy(instagram = it) }, "Instagram", Modifier.fillMaxWidth(), error = err(SettingsField.INSTAGRAM))
+                    UrbanTextField(draft.facebook, { draft = draft.copy(facebook = it) }, "Facebook", Modifier.fillMaxWidth(), error = err(SettingsField.FACEBOOK))
+                    UrbanTextField(draft.tiktok, { draft = draft.copy(tiktok = it) }, "TikTok", Modifier.fillMaxWidth(), error = err(SettingsField.TIKTOK))
+                }
+            }
+        }
+
+        item { UrbanSectionTitle("Datos para transferencias", "Los ven los clientes que pagan por transferencia") }
+        item {
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    UrbanTextField(
+                        draft.clabe, { draft = draft.copy(clabe = it.filter(Char::isDigit).take(18)) }, "CLABE", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.CLABE), keyboardType = KeyboardType.Number, helper = "${draft.clabe.length}/18 dígitos"
+                    )
+                    UrbanTextField(draft.banco, { draft = draft.copy(banco = it) }, "Banco", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.BANCO), capitalization = KeyboardCapitalization.Words)
+                    UrbanTextField(draft.beneficiario, { draft = draft.copy(beneficiario = it) }, "Beneficiario", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.BENEFICIARIO), capitalization = KeyboardCapitalization.Words)
+                    UrbanTextField(draft.concepto, { draft = draft.copy(concepto = it) }, "Concepto", Modifier.fillMaxWidth(),
+                        error = err(SettingsField.CONCEPTO), imeAction = ImeAction.Done)
+                }
+            }
+        }
+
+        item {
+            UrbanPrimaryButton(
+                text = "Guardar configuración",
+                onClick = {
+                    submitted = true
+                    if (errors.isEmpty()) {
+                        vm.clearMessages()
+                        vm.save(draft.toRequest())
                     }
-                }
-            }
-
-            item { UrbanSectionTitle("Redes sociales") }
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        UrbanTextField(draft.instagram, { draft = draft.copy(instagram = it) }, "Instagram", Modifier.fillMaxWidth(), error = err(SettingsField.INSTAGRAM))
-                        UrbanTextField(draft.facebook, { draft = draft.copy(facebook = it) }, "Facebook", Modifier.fillMaxWidth(), error = err(SettingsField.FACEBOOK))
-                        UrbanTextField(draft.tiktok, { draft = draft.copy(tiktok = it) }, "TikTok", Modifier.fillMaxWidth(), error = err(SettingsField.TIKTOK))
-                    }
-                }
-            }
-
-            item { UrbanSectionTitle("Datos para transferencias", "Los ven los clientes que pagan por transferencia") }
-            item {
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        UrbanTextField(
-                            draft.clabe, { draft = draft.copy(clabe = it.filter(Char::isDigit).take(18)) }, "CLABE", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.CLABE), keyboardType = KeyboardType.Number, helper = "${draft.clabe.length}/18 dígitos"
-                        )
-                        UrbanTextField(draft.banco, { draft = draft.copy(banco = it) }, "Banco", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.BANCO), capitalization = KeyboardCapitalization.Words)
-                        UrbanTextField(draft.beneficiario, { draft = draft.copy(beneficiario = it) }, "Beneficiario", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.BENEFICIARIO), capitalization = KeyboardCapitalization.Words)
-                        UrbanTextField(draft.concepto, { draft = draft.copy(concepto = it) }, "Concepto", Modifier.fillMaxWidth(),
-                            error = err(SettingsField.CONCEPTO), imeAction = ImeAction.Done)
-                    }
-                }
-            }
-
-            item {
-                UrbanPrimaryButton(
-                    text = "Guardar configuración",
-                    onClick = {
-                        submitted = true
-                        if (errors.isEmpty()) {
-                            vm.clearMessages()
-                            vm.save(draft.toRequest())
-                        }
-                    },
-                    loading = state.saving,
-                    icon = Icons.Default.Save,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(8.dp))
-            }
+                },
+                loading = state.saving,
+                icon = Icons.Default.Save,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
         }
     }
 

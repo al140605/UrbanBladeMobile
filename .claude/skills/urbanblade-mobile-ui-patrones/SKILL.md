@@ -25,7 +25,12 @@ actual es **TT32, HT-12**).
 | `UrbanStatStrip` | 3–4 números en una sola tarjeta (en vez de varias `UrbanMetricCard` angostas). |
 | `UrbanModuleTile` / `UrbanModuleGrid` | Accesos rápidos en dos columnas. |
 | `UrbanPillTabs(tabs, selected, onSelect)` | 2 o 3 pestañas en píldora dorada (Mi cuenta, Mis citas del cliente). No usar `FilterChip` sueltos para cambiar de vista. |
+| `urbanListFeedback` | Consultas de listas: primera carga, error con reintento, datos anteriores, actualización y vacío confirmado. No usar para errores de guardar o ejecutar acciones. |
+| `UrbanRefreshButton` / `UrbanStaleContentNotice` | Actualizar sin duplicar consultas y avisar si el contenido visible pertenece a una consulta anterior. |
+| `UrbanPaymentReviewDialog` | Revisión final de tarjeta e importe real; acciones verticales y verificación solo al pagar. |
 | `UrbanMascotState(kind, title, subtitle, actionLabel, onAction)` | Estados vacíos y de error. |
+
+El encabezado `UrbanPageHeader` coloca las acciones debajo del título en anchos menores de 360 dp o fuente desde 130 %, para conservar espacio de lectura. `UrbanSectionTitle` aplica el mismo criterio a las acciones de sección, con objetivo táctil de 48 dp y semántica de encabezado.
 
 Otras piezas compartidas:
 

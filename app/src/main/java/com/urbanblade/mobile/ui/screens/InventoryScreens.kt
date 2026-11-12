@@ -2,7 +2,6 @@ package com.urbanblade.mobile.ui.screens
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +24,8 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InventoryViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_trabajo" to "Insumo de trabajo")
 
@@ -32,9 +33,11 @@ private val TIPO_LABEL = mapOf("venta_cliente" to "Venta a cliente", "insumo_tra
 fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Unit = {}, vm: InventoryViewModel = viewModel()) {
     val response by vm.products.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val saving by vm.saving.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
+    val listError by vm.listError.collectAsState()
     val isAdmin = user.roles.contains("administrador")
 
     val context = LocalContext.current
@@ -58,81 +61,69 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
     val attentionProducts = remember(visibleProducts) { visibleProducts.filter { it.lowStock || it.pendingRestock } }
     val regularProducts = remember(visibleProducts, attentionProducts) { visibleProducts.filterNot { it in attentionProducts } }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                if (isAdmin) {
+    val subtitle = when {
+    !hasLoaded -> "Consulta las existencias y sus movimientos."
+    response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
+    else -> "Existencias de la tienda al día."
+    }
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Inventario",
+        subtitle = subtitle,
+        onBack = onBack,
+        actions = { if (isAdmin) {
                     IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
                 }
                 IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+                UrbanRefreshButton(busy) { vm.load() } }
+    ) {
+        // Errores de guardar, editar, eliminar o registrar un movimiento; el de la consulta sale más abajo.
+        error?.let { item { UrbanErrorBanner(it) } }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+
+        if (hasLoaded) item {
+            UrbanStatStrip(listOf(
+                Triple("Productos", response.meta.stats.total.toString(), UrbanColors.Ink),
+                Triple("Por reponer", response.meta.stats.bajoStock.toString(), if (response.meta.stats.bajoStock > 0) UrbanColors.Warning else UrbanColors.Ink),
+                Triple("Valor inventario", UrbanFormat.moneyShort(response.meta.stats.valorTotal), UrbanColors.Ink)
+            ))
+        }
+
+        if (response.meta.categorias.isNotEmpty()) {
+            item {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(selected = categoryFilter == null, onClick = { categoryFilter = null }, label = { Text("Todas") })
+                    response.meta.categorias.forEach { cat ->
+                        FilterChip(selected = categoryFilter == cat, onClick = { categoryFilter = if (categoryFilter == cat) null else cat }, label = { Text(cat) })
+                    }
+                }
             }
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+
+        urbanListFeedback(
+            hasLoaded, busy, visibleProducts.isNotEmpty(), listError,
+            "No pudimos cargar el inventario", "Sin productos", "No hay productos en esta categoría."
+        ) { vm.load() }
+
+        if (attentionProducts.isNotEmpty()) {
             item {
-                val subtitle = when {
-                    response.meta.stats.bajoStock > 0 -> UrbanFormat.count(response.meta.stats.bajoStock, "producto requiere reposición", "productos requieren reposición")
-                    else -> "Existencias de la tienda al día."
-                }
-                UrbanPageHeader(title = "Inventario", subtitle = subtitle, eyebrow = "OPERACIÓN")
+                UrbanSectionTitle(
+                    "Requiere atención",
+                    UrbanFormat.count(attentionProducts.size, "producto en esta vista necesita revisión", "productos en esta vista necesitan revisión")
+                )
             }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-
-            item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Text("RESUMEN DE EXISTENCIAS", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
-                    Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        InventorySummaryValue("Productos", response.meta.stats.total.toString(), Modifier.weight(1f))
-                        InventorySummaryValue("Por reponer", response.meta.stats.bajoStock.toString(), Modifier.weight(1f), response.meta.stats.bajoStock > 0)
-                        InventorySummaryValue("Valor inventario", "${UrbanFormat.moneyShort(response.meta.stats.valorTotal)}", Modifier.weight(1f))
-                    }
-                }
+            items(attentionProducts, key = { it.id }) { product ->
+                InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
             }
+        }
 
-            if (response.meta.categorias.isNotEmpty()) {
-                item {
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(selected = categoryFilter == null, onClick = { categoryFilter = null }, label = { Text("Todas") })
-                        response.meta.categorias.forEach { cat ->
-                            FilterChip(selected = categoryFilter == cat, onClick = { categoryFilter = if (categoryFilter == cat) null else cat }, label = { Text(cat) })
-                        }
-                    }
-                }
-            }
-
-            if (visibleProducts.isEmpty() && !busy) {
-                item { UrbanMascotState(UrbanStateKind.EMPTY, "Sin productos", "No hay productos en esta categoría.") }
-            }
-
-            if (attentionProducts.isNotEmpty()) {
-                item {
-                    UrbanSectionTitle(
-                        "Requiere atención",
-                        UrbanFormat.count(attentionProducts.size, "producto en esta vista necesita revisión", "productos en esta vista necesitan revisión")
-                    )
-                }
-                items(attentionProducts, key = { it.id }) { product ->
-                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
-                }
-            }
-
-            if (regularProducts.isNotEmpty()) {
-                item { UrbanSectionTitle("Existencias", UrbanFormat.count(regularProducts.size, "producto disponible", "productos disponibles")) }
-                items(regularProducts, key = { it.id }) { product ->
-                    InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
-                }
+        if (regularProducts.isNotEmpty()) {
+            item { UrbanSectionTitle("Existencias", UrbanFormat.count(regularProducts.size, "producto disponible", "productos disponibles")) }
+            items(regularProducts, key = { it.id }) { product ->
+                InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
             }
         }
     }
@@ -179,14 +170,6 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("Cancelar") } }
         )
-    }
-}
-
-@Composable
-private fun InventorySummaryValue(label: String, value: String, modifier: Modifier = Modifier, alert: Boolean = false) {
-    Column(modifier) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = UrbanColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, style = MaterialTheme.typography.titleMedium, color = if (alert) UrbanColors.Warning else UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

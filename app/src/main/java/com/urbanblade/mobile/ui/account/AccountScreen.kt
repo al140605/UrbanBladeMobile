@@ -18,7 +18,9 @@ import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -59,6 +61,7 @@ import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.rememberSingleImagePicker
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.viewmodel.AccountSection
 import com.urbanblade.mobile.ui.viewmodel.AccountViewModel
 import kotlinx.coroutines.launch
@@ -89,8 +92,8 @@ fun AccountScreen(
     val pickPhoto = rememberSingleImagePicker { uri -> vm.uploadAvatar(context, uri, onUserChanged) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    // Una sección abierta a la vez por pestaña: la primera empieza abierta para no llegar a una lista vacía.
-    var openData by rememberSaveable { mutableStateOf("personal") }
+    // Todos los roles ven primero el resumen de sus secciones, cerradas.
+    var openData by rememberSaveable { mutableStateOf("") }
     var openSecurity by rememberSaveable { mutableStateOf("password") }
     var openPrefs by rememberSaveable { mutableStateOf("") }
     fun toggle(current: String, key: String) = if (current == key) "" else key
@@ -102,8 +105,8 @@ fun AccountScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
             UrbanPageHeader(
@@ -154,11 +157,15 @@ fun AccountScreen(
                     if (notice?.section == AccountSection.AVATAR) AccountNoticeBanner(notice) }
                 }
 
+                item {
+                    UrbanPillTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
+                }
+
                 // Lo del cliente que antes estaba repartido entre la pestaña Wallet y el Inicio.
                 if (isClient) {
                     item { UrbanSectionTitle("Tu actividad", "Beneficios, pagos y compras.") }
                     item {
-                        UrbanRowGroup(listOf("wallet", "payments", "orders")) { route ->
+                        UrbanRowGroup(listOf("wallet", "orders", "payments")) { route ->
                             when (route) {
                                 "wallet" -> UrbanActionRow("Beneficios", "Nivel, puntos, membresía y tu código para invitar.", Icons.Default.Stars) { onNavigate(route) }
                                 "payments" -> UrbanActionRow("Mis facturas", "Comprobantes de tus citas y compras.", Icons.Default.ReceiptLong) { onNavigate(route) }
@@ -166,10 +173,6 @@ fun AccountScreen(
                             }
                         }
                     }
-                }
-
-                item {
-                    UrbanPillTabs(AccountTab.entries.map { it.label to it.icon }, tab) { tab = it; vm.dismissNotice() }
                 }
 
                 when (AccountTab.entries[tab]) {
@@ -280,22 +283,23 @@ fun AccountScreen(
 
         // Documentos legales y contacto para derechos sobre los datos; el borrado de la cuenta
         // está en Seguridad para los roles autorizados.
+        item { UrbanSectionTitle("Legal y privacidad", "Tus datos, tus derechos.") }
         item {
             val openLegal = com.urbanblade.mobile.ui.components.rememberOpenLegal()
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL) }) {
-                    Text("Aviso de Privacidad", color = UrbanColors.GoldText)
+            UrbanRowGroup(listOf("privacy", "terms")) { key ->
+                if (key == "privacy") UrbanActionRow("Aviso de Privacidad", "Cómo cuidamos y usamos tus datos.", Icons.Default.PrivacyTip) {
+                    openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL)
+                } else UrbanActionRow("Términos y Condiciones", "Las reglas de uso de UrbanBlade.", Icons.Default.Description) {
+                    openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL)
                 }
-                androidx.compose.material3.TextButton(onClick = { openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL) }) {
-                    Text("Términos y Condiciones", color = UrbanColors.GoldText)
-                }
-                Text(
-                    "Para ejercer tus derechos sobre tus datos (acceso, corrección o borrado del historial), escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = UrbanColors.Muted,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
             }
+        }
+        item {
+            Text(
+                "Para ejercer tus derechos sobre tus datos (acceso, corrección o borrado del historial), escribe a ${com.urbanblade.mobile.ui.components.UrbanLegal.CONTACT_EMAIL}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
 
         item {

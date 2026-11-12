@@ -85,7 +85,6 @@ fun UrbanSwitchRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
-            .semantics { contentDescription = title }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -1,0 +1,65 @@
+package com.urbanblade.mobile.ui.screens
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import com.urbanblade.mobile.data.model.TransferInfo
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Datos bancarios del pago por transferencia (reserva y Mis citas): cada estado dice algo claro al cliente en vez de
+ * dejar la pantalla vacía.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], qualifiers = "w360dp-h800dp")
+class TransferAccountTest {
+    @get:Rule
+    val compose = createComposeRule()
+
+    @Test
+    fun `mientras cargan avisa que busca los datos bancarios`() {
+        compose.setContent { MaterialTheme { TransferAccount(info = null, total = 150.0) } }
+
+        compose.onNodeWithText("Cargando datos bancarios…").assertExists()
+    }
+
+    @Test
+    fun `sin datos bancarios configurados explica que elija otro metodo`() {
+        compose.setContent { MaterialTheme { TransferAccount(info = TransferInfo(configurado = false), total = 150.0) } }
+
+        compose.onNodeWithText("La barbería todavía no registra sus datos bancarios", substring = true).assertExists()
+    }
+
+    @Test
+    fun `con datos identifica el monto como estimacion y pide confirmar descuentos`() {
+        val info = TransferInfo(
+            configurado = true, banco = "BBVA", beneficiario = "UrbanBlade", clabe = "012345678901234567", concepto = "Cita"
+        )
+        compose.setContent { MaterialTheme { TransferAccount(info = info, total = 150.0) } }
+
+        compose.onNodeWithText("Transfiere a esta cuenta").assertExists()
+        compose.onNodeWithText("BBVA").assertExists()
+        compose.onNodeWithText("0123 4567 8901 2345 67").assertExists()
+        compose.onNodeWithText("Monto estimado").assertExists()
+        compose.onNodeWithText("Confirma el importe final con la barbería antes de transferir: puede cambiar por descuentos.").assertExists()
+        compose.onNodeWithText("Monto").assertDoesNotExist()
+    }
+
+    @Test
+    fun `confirmed quote displays server total instead of local estimate`() {
+        val info = TransferInfo(configurado = true, cotizacion = com.urbanblade.mobile.data.model.TransferQuote(
+            appointmentId = "a", serviceAmount = 142.5, propina = 15.0, total = 157.5, moneda = "mxn"
+        ))
+        compose.setContent { MaterialTheme { TransferAccount(info = info, total = 999.0) } }
+        compose.onNodeWithText("$157.50").assertExists()
+        compose.onNodeWithText("$142.50").assertExists()
+        compose.onNodeWithText("$158").assertDoesNotExist()
+        compose.onNodeWithText("Total a transferir").assertExists()
+        compose.onNodeWithText("Monto estimado").assertDoesNotExist()
+        compose.onNodeWithText("Servicio con descuentos").assertExists()
+    }
+}

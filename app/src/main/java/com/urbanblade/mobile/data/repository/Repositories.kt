@@ -126,7 +126,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun deleteService(slug: String) = api.deleteService(slug)
 
     suspend fun stripeIntent(body: StripeIntentRequest) = api.stripeIntent(body).data
-    suspend fun transferInfo() = api.transferInfo().data
+    suspend fun transferInfo(appointmentId: String? = null, propina: Double? = null, serviceId: String? = null) = api.transferInfo(appointmentId, propina, serviceId).data
     suspend fun depositStripeIntent(code: String, body: DepositIntentRequest) = api.depositStripeIntent(code, body).data
 
     suspend fun uploadDepositReceipt(context: Context, code: String, receiptUri: Uri): UploadPaymentReceiptResponse {
@@ -205,6 +205,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun notifications() = api.notifications()
     suspend fun markAllNotificationsRead() = api.markNotificationsRead()
     suspend fun markNotificationRead(id: String) = api.markNotificationRead(id)
+    suspend fun deleteNotification(id: String) = api.deleteNotification(id)
     suspend fun analytics() = api.analytics()
     suspend fun socialFeed(page: Int = 1) = api.socialFeed(page)
     suspend fun reactWork(id: String) = api.reactWork(id)

@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -131,6 +132,9 @@ class PaymentsStaffViewModelTest {
         assertTrue(vm.state.value.deposits.isEmpty())
         assertEquals(1, vm.state.value.items.size)
         assertNull(vm.state.value.error)
+        // El historial se muestra, pero la pantalla no puede afirmar «todo al día»: se avisa del fallo parcial.
+        assertTrue(vm.state.value.reviewUnknown)
+        assertNotNull(vm.state.value.reviewListsError)
     }
 
     @Test

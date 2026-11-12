@@ -21,6 +21,8 @@ En Linux y macOS sustituir el ejecutable por `./gradlew`. El segundo comando com
 | Android Lint | Análisis estático de la variante debug |
 | JaCoCo | Reporte de cobertura; CI no impone un umbral mínimo |
 | Debug y release/R8 | Compilación y reducción; no prueban un recorrido funcional completo |
+| Staging y paquetes | Variante no depurable, HTTPS, dependencias de ejecución y revisión de APKs con controles reproducibles |
+| Gitleaks | Escaneo de secretos sobre el historial completo; no sustituye revisar capturas y reportes |
 | CodeQL | Análisis Java/Kotlin con build debug explícito e instrumentado en GitHub |
 
 Los reportes JVM quedan en `app/build/reports/tests/testDebugUnitTest/`; lint en `app/build/reports/lint-results-debug.html`; cobertura en `app/build/reports/coverage/test/debug/`.
@@ -37,9 +39,26 @@ Mantenimiento fusionado el 30 de octubre de 2026, commit `603879cdadea34cbae027e
 
 Estos resultados corresponden a ese commit. No acreditan cambios posteriores, instalación en dispositivo ni distribución en Play.
 
+El incremento de seguridad del 4 de noviembre registra 435 pruebas Android y
+siete pruebas del verificador de paquetes, además de builds y escaneo de secretos.
+Consultar [alcance y resultados](REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md);
+la nueva comprobación de Logcat en dispositivo está pendiente.
+
+La [unificación de módulos por rol](PULIDO_PANTALLAS_POR_ROL.md) registra el
+incremento posterior: 446 pruebas Android, lint, APK debug y cinco consultas de
+lectura a la API QA; la revisión física de ese bloque sigue pendiente.
+
 ## Revisión funcional
 
 Usar [verificación manual](VERIFICACION_MANUAL_P0.md) y [contrato de experiencia](UI_UX_CONTRATO_MOVIL.md). Registrar commit, variante, API efectiva, rol, dispositivo, datos de prueba y resultado. Comprobar estados vacíos, errores, reconexión, permisos y accesibilidad. Las capturas históricas ilustran la interfaz, no reemplazan esa ejecución.
+
+La [validación local de pagos del 4 de noviembre de 2026](QA_PAGOS_2026-11-04.md) distingue las pruebas de backend, API, dispositivo y los pendientes del proveedor.
+
+La [verificación local por huella o PIN](QA_AUTORIZACION_PAGOS_2026-11-04.md) registra las regresiones, la confirmación física del propietario y los límites de cobertura.
+
+Ver también la [investigación y decisión de revisión final del pago](INVESTIGACION_UX_PAGO_FINAL_2026-11-04.md).
+
+La [revisión del modal y eliminación de Link](QA_MODAL_PAGO_2026-11-04.md) registra las pruebas automatizadas y los recorridos físicos de pago y cancelación.
 
 ## Criterio de entrega
 

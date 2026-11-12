@@ -41,6 +41,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.LogsViewModel
 import com.urbanblade.mobile.ui.viewmodel.SystemStatusViewModel
 import java.time.LocalDate
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 internal fun healthTone(level: HealthLevel): Color = when (level) {
     HealthLevel.OK -> UrbanColors.Success
@@ -70,6 +71,9 @@ fun EngineerHomeScreen(
     val loading by systemVm.busy.collectAsState()
     val error by systemVm.error.collectAsState()
     val logs by logsVm.logs.collectAsState()
+    val logsLoading by logsVm.busy.collectAsState()
+    val logsError by logsVm.error.collectAsState()
+    val logsLoaded by logsVm.hasLoaded.collectAsState()
     LaunchedEffect(Unit) {
         systemVm.load()
         logsVm.load(null, event = null)
@@ -79,20 +83,17 @@ fun EngineerHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanPageHeader(
-                title = "Hola, ${user.name.substringBefore(' ')}",
-                subtitle = UrbanFormat.date(LocalDate.now().toString()),
-                eyebrow = "INGENIERO",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
-            )
+            UrbanHomeHeader("INGENIERO", user.name, user.avatarUrl, loading || logsLoading) { systemVm.load(); logsVm.load(null, event = null) }
         }
 
+        if (error != null && status != null) item { UrbanStaleContentNotice(error.orEmpty()) { systemVm.load() } }
+
         when {
-            loading && status == null -> item { UrbanSkeletonList(1) }
+            error == null && status == null -> item { UrbanSkeletonList(1) }
             error != null && status == null -> item {
                 UrbanMascotState(
                     UrbanStateKind.ERROR,
@@ -104,30 +105,26 @@ fun EngineerHomeScreen(
             }
             health != null -> {
                 item {
-                    UrbanHeroCard(Modifier.clickable { onNavigate("system") }) {
-                        UrbanHeroLabel("Estado del sistema")
-                        Spacer(Modifier.height(6.dp))
-                        Text(health.headline, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink)
-                        Spacer(Modifier.height(16.dp))
-                        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                        Spacer(Modifier.height(14.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            UrbanHeroStat(
+                    UrbanHeroSummary(
+                        label = "Estado del sistema",
+                        headline = health.headline,
+                        large = false,
+                        onClick = { onNavigate("system") },
+                        stats = listOf(
+                            UrbanHeroStatSpec(
                                 "Base de datos",
                                 status?.database?.latencyMs?.let { "$it ms" } ?: "—",
                                 Icons.Default.Storage,
-                                Modifier.weight(1f),
-                                tone = serviceTone(status?.database?.status)
-                            )
-                            UrbanHeroStat(
+                                serviceTone(status?.database?.status)
+                            ),
+                            UrbanHeroStatSpec(
                                 "Fallidos en cola",
                                 status?.queue?.failed?.toString() ?: "—",
                                 Icons.Default.Dns,
-                                Modifier.weight(1f),
-                                tone = if ((status?.queue?.failed ?: 0) > 0) UrbanColors.Warning else UrbanColors.Gold
+                                if ((status?.queue?.failed ?: 0) > 0) UrbanColors.Warning else UrbanColors.Gold
                             )
-                        }
-                    }
+                        )
+                    )
                 }
                 if (health.issues.isNotEmpty()) {
                     item { UrbanSectionTitle("Requiere tu atención", "Ordenado de más a menos grave.") }
@@ -140,13 +137,18 @@ fun EngineerHomeScreen(
             }
         }
 
-        item { UrbanSectionTitle("Actividad de hoy", "Movimientos registrados en la bitácora.") }
-        item {
+        item { UrbanSectionTitle("Actividad registrada", "Hoy y acumulado histórico de la bitácora.") }
+        if (logsError != null) item {
+            if (logsLoaded) UrbanStaleContentNotice(logsError.orEmpty()) { logsVm.load() }
+            else UrbanMascotState(UrbanStateKind.ERROR, "No pudimos consultar la actividad", logsError, "Reintentar") { logsVm.load() }
+        }
+        if (!logsLoaded && logsError == null) item { UrbanSkeletonList(1) }
+        if (logsLoaded) item {
             UrbanStatStrip(
                 listOf(
                     Triple("Hoy", logs.stats.hoy.toString(), UrbanColors.Gold),
-                    Triple("Creados", logs.stats.creates.toString(), UrbanColors.Success),
-                    Triple("Eliminados", logs.stats.deletes.toString(), UrbanColors.Danger)
+                    Triple("Creados en total", logs.stats.creates.toString(), UrbanColors.Success),
+                    Triple("Eliminados en total", logs.stats.deletes.toString(), UrbanColors.Danger)
                 ),
                 onClick = { onNavigate("logs") }
             )
@@ -157,11 +159,11 @@ fun EngineerHomeScreen(
             UrbanModuleGrid(
                 tiles = listOf(
                     Triple("Reportes", "Ingresos, citas e inventario", Icons.Default.Assessment),
-                    Triple("Logs", "Quién hizo qué y cuándo", Icons.Default.Terminal),
+                    Triple("Bitácora", "Quién hizo qué y cuándo", Icons.Default.Terminal),
                     Triple("Métricas", "KPIs del negocio", Icons.Default.MonitorHeart),
                     Triple("Insights IA", "Tendencias y alertas", Icons.Default.AutoAwesome),
                     Triple("Analítica", "Operación y clientes", Icons.Default.QueryStats),
-                    Triple("Sistema", "Servicios y tareas", Icons.Default.Dns),
+                    Triple("Estado del sistema", "Servicios y tareas", Icons.Default.Dns),
                 ),
                 routes = listOf("reports", "logs", "admin_metrics", "insights", "analytics", "system"),
                 onNavigate = onNavigate

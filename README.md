@@ -40,7 +40,7 @@ Laravel conserva la autorización y las reglas de precios, stock y disponibilida
 | JVM de Gradle | JetBrains JDK 21 |
 | Bytecode | Java y Kotlin 17 |
 | Android | SDK de compilación y destino 36; mínimo 26 |
-| Versión de la app | 3.0.0, código 3 |
+| Versión de la app | 3.1.0, código 4 (la 3.0.0 / código 3 es la de la prueba cerrada) |
 
 Instalar Android Studio, SDK 36 y JDK 21. Abrir la raíz del repositorio y configurar `sdk.dir` en `local.properties` o `ANDROID_HOME`. El archivo local es privado y no se versiona.
 
@@ -72,7 +72,7 @@ Las propiedades se leen desde `local.properties` o `-P`: `DEBUG_API_BASE_URL`, `
 
 La suite incluye una comprobación TLS pública contra la API y necesita conectividad. No omitir pruebas ni desactivar TLS para obtener un resultado verde.
 
-Android CI ejecuta lint, pruebas JVM sin omisiones, cobertura y builds debug/release con R8. CodeQL analiza Java/Kotlin con compilación explícita. [Evidencia y reproducción](docs/PRUEBAS.md).
+Android CI ejecuta lint, pruebas JVM sin omisiones, cobertura, builds debug/staging/release con R8 y controles de paquetes y dependencias. CodeQL analiza Java/Kotlin y Gitleaks revisa el historial completo. [Evidencia y reproducción](docs/PRUEBAS.md).
 
 CI no publica en Google Play ni acredita una prueba en dispositivo. La generación de un AAB firmado se trata en el [procedimiento de publicación](docs/PUBLICAR_PLAY_STORE.md).
 

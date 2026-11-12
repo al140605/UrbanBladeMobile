@@ -5,14 +5,12 @@ import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,16 +58,13 @@ import com.urbanblade.mobile.ui.components.UrbanKeyValue
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarbersAdminViewModel
 import com.urbanblade.mobile.ui.viewmodel.ServiceStatusFilter
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Equipo de barberos del administrador: buscar, activar, editar perfil y comisión, ver rendimiento. */
 @Composable
@@ -80,82 +74,66 @@ fun BarbersAdminScreen(onBack: () -> Unit, vm: BarbersAdminViewModel = viewModel
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Barberos",
+        subtitle = "Perfil, especialidad, horario y rendimiento de tu equipo.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.loadingMore || state.saving
+    ) {
+        item {
+            UrbanTextField(
+                value = state.query,
+                onValueChange = vm::setQuery,
+                label = "Buscar por nombre o correo",
+                leadingIcon = Icons.Default.Search,
+                imeAction = ImeAction.Search,
+                onImeAction = { vm.load() },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ServiceStatusFilter.entries.forEach { filter ->
+                    FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) }, colors = urbanFilterChipColors())
+                }
             }
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Barberos", subtitle = "Perfil, especialidad, horario y rendimiento de tu equipo.", eyebrow = "Equipo") }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con la hoja de edición abierta el error de guardar se muestra dentro de ella, no aquí.
+        if (editing == null) state.error?.let { item { UrbanErrorBanner(it) } }
+
+        val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar el equipo",
+            if (firstTime) "Aún no hay barberos" else "Sin resultados",
+            if (firstTime) "Los barberos se dan de alta desde Usuarios, asignándoles ese rol." else "Prueba con otra búsqueda o filtro."
+        ) { vm.load() }
+
+        if (state.items.isNotEmpty()) {
+            item { UrbanSectionTitle("Equipo", UrbanFormat.count(state.total, "barbero", "barberos")) }
+        }
+        items(state.items, key = { it.id }) { barber ->
+            BarberAdminCard(
+                barber = barber,
+                onOpen = { vm.clearMessages(); vm.loadPerformance(barber); editing = barber },
+                onToggle = { vm.toggleActive(barber) }
+            )
+        }
+        if (state.hasMore) {
             item {
-                UrbanTextField(
-                    value = state.query,
-                    onValueChange = vm::setQuery,
-                    label = "Buscar por nombre o correo",
-                    leadingIcon = Icons.Default.Search,
-                    imeAction = ImeAction.Search,
-                    onImeAction = { vm.load() },
+                UrbanOutlineButton(
+                    text = if (state.loadingMore) "Cargando…" else "Cargar más barberos",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            item {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ServiceStatusFilter.entries.forEach { filter ->
-                        FilterChip(selected = state.status == filter, onClick = { vm.setStatus(filter) }, label = { Text(filter.label) }, colors = urbanFilterChipColors())
-                    }
-                }
-            }
-            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (editing == null) state.error?.let { msg ->
-                item {
-                    if (state.items.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar el equipo", msg, "Reintentar") { vm.load() }
-                    else UrbanErrorBanner(msg)
-                }
-            }
-
-            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(4) }
-
-            if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item {
-                    val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (firstTime) "Aún no hay barberos" else "Sin resultados",
-                        if (firstTime) "Los barberos se dan de alta desde Usuarios, asignándoles ese rol." else "Prueba con otra búsqueda o filtro."
-                    )
-                }
-            }
-
-            if (state.items.isNotEmpty()) {
-                item { UrbanSectionTitle("Equipo", UrbanFormat.count(state.total, "barbero", "barberos")) }
-            }
-            items(state.items, key = { it.id }) { barber ->
-                BarberAdminCard(
-                    barber = barber,
-                    onOpen = { vm.clearMessages(); vm.loadPerformance(barber); editing = barber },
-                    onToggle = { vm.toggleActive(barber) }
-                )
-            }
-            if (state.hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (state.loadingMore) "Cargando…" else "Cargar más barberos",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-            item { Spacer(Modifier.height(24.dp)) }
         }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 
     editing?.let { barber ->

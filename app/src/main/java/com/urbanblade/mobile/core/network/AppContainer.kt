@@ -46,20 +46,12 @@ object AppContainer {
             if (response.code == 401 && !token.isNullOrBlank() && !isAccessCall) {
                 SessionEvents.notifyExpired()
             }
+            if (response.isSuccessful) SessionEvents.notifyReachable()
             response
-        }
-
-        val logging = okhttp3.logging.HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
-                okhttp3.logging.HttpLoggingInterceptor.Level.BASIC
-            } else {
-                okhttp3.logging.HttpLoggingInterceptor.Level.NONE
-            }
         }
 
         val clientBuilder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
-            .addInterceptor(logging)
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
         // Certificate pinning en staging/release; el debug queda libre para depurar con un proxy.

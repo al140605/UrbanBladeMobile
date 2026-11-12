@@ -13,3 +13,10 @@
 # Trazas legibles en Crashlytics (el plugin sube el mapping.txt de cada build release).
 -keepattributes SourceFile, LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Release: quitar trazas de detalle de bibliotecas; conservar avisos y errores operativos.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}

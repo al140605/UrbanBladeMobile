@@ -20,11 +20,13 @@ import com.urbanblade.mobile.data.model.SocialWork
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.SocialFeedViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 /** Muro de trabajos reales: carruseles, perfil público, reacciones y comentarios recientes. */
 @Composable
 fun SocialFeedScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onBookBarber: ((String) -> Unit)? = null,
     vm: SocialFeedViewModel = viewModel(),
     onOpenBarber: ((String) -> Unit)? = null
@@ -40,7 +42,7 @@ fun SocialFeedScreen(
     LaunchedEffect(canBook) { vm.load(canBook) }
     UrbanModuleScreen(
         eyebrow = "URBANBLADE",
-        title = "Inspiración",
+        title = "Muro de Inspiración",
         subtitle = "Trabajos del equipo. Desliza las fotos y encuentra tu próximo estilo.",
         onBack = onBack,
         onRefresh = { vm.load(canBook) },
@@ -120,7 +122,7 @@ private fun WorkPost(
             text = {
                 Column {
                     REPORT_REASONS.forEach { (code, label) ->
-                        TextButton(onClick = { target.id?.let { onReportComment(it, code) }; reporting = null }, modifier = Modifier.fillMaxWidth()) {
+                        UrbanTextButton(onClick = { target.id?.let { onReportComment(it, code) }; reporting = null }, modifier = Modifier.fillMaxWidth()) {
                             Text(label, Modifier.fillMaxWidth(), color = UrbanColors.Ink)
                         }
                     }
@@ -133,7 +135,7 @@ private fun WorkPost(
     val barberName = work.barber?.name ?: "Equipo UrbanBlade"
     if (commenting) ModalBottomSheet(onDismissRequest = { commenting = false }, containerColor = UrbanColors.Surface,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).imePadding().clipToBounds().padding(horizontal = 18.dp, vertical = 12.dp)) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f).imePadding().clipToBounds().padding(horizontal = UrbanSpace.Gutter, vertical = 12.dp)) {
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth().clipToBounds(),
             contentPadding = PaddingValues(bottom = 12.dp),
@@ -151,7 +153,8 @@ private fun WorkPost(
                         Text(comment.comment.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
                     }
                     if (!comment.isMine && comment.id != null) {
-                        IconButton(onClick = { moderating = comment }, enabled = enabled, modifier = Modifier.size(32.dp)) {
+                        // 48 dp explícitos (el mínimo de Material); con 32 dp solo la ampliación automática de Compose cubría el toque.
+                        IconButton(onClick = { moderating = comment }, enabled = enabled, modifier = Modifier.size(48.dp)) {
                             Icon(Icons.Default.MoreVert, "Reportar o bloquear a $author", tint = UrbanColors.Muted)
                         }
                     }
@@ -201,7 +204,7 @@ private fun WorkPost(
                 }
                 work.title?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink) }
                 work.description?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink) }
-                if (work.commentsCount > 0) TextButton(onClick = { commenting = true }, contentPadding = PaddingValues(0.dp)) {
+                if (work.commentsCount > 0) UrbanTextButton(onClick = { commenting = true }, contentPadding = PaddingValues(0.dp)) {
                     Text("Ver comentarios recientes (${work.commentsCount})", color = UrbanColors.Muted)
                 }
                 if (work.isSaved) Text("Guardado en tu inspiración", style = MaterialTheme.typography.labelSmall, color = UrbanColors.GoldText)

@@ -63,17 +63,18 @@ import com.urbanblade.mobile.ui.components.chartSeries
 import com.urbanblade.mobile.ui.components.UrbanAttentionRow
 import com.urbanblade.mobile.ui.components.UrbanAvatar
 import com.urbanblade.mobile.ui.components.UrbanCard
-import com.urbanblade.mobile.ui.components.UrbanHeroCard
-import com.urbanblade.mobile.ui.components.UrbanHeroLabel
-import com.urbanblade.mobile.ui.components.UrbanHeroStat
+import com.urbanblade.mobile.ui.components.UrbanHeroStatSpec
+import com.urbanblade.mobile.ui.components.UrbanHeroSummary
+import com.urbanblade.mobile.ui.components.UrbanHomeHeader
+import com.urbanblade.mobile.ui.components.UrbanModuleGrid
 import com.urbanblade.mobile.ui.components.UrbanStatCard
 import com.urbanblade.mobile.ui.components.UrbanTrendPill
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
+import com.urbanblade.mobile.ui.components.UrbanStaleContentNotice
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
-import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
 import com.urbanblade.mobile.ui.components.UrbanSkeletonList
@@ -82,6 +83,7 @@ import com.urbanblade.mobile.ui.viewmodel.AdminHomeViewModel
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.abs
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 private fun JsonObject?.number(key: String): Double? =
     this?.get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble
@@ -108,20 +110,17 @@ fun AdminHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanPageHeader(
-                title = "Hola, $firstName",
-                subtitle = UrbanFormat.date(LocalDate.now().toString()),
-                eyebrow = "ADMINISTRADOR",
-                trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
-            )
+            UrbanHomeHeader("ADMINISTRADOR", user.name, user.avatarUrl, state.loading) { vm.load() }
         }
 
+        if (state.error != null && kpis != null) item { UrbanStaleContentNotice(state.error.orEmpty()) { vm.load() } }
+
         when {
-            state.loading && kpis == null -> item { UrbanSkeletonList(2) }
+            state.error == null && kpis == null -> item { UrbanSkeletonList(2) }
             state.error != null && kpis == null -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     UrbanErrorBanner(state.error.orEmpty())
@@ -142,15 +141,16 @@ fun AdminHomeScreen(
                 item { UrbanSectionTitle("Requiere tu atención", "Lo que conviene revisar ahora.") }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (state.pendingPayments > 0) {
+                        if ((state.pendingPayments ?: 0) > 0) {
                             UrbanAttentionRow(
                                 icon = Icons.Default.Payments,
-                                text = UrbanFormat.count(state.pendingPayments, "pago por verificar", "pagos por verificar"),
-                                subtitle = "Citas completadas · Revisa y confirma",
+                                text = UrbanFormat.count(state.pendingPayments ?: 0, "pago por verificar", "pagos por verificar"),
+                                subtitle = "Comprobantes recibidos · Revisa y confirma",
                                 tone = UrbanColors.Danger,
                                 onClick = { onNavigate("payments") }
                             )
                         }
+                        state.pendingPaymentsError?.let { UrbanErrorBanner(it) }
                         if (lowStock > 0) {
                             UrbanAttentionRow(
                                 icon = Icons.Default.Inventory2,
@@ -179,12 +179,15 @@ fun AdminHomeScreen(
 
         item { UrbanSectionTitle("Acciones rápidas", "Lo esencial, siempre a la mano.") }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                HomeTile("Agenda", "Ver y gestionar citas", Icons.Default.CalendarMonth, { onNavigate("appointments") }, Modifier.weight(1f), highlighted = true)
-                HomeTile("Caja", "Cobros, ingresos y cierre", Icons.Default.PointOfSale, { onNavigate("cash") }, Modifier.weight(1f))
-            }
+            UrbanModuleGrid(
+                tiles = listOf(
+                    Triple("Agenda", "Ver y gestionar citas", Icons.Default.CalendarMonth),
+                    Triple("Caja", "Cobros, ingresos y cierre", Icons.Default.PointOfSale)
+                ),
+                routes = listOf("appointments", "cash"),
+                onNavigate = onNavigate
+            )
         }
-        item { Spacer(Modifier.height(4.dp)) }
     }
 }
 
@@ -194,35 +197,28 @@ private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
     val appointmentsToday = kpis.number("appointments_today")?.toInt() ?: 0
     val incomeWeek = kpis.number("income_week")
     val appointmentsWeek = kpis.number("appointments_week")?.toInt()
+    val growth = kpis.number("income_growth")
 
-    // Misma tarjeta héroe del patrón compartido (UrbanHeroCard), no una copia local con la foto
-    // y el velo: así el velo sigue el tema activo y no hay que repetir la pintura.
-    UrbanHeroCard {
-        UrbanHeroLabel("Ingresos de hoy")
-        Spacer(Modifier.height(6.dp))
-        Text(UrbanFormat.moneyShort(incomeToday), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        kpis.number("income_growth")?.let { growth ->
-            Spacer(Modifier.height(6.dp))
-            UrbanTrendPill(delta = growth, suffix = "vs. mes pasado")
+    UrbanHeroSummary(
+        label = "Ingresos de hoy",
+        headline = UrbanFormat.moneyShort(incomeToday),
+        stats = listOf(
+            UrbanHeroStatSpec("Citas hoy", appointmentsToday.toString(), Icons.Default.CalendarMonth),
+            UrbanHeroStatSpec("Ocupación", occupancyRate?.let { "$it%" } ?: "—", Icons.Default.People)
+        ),
+        headlineTrailing = growth?.let { { UrbanTrendPill(delta = it, suffix = null) } },
+        belowHeadline = {
+            Text(
+                buildString {
+                    append("vs. mes pasado · semana: ")
+                    append(incomeWeek?.let { UrbanFormat.moneyShort(it) } ?: "—")
+                    if (appointmentsWeek != null) append(" · ${UrbanFormat.count(appointmentsWeek, "cita", "citas")}")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
         }
-        Spacer(Modifier.height(18.dp))
-        HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-        Spacer(Modifier.height(14.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            UrbanHeroStat("Citas hoy", appointmentsToday.toString(), Icons.Default.CalendarMonth, Modifier.weight(1f))
-            UrbanHeroStat("Ocupación", occupancyRate?.let { "$it%" } ?: "—", Icons.Default.People, Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            buildString {
-                append("Esta semana: ")
-                append(incomeWeek?.let { UrbanFormat.moneyShort(it) } ?: "—")
-                if (appointmentsWeek != null) append(" · ${UrbanFormat.count(appointmentsWeek, "cita", "citas")}")
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = UrbanColors.Muted,
-        )
-    }
+    )
 }
 
 /**

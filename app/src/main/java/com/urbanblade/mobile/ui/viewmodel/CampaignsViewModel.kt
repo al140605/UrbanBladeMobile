@@ -6,6 +6,9 @@ import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.CampaignsResponse
 import com.urbanblade.mobile.data.model.CreateCampaignRequest
 import com.urbanblade.mobile.data.repository.UrbanRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,9 +17,14 @@ import retrofit2.HttpException
 
 data class CampaignsState(
     val data: CampaignsResponse = CampaignsResponse(),
+    /** True cuando la primera consulta terminó bien; hasta entonces los totales en cero no son datos. */
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val sending: Boolean = false,
+    /** Error de crear o enviar una campaña; la consulta usa [listError]. */
     val error: String? = null,
+    /** Error de la consulta del historial: no se mezcla con los de las acciones. */
+    val listError: String? = null,
     val notice: String? = null
 )
 
@@ -27,13 +35,22 @@ class CampaignsViewModel @JvmOverloads constructor(
     private val _state = MutableStateFlow(CampaignsState())
     val state: StateFlow<CampaignsState> = _state.asStateFlow()
 
+    private var loadRequest: Job? = null
+
+    /** Cada consulta cancela la anterior: una respuesta tardía no pisa la última. */
     fun load() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+        loadRequest?.cancel()
+        _state.value = _state.value.copy(loading = true, error = null, listError = null)
+        loadRequest = viewModelScope.launch {
             try {
-                _state.value = _state.value.copy(data = repo.campaigns(), loading = false)
+                val data = repo.campaigns()
+                coroutineContext.ensureActive()
+                _state.value = _state.value.copy(data = data, loaded = true, loading = false)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.value = _state.value.copy(loading = false, error = e.toFriendlyMessage("No se pudieron cargar las campañas."))
+                coroutineContext.ensureActive()
+                _state.value = _state.value.copy(loading = false, listError = e.toFriendlyMessage("No se pudieron cargar las campañas."))
             }
         }
     }

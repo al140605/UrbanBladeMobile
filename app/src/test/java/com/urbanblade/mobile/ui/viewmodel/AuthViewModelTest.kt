@@ -192,6 +192,39 @@ class AuthViewModelTest {
 
         assertFalse("tras entrar de nuevo ya hay conexión", vm.offline.value)
     }
+
+    @Test
+    fun `cualquier respuesta correcta del servidor quita el aviso sin conexion`() = runTest(dispatcher) {
+        val user = AuthUser(id = "1", name = "Ana", email = "ana@test.com")
+        whenever(repository.restoreSession())
+            .thenReturn(AuthRepository.RestoredSession(user, fromCache = true))
+        whenever(repository.currentUser()).thenReturn(user)
+
+        val vm = AuthViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue(vm.offline.value)
+
+        SessionEvents.notifyReachable()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("si otra pantalla cargó bien, el aviso sobra", vm.offline.value)
+        assertEquals(AuthState.Authenticated(user), vm.state.value)
+    }
+
+    @Test
+    fun `una respuesta correcta con la sesion ya confirmada no vuelve a pedir el usuario`() = runTest(dispatcher) {
+        val user = AuthUser(id = "1", name = "Ana", email = "ana@test.com")
+        whenever(repository.restoreSession()).thenReturn(AuthRepository.RestoredSession(user))
+
+        val vm = AuthViewModel(repository)
+        dispatcher.scheduler.advanceUntilIdle()
+        SessionEvents.notifyReachable()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.offline.value)
+        verify(repository, never()).currentUser()
+    }
+
     @Test
     fun `logout limpia el estado a Guest`() = runTest(dispatcher) {
         val vm = AuthViewModel(repository)

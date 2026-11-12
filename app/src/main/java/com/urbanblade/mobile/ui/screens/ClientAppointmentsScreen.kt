@@ -71,8 +71,25 @@ import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.AppointmentsViewModel
 import java.time.LocalDate
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private val ACTIVE = listOf("pendiente", "confirmada", "en_proceso")
+
+/**
+ * Una cita es «próxima» si sigue activa y no ha terminado. Una pendiente o confirmada de hoy cuya hora de fin ya
+ * pasó (sin hora de fin, la de inicio) se va al historial: antes se destacaba como «Tu próxima cita» todo el día.
+ * Una en proceso se queda mientras dure.
+ */
+internal fun isStillUpcoming(appt: AppointmentRow, now: java.time.LocalDateTime): Boolean {
+    if (appt.estado !in ACTIVE) return false
+    val date = runCatching { LocalDate.parse(appt.fecha.take(10)) }.getOrNull() ?: return false
+    if (date.isBefore(now.toLocalDate())) return false
+    if (date.isAfter(now.toLocalDate()) || appt.estado == "en_proceso") return true
+    val end = (appt.horaFin ?: appt.horaInicio).take(5).padStart(5, '0')
+    val endTime = runCatching { java.time.LocalTime.parse(end) }.getOrNull() ?: return true
+    return endTime.isAfter(now.toLocalTime())
+}
 
 /**
  * Mis citas del cliente: "Próximas" (la siguiente destacada, lo que falta pagar y la lista de
@@ -108,13 +125,10 @@ fun ClientAppointmentsScreen(
         vm.loadDebt()
     }
 
-    val todayDate = LocalDate.now()
-    
+    val now = java.time.LocalDateTime.now()
+
     val upcoming = response.data
-        .filter { 
-            it.estado in ACTIVE && 
-            (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= todayDate 
-        }
+        .filter { isStillUpcoming(it, now) }
         .sortedWith(
             compareBy<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MAX }
                 .thenBy { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX }
@@ -136,7 +150,7 @@ fun ClientAppointmentsScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
@@ -186,10 +200,7 @@ fun ClientAppointmentsScreen(
                 }
 
                 if (tab == 0) {
-                    val serverNext = response.next?.takeIf {
-                        it.estado in ACTIVE &&
-                            (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= todayDate
-                    }
+                    val serverNext = response.next?.takeIf { isStillUpcoming(it, now) }
                     val next = serverNext ?: upcoming.firstOrNull()
                     if (next == null) {
                         item {
@@ -215,7 +226,7 @@ fun ClientAppointmentsScreen(
                     }
 
                     if (toPay.isNotEmpty()) {
-                        item { UrbanSectionTitle("Por pagar", "Citas atendidas que aún no se cobran.") }
+                        item { UrbanSectionTitle("Por pagar", "Citas con un pago pendiente.") }
                         items(toPay, key = { "pay-${it.id}" }) { appt ->
                             ClientAppointmentRow(appt, onPay = { checkingOut = appt })
                         }
@@ -322,31 +333,34 @@ internal fun clientStateHint(estado: String, paymentResolved: Boolean? = null): 
 private fun AppointmentRow.isManageable() = estado in listOf("pendiente", "confirmada") && code != null
 private fun AppointmentRow.isPayable() = isChargeable && !hasPayment && code != null
 
-/** La siguiente cita, en la tarjeta con foto, con sus acciones a la vista. */
+/** Próxima visita: fecha, identidad y pago separados, con las acciones existentes a la vista. */
 @Composable
 private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, onPay: (() -> Unit)?, onReschedule: (() -> Unit)?, onCancel: (() -> Unit)?) {
     UrbanHeroCard {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { UrbanHeroLabel(if (completeList) "Tu próxima cita" else "Una de tus próximas citas") }
+        // FlowRow: con letra grande o una etiqueta larga el estado baja a la línea siguiente en vez de apretar el texto.
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            itemVerticalAlignment = Alignment.CenterVertically
+        ) {
+            UrbanHeroLabel(if (completeList) "Tu próxima cita" else "Una de tus próximas citas")
             UrbanStatusPill(appt.estado)
         }
         Spacer(Modifier.height(8.dp))
-        Text(UrbanFormat.time(appt.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.titleMedium, color = UrbanColors.Muted)
-        Spacer(Modifier.height(14.dp))
+        Text("${UrbanFormat.dateShort(appt.fecha)} · ${UrbanFormat.time(appt.horaInicio)}",
+            style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+        Spacer(Modifier.height(10.dp))
         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
         Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            UrbanAvatar(appt.barber?.user?.name ?: "Barbero", Modifier.size(42.dp), imageUrl = rememberBarberPhoto(appt.barber))
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(appt.service?.nombre ?: "Servicio", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-                Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            }
-            (appt.precioCobrado ?: appt.service?.precio)?.let {
-                Text("${UrbanFormat.moneyShort(it)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-            }
-        }
+        com.urbanblade.mobile.ui.components.UrbanVisitSummary(
+            service = appt.service?.nombre ?: "Servicio",
+            barber = appt.barber?.user?.name ?: "Barbero por confirmar",
+            photo = rememberBarberPhoto(appt.barber),
+            amount = (appt.precioCobrado ?: appt.service?.precio)?.let(UrbanFormat::money),
+            amountLabel = if (appt.precioCobrado != null) "Importe de la cita" else "Precio del servicio",
+            compact = true
+        )
         clientStateHint(appt.estado, appt.pagoResuelto)?.let {
             Spacer(Modifier.height(10.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
@@ -412,7 +426,7 @@ private fun AppointmentActions(onReschedule: (() -> Unit)? = null, onCancel: (()
 
 @Composable
 private fun ActionText(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
-    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
+    UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) {
         Icon(icon, null, modifier = Modifier.size(17.dp), tint = color)
         Spacer(Modifier.width(5.dp))
         Text(label, color = color)

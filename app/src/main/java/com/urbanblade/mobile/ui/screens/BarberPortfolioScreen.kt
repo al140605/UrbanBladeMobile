@@ -33,6 +33,7 @@ import com.urbanblade.mobile.ui.viewmodel.PortfolioViewModel
 fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel()) {
     val portfolio by vm.portfolio.collectAsState()
     val busy by vm.busy.collectAsState()
+    val hasLoaded by vm.hasLoaded.collectAsState()
     val uploading by vm.uploading.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
@@ -51,18 +52,17 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
         onRefresh = { vm.load() },
         refreshing = busy
     ) {
-        item {
+        if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
+        if (hasLoaded) item {
             UrbanHeroCard {
-                UrbanHeroLabel("Tu vitrina")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     UrbanFormat.count(portfolio.stats.totalWorks, "trabajo publicado", "trabajos publicados"),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = UrbanColors.Ink
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Reacciones", portfolio.stats.totalReactions.toString(), Icons.Default.Favorite, Modifier.weight(1f))
                     UrbanHeroStat("Guardados", portfolio.stats.totalSaves.toString(), Icons.Default.Bookmark, Modifier.weight(1f))
@@ -83,7 +83,7 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
             error != null && portfolio.works.isEmpty() -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tu portafolio", error, "Reintentar") { vm.load() }
             }
-            portfolio.works.isEmpty() && !busy -> item {
+            portfolio.works.isEmpty() && hasLoaded && !busy -> item {
                 UrbanMascotState(
                     UrbanStateKind.EMPTY,
                     "Sin trabajos todavía",

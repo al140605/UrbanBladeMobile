@@ -3,7 +3,7 @@
 Estado de distribución consultado el 30 de octubre de 2026: [verificación directa de Play Console](play-store/ESTADO.md).
 
 
-Revisión documental: 30 de octubre de 2026.
+Revisión documental: 4 de noviembre de 2026.
 
 La documentación operativa se mantiene junto al código. Los resultados fechados se conservan como evidencia y no sustituyen una comprobación del commit que se va a entregar.
 
@@ -18,6 +18,7 @@ La documentación operativa se mantiene junto al código. Los resultados fechado
 | [Pruebas](PRUEBAS.md) | Comandos, evidencia y criterios de entrega |
 | [CI/CD](CI_CD.md) | Workflows, artefactos y distribución |
 | [Seguridad documental](SEGURIDAD_DOCUMENTACION.md) | Secretos, capturas, logs y límites de revisión |
+| [Depuración y paquetes](REVISION_DEPURACION_Y_PAQUETES_2026-11-04.md) | Controles de APK, dependencias, logs y evidencia de seguridad |
 | [Interfaz](INTERFAZ.md) | Temas, roles y revisión de pantallas |
 | [Herramientas](HERRAMIENTAS.md) | Entorno y diagnóstico utilizados |
 | [Capturas móviles](CAPTURAS.md) | Procedencia y selección de imágenes |
@@ -43,3 +44,12 @@ Actualizar una guía cuando cambia su implementación; conservar procedimientos 
 ## Políticas del proyecto
 
 [Seguridad](../SECURITY.md) · [Contribución](../CONTRIBUTING.md) · [Código de conducta](../CODE_OF_CONDUCT.md) · [GPL-3.0-only](../LICENSE) · [Alcance de licencia](../LICENSING.md).
+
+## Trabajo en curso
+
+[Plan de mejoras UI/UX y compatibilidad con API](PLAN_MEJORAS_UI_UX.md) y
+[matriz de pantallas por rol](PULIDO_PANTALLAS_POR_ROL.md): referencias, prioridades,
+incrementos implementados y recorridos pendientes antes del PR. Una propuesta no
+se considera implementada sin su evidencia correspondiente.
+[Auditoría de coherencia visual](AUDITORIA_COHERENCIA_UI_2026-11-05.md): diagnóstico
+de unificación entre roles y plan por incrementos.

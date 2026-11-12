@@ -138,13 +138,13 @@ class OrdersViewModelTest {
         vm.loadMore()
         advanceUntilIdle()
         assertEquals(listOf("a"), vm.state.value.items.map { it.id })
-        assertTrue(vm.state.value.error != null)
+        assertTrue(vm.state.value.listError != null)
         doReturn(OrdersResponse(listOf(OrderRow(id = "b")), OrderMeta(2, 2, 2, null)))
             .whenever(repo).orders(eq(2), anyOrNull(), anyOrNull())
         vm.loadMore()
         advanceUntilIdle()
         assertEquals(listOf("a", "b"), vm.state.value.items.map { it.id })
-        assertNull(vm.state.value.error)
+        assertNull(vm.state.value.listError)
     }
 
     @Test

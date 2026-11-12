@@ -1,11 +1,20 @@
 package com.urbanblade.mobile.ui.screens
 
 import android.util.Patterns
+import com.urbanblade.mobile.R
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -40,7 +49,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,7 +77,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.core.auth.GoogleAuthHelper
-import com.urbanblade.mobile.ui.components.AuthBackdrop
+import com.urbanblade.mobile.ui.components.UrbanPublicPanel
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
 import com.urbanblade.mobile.ui.components.LegalConsentCheckbox
 import com.urbanblade.mobile.ui.components.LegalLinksText
@@ -84,6 +92,8 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.mascot
 import com.urbanblade.mobile.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private fun isValidEmail(value: String) = Patterns.EMAIL_ADDRESS.matcher(value.trim()).matches()
 
@@ -113,13 +123,13 @@ fun LoginScreen(
 
     AuthScaffold(
         eyebrow = "ACCESO",
-        title = "Bienvenido de vuelta",
+        title = "Qué gusto verte.",
         subtitle = "Entra para reservar, comprar y seguir tus beneficios.",
         mood = if (error != null) MascotMood.ERROR else MascotMood.DEFAULT,
         onBack = onBack,
         footer = {
             AuthPrimaryButton(
-                text = "Entrar a UrbanBlade",
+                text = "Iniciar sesión",
                 onClick = ::submit,
                 enabled = canSubmit,
                 loading = busy,
@@ -179,7 +189,7 @@ fun LoginScreen(
                     onImeAction = ::submit
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onForgot, modifier = Modifier.heightIn(min = 48.dp)) {
+                    UrbanTextButton(onClick = onForgot, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text("¿Olvidaste tu contraseña?", color = UrbanColors.GoldText, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -231,7 +241,7 @@ fun RegisterScreen(
 
     AuthScaffold(
         eyebrow = "NUEVA CUENTA",
-        title = if (step == 0) "Crea tu cuenta" else "Tu contraseña",
+        title = if (step == 0) "Empieza tu historia." else "Tu contraseña",
         subtitle = if (step == 0) {
             "Tus datos, y después la contraseña."
         } else {
@@ -265,7 +275,7 @@ fun RegisterScreen(
         }
     ) {
         StaggerIn(0) {
-            Text("Paso ${step + 1} de 2", style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
+            StepBar(step = step, total = 2)
         }
         if (step == 0) {
             StaggerIn(1) {
@@ -446,13 +456,30 @@ fun ForgotPasswordScreen(authViewModel: AuthViewModel, onBack: () -> Unit) {
     }
 }
 
+/** Avance del registro: un segmento por paso, el actual y los anteriores en dorado. */
+@Composable
+private fun StepBar(step: Int, total: Int) {
+    Column(Modifier.semantics { contentDescription = "Paso ${step + 1} de $total" }) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(total) { index ->
+                Box(
+                    Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
+                        .background(if (index <= step) UrbanColors.Gold else UrbanColors.Line)
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("Paso ${step + 1} de $total", style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
+    }
+}
+
 @Composable
 private fun SwitchAuthRow(prompt: String, action: String, onClick: () -> Unit) {
     if (LocalDensity.current.fontScale > 1.15f) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(prompt, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
+            UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(action, color = UrbanColors.GoldText, fontWeight = FontWeight.Bold)
             }
         }
@@ -464,7 +491,7 @@ private fun SwitchAuthRow(prompt: String, action: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(prompt, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-        TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
+        UrbanTextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(action, color = UrbanColors.GoldText, fontWeight = FontWeight.Bold)
         }
     }
@@ -531,8 +558,9 @@ private fun GoogleSignInButton(
 }
 
 /**
- * Estructura común: barra superior con marca, cabecera (eyebrow, título, subtítulo y la mascota en
- * la expresión que toca) y el contenido en columna con separación de 16 dp.
+ * Mismo patrón que la bienvenida: fotografía a pantalla completa con velo, la marca oficial arriba y
+ * el título sobre la foto; el formulario va en un panel opaco abajo. Con el teclado abierto la foto y
+ * el título ceden el espacio y el pie queda fijo para no perder la acción principal.
  */
 @Composable
 private fun AuthScaffold(
@@ -541,95 +569,74 @@ private fun AuthScaffold(
     subtitle: String,
     mood: MascotMood,
     onBack: (() -> Unit)?,
-    /**
-     * Acción principal de la pantalla. Va anclada abajo: con el teclado abierto sigue visible
-     * (auditoría P1-7) en vez de quedarse debajo del formulario.
-     */
     footer: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AuthBackdrop {
-        // Dos columnas: el contenido se desplaza y el pie no. Con el teclado abierto, imePadding
-        // sube el pie, así que la acción principal no se pierde.
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-                .imePadding()
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
-            ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+    val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val gold = Color(0xFFF0D68C)
+    Box(Modifier.fillMaxSize().background(Color(0xFF080808))) {
+        Image(
+            painterResource(R.drawable.public_welcome_portrait), null,
+            Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter
+        )
+        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+            0f to Color(0xA0000000),
+            0.22f to Color(0x80000000),
+            0.42f to Color(0xC0080808),
+            0.60f to Color(0xE6080808),
+            1f to Color(0xF2080808)
+        )))
+        Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") }
-                } else {
-                    Spacer(Modifier.size(48.dp))
-                }
-                UrbanBrandMark(compact = true)
-                Spacer(Modifier.size(48.dp))
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            StaggerIn(0) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = UrbanColors.GoldText)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = UrbanColors.Ink,
-                            // Máximo dos líneas (auditoría del 24-sep): con el tamaño de fuente del
-                            // sistema al máximo el título empujaba el formulario fuera de vista.
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.semantics { heading() }
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = UrbanColors.Muted)
-                    }
-                    // La mascota solo aparece cuando comunica algo (un error o un envío correcto);
-                    // en reposo era tan pequeña que no se reconocía y apretaba el título.
-                    if (mood != MascotMood.DEFAULT) {
-                        Spacer(Modifier.width(12.dp))
-                        Image(
-                            painter = painterResource(UrbanColors.current.mascot(mood)),
-                            contentDescription = null,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.size(84.dp)
-                        )
-                    }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = Color.White) }
+                } else Spacer(Modifier.size(48.dp))
+                Spacer(Modifier.width(4.dp))
+                Image(painterResource(R.drawable.ic_launcher_foreground), null, Modifier.size(44.dp))
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("URBANBLADE", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("BARBERÍA · ESTILO · CUIDADO", style = MaterialTheme.typography.labelSmall, color = gold)
                 }
             }
-
-            Spacer(Modifier.height(14.dp))
-
+            BoxWithConstraints(Modifier.weight(1f)) {
+                val viewportHeight = maxHeight
                 Column(
-                    Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    content = content
-                )
-
-                Spacer(Modifier.height(20.dp))
+                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .heightIn(min = viewportHeight).padding(horizontal = UrbanSpace.Gutter),
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    if (!keyboardOpen) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Column(Modifier.weight(1f)) {
+                                Text(eyebrow, style = MaterialTheme.typography.labelMedium, color = gold)
+                                Spacer(Modifier.height(6.dp))
+                                Text(title, style = MaterialTheme.typography.displaySmall, color = Color.White,
+                                    modifier = Modifier.semantics { heading() })
+                                Spacer(Modifier.height(8.dp))
+                                Text(subtitle, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE5E0D8))
+                            }
+                            if (mood != MascotMood.DEFAULT) {
+                                Spacer(Modifier.width(12.dp))
+                                Image(painterResource(UrbanColors.current.mascot(mood)), null,
+                                    modifier = Modifier.size(64.dp), contentScale = ContentScale.Fit)
+                            }
+                        }
+                        Spacer(Modifier.height(UrbanSpace.Md))
+                    }
+                    UrbanPublicPanel(outlined = true, spacing = 16.dp) {
+                        if (keyboardOpen) Text(title, style = MaterialTheme.typography.headlineSmall, color = UrbanColors.Ink,
+                            modifier = Modifier.semantics { heading() })
+                        content()
+                        if (!keyboardOpen) footer?.invoke()
+                    }
+                    Spacer(Modifier.height(UrbanSpace.Md))
+                }
             }
-
-            footer?.let { pie ->
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 12.dp)
-                ) { pie() }
+            if (keyboardOpen && footer != null) {
+                Column(Modifier.fillMaxWidth().background(UrbanColors.Card).padding(horizontal = 24.dp, vertical = 8.dp)) {
+                    footer()
+                }
             }
         }
     }

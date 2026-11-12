@@ -50,6 +50,16 @@ class AuthViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             SessionEvents.expired.collect { onSessionExpired() }
         }
+        // Se entró con datos guardados sin red: en cuanto cualquier pantalla carga bien, el aviso sobra
+        // (antes solo se quitaba al tocar «Reintentar» o al cerrar sesión).
+        viewModelScope.launch {
+            SessionEvents.reachable.collect {
+                if (_offline.value && _state.value is AuthState.Authenticated) {
+                    _offline.value = false
+                    refreshUser()
+                }
+            }
+        }
     }
 
     private suspend fun onSessionExpired() {
@@ -208,6 +218,7 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
         }
         // Sin red o tiempo agotado: un mensaje claro, no el "Unable to resolve host" técnico.
         is IOException -> "Sin conexión. Revisa tu red e inténtalo de nuevo."
-        else -> message?.takeIf { it.isNotBlank() } ?: fallback
+        // Las excepciones inesperadas pueden contener URLs, rutas o datos del SDK.
+        else -> fallback
     }
 }

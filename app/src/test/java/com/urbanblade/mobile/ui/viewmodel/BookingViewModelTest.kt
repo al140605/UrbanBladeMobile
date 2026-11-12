@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -169,14 +170,13 @@ class BookingViewModelTest {
 
     @Test
     fun `loadPaymentOptions deja la reserva usable aunque fallen los datos de pago`() = runTest(dispatcher) {
-        whenever(repo.transferInfo()).thenThrow(RuntimeException("sin red"))
         whenever(repo.savedCards()).thenThrow(RuntimeException("sin red"))
 
         val vm = BookingViewModel(repo)
         vm.loadPaymentOptions()
         dispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(TransferInfo(), vm.transferInfo.value)
+        assertNull(vm.transferInfo.value)
         assertTrue(vm.savedCards.value.isEmpty())
     }
 
@@ -231,4 +231,116 @@ class BookingViewModelTest {
         assertTrue(vm.waitlistJoined.value)
         assertEquals("Te anotamos en la lista de espera.", vm.message.value)
     }
+    @Test
+    fun `dos toques antes de iniciar la corrutina crean solo una cita`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        val vm = BookingViewModel(repo)
+        var completions = 0
+        repeat(2) {
+            vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { completions++ }
+        }
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(repo).createAppointment(any())
+        assertEquals(1, completions)
+        assertTrue(vm.reservationCompleted.value)
+    }
+
+    @Test
+    fun `pago cancelado no permite crear otra cita desde el mismo flujo`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.reservationCompleted.value)
+        assertTrue(vm.busy.value)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.onCardResult(completed = false, canceled = true, reason = null)
+        assertTrue(vm.reservationCompleted.value)
+        assertFalse(vm.busy.value)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(repo).createAppointment(any())
+        verify(repo).depositStripeIntent(any(), any())
+    }
+
+    @Test
+    fun `resultado repetido de Stripe no cambia el primer resultado ni repite finalizacion`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        val vm = BookingViewModel(repo)
+        var completions = 0
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { completions++ }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.onCardResult(completed = false, canceled = true, reason = null)
+        val firstNote = vm.paymentNote.value
+        vm.onCardResult(completed = true, canceled = false, reason = null)
+        assertEquals(firstNote, vm.paymentNote.value)
+        assertEquals(1, completions)
+    }
+
+    @Test
+    fun `fallo al iniciar pago conserva la cita y bloquea otra reserva`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.depositStripeIntent(any(), any())).thenThrow(RuntimeException("sin conexión"))
+        val vm = BookingViewModel(repo)
+        var received: String? = null
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { received = it }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals("abc123", received)
+        assertTrue(vm.reservationCompleted.value)
+        assertFalse(vm.busy.value)
+        assertTrue(vm.paymentNote.value!!.contains("Tu cita quedó reservada"))
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(repo).createAppointment(any())
+    }
+
+    @Test
+    fun `rechazo de creacion permite corregir e intentar de nuevo`() = runTest(dispatcher) {
+        val body = """{"message":"Horario ocupado."}""".toResponseBody("application/json".toMediaType())
+        var attempts = 0
+        whenever(repo.createAppointment(any())).thenAnswer {
+            if (++attempts == 1) throw HttpException(Response.error<Any>(422, body))
+            created()
+        }
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.busy.value)
+        assertFalse(vm.reservationCompleted.value)
+        assertEquals("Horario ocupado.", vm.error.value)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "11:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, attempts)
+        assertTrue(vm.reservationCompleted.value)
+    }
+
+    @Test
+    fun `reserva exitosa impide otro envio desde el mismo flujo`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        // Un nuevo observador, por ejemplo tras recrear la Activity, recibe el estado actual.
+        assertTrue(vm.reservationCompleted.value)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.EFECTIVO, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        verify(repo).createAppointment(any())
+    }
+
+    @Test
+    fun `fallo del SDK no muestra detalles privados y conserva la reserva`() = runTest(dispatcher) {
+        whenever(repo.createAppointment(any())).thenReturn(created())
+        whenever(repo.depositStripeIntent(any(), any())).thenReturn(StripeIntentResponseData("secret_1", "pi_1"))
+        val vm = BookingViewModel(repo)
+        vm.reserve(null, "b1", "s1", "2026-10-01", "10:00", "", BookingPayMethod.TARJETA, 0.0, null) { }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.onCardResult(false, false, "SDK internal path with client_secret=synthetic")
+        assertEquals("El pago con tarjeta no se completó. Tu cita quedó reservada; págala desde Mis citas.", vm.paymentNote.value)
+        assertTrue(vm.reservationCompleted.value)
+        verify(repo).createAppointment(any())
+    }
+
 }

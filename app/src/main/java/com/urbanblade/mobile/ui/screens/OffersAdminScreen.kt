@@ -5,14 +5,12 @@ import com.urbanblade.mobile.ui.components.UrbanSwitchRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,14 +22,12 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,16 +58,14 @@ import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.components.UrbanPillTabs
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.OffersAdminViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private enum class OffersTab(val label: String) { Membresias("Membresías"), Paquetes("Paquetes") }
 
@@ -90,91 +84,66 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            UrbanTopBar("", onBack) {
-                IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") }
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Membresías y paquetes",
+        subtitle = "Planes mensuales con descuento y usos pagados por adelantado.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.saving,
+        floatingActionButton = { expanded ->
+            UrbanFab(if (tab == OffersTab.Membresias) "Nuevo plan" else "Nuevo paquete", Icons.Default.Add, expanded) {
+                vm.clearMessages()
+                if (tab == OffersTab.Membresias) creatingPlan = true else creatingPackage = true
             }
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    vm.clearMessages()
-                    if (tab == OffersTab.Membresias) creatingPlan = true else creatingPackage = true
-                },
-                containerColor = UrbanColors.Gold,
-                contentColor = UrbanColors.OnGold,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text(if (tab == OffersTab.Membresias) "Nuevo plan" else "Nuevo paquete", fontWeight = FontWeight.Bold) }
-            )
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Membresías y paquetes", subtitle = "Planes mensuales con descuento y usos pagados por adelantado.", eyebrow = "Beneficios") }
-            item {
-                UrbanPillTabs(
-                    listOf(OffersTab.Membresias.label to Icons.Default.CardMembership, OffersTab.Paquetes.label to Icons.Default.Inventory2),
-                    tab.ordinal
-                ) { tab = OffersTab.entries[it] }
-            }
-            if (state.loading || state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (!formOpen) state.error?.let { msg ->
-                item {
-                    if (state.plans.isEmpty() && state.packages.isEmpty()) UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los beneficios", msg, "Reintentar") { vm.load() }
-                    else UrbanErrorBanner(msg)
-                }
-            }
-            if (state.loading && state.plans.isEmpty() && state.packages.isEmpty()) item { UrbanSkeletonList(3) }
+    ) {
+        item {
+            UrbanPillTabs(
+                listOf(OffersTab.Membresias.label to Icons.Default.CardMembership, OffersTab.Paquetes.label to Icons.Default.Inventory2),
+                tab.ordinal
+            ) { tab = OffersTab.entries[it] }
+        }
+        if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con el formulario abierto el error de guardar se muestra dentro de la hoja, no aquí.
+        if (!formOpen) state.error?.let { item { UrbanErrorBanner(it) } }
 
-            if (tab == OffersTab.Membresias) {
-                if (!state.loading && state.plans.isEmpty() && state.error == null) {
-                    item {
-                        UrbanMascotState(
-                            UrbanStateKind.EMPTY, "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
-                            actionLabel = "Nuevo plan", actionIcon = Icons.Default.Add, onAction = { creatingPlan = true }
-                        )
-                    }
-                }
-                if (state.plans.isNotEmpty()) item { UrbanSectionTitle("Planes mensuales", UrbanFormat.count(state.plans.size, "plan", "planes")) }
-                items(state.plans, key = { it.id }) { plan ->
-                    OfferCard(
-                        title = plan.nombre,
-                        subtitle = "${plan.descuentoPct} % de descuento en servicios",
-                        price = money(plan.precioMensual) + " / mes",
-                        active = plan.activo,
-                        onOpen = { vm.clearMessages(); editingPlan = plan },
-                        onToggle = { vm.togglePlan(plan) }
-                    )
-                }
-            } else {
-                if (!state.loading && state.packages.isEmpty() && state.error == null) {
-                    item {
-                        UrbanMascotState(
-                            UrbanStateKind.EMPTY, "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
-                            actionLabel = "Nuevo paquete", actionIcon = Icons.Default.Add, onAction = { creatingPackage = true }
-                        )
-                    }
-                }
-                if (state.packages.isNotEmpty()) item { UrbanSectionTitle("Paquetes de usos", UrbanFormat.count(state.packages.size, "paquete", "paquetes")) }
-                items(state.packages, key = { it.id }) { pack ->
-                    OfferCard(
-                        title = pack.nombre,
-                        subtitle = "${pack.cantidadUsos} × ${pack.service.nombre ?: "servicio"}" +
-                            (pack.vigenciaDias?.let { " · vigencia $it días" } ?: ""),
-                        price = money(pack.precio),
-                        active = pack.activo,
-                        onOpen = { vm.clearMessages(); editingPackage = pack },
-                        onToggle = { vm.togglePackage(pack) }
-                    )
-                }
+        if (tab == OffersTab.Membresias) {
+            urbanListFeedback(
+                state.loaded, state.loading, state.plans.isNotEmpty(), state.listError,
+                "No pudimos cargar los beneficios", "Aún no hay planes", "Crea un plan mensual con descuento para tus clientes frecuentes.",
+                emptyActionLabel = "Nuevo plan", emptyActionIcon = Icons.Default.Add, onEmptyAction = { creatingPlan = true }
+            ) { vm.load() }
+            if (state.plans.isNotEmpty()) item { UrbanSectionTitle("Planes mensuales", UrbanFormat.count(state.plans.size, "plan", "planes")) }
+            items(state.plans, key = { it.id }) { plan ->
+                OfferCard(
+                    title = plan.nombre,
+                    subtitle = "${plan.descuentoPct} % de descuento en servicios",
+                    price = money(plan.precioMensual) + " / mes",
+                    active = plan.activo,
+                    onOpen = { vm.clearMessages(); editingPlan = plan },
+                    onToggle = { vm.togglePlan(plan) }
+                )
             }
-            item { Spacer(Modifier.height(80.dp)) }
+        } else {
+            urbanListFeedback(
+                state.loaded, state.loading, state.packages.isNotEmpty(), state.listError,
+                "No pudimos cargar los beneficios", "Aún no hay paquetes", "Vende varios usos de un servicio por adelantado.",
+                emptyActionLabel = "Nuevo paquete", emptyActionIcon = Icons.Default.Add, onEmptyAction = { creatingPackage = true }
+            ) { vm.load() }
+            if (state.packages.isNotEmpty()) item { UrbanSectionTitle("Paquetes de usos", UrbanFormat.count(state.packages.size, "paquete", "paquetes")) }
+            items(state.packages, key = { it.id }) { pack ->
+                OfferCard(
+                    title = pack.nombre,
+                    subtitle = "${pack.cantidadUsos} × ${pack.service.nombre ?: "servicio"}" +
+                        (pack.vigenciaDias?.let { " · vigencia $it días" } ?: ""),
+                    price = money(pack.precio),
+                    active = pack.activo,
+                    onOpen = { vm.clearMessages(); editingPackage = pack },
+                    onToggle = { vm.togglePackage(pack) }
+                )
+            }
         }
     }
 

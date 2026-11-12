@@ -133,6 +133,6 @@ hacia el 5 de noviembre y producción, con suerte, a mediados de noviembre: ante
 ## 5. Antes de enviar
 - [ ] Rotar credenciales de `_seguridad/` (`barber/docs/PLAN_ROTACION_CREDENCIALES.md`).
 - [x] Probar el AAB en un teléfono real (instalado desde Play: login con correo y Google OK). Sigue pendiente revisar pago y push durante la prueba cerrada.
-- [ ] Subir `versionCode` en cada versión nueva (hoy 3; Play rechaza un `versionCode` repetido).
+- [ ] Subir `versionCode` en cada versión nueva (hoy 4; el 3 ya está en la prueba cerrada y Play rechaza un `versionCode` repetido).
 - [ ] Si el Camino es B: reescribir el Aviso de Privacidad y los Términos.
 - [x] Resolver la política de contenido de usuarios (sección 0.3).

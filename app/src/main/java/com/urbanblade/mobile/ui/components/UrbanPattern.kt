@@ -29,6 +29,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.RowScope
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
@@ -65,17 +69,31 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
  */
 
 /**
- * Esqueleto común de un módulo: barra con volver y actualizar, encabezado con eyebrow y el
+ * Esqueleto único de un módulo: barra con volver y actualizar, encabezado con eyebrow y el
  * contenido en una lista. El título vive en el encabezado (no se repite en la barra).
+ *
+ * Todo módulo (operación, administración, análisis, cuenta) usa este andamio para que el
+ * encabezado, el margen, el ritmo vertical y la posición de «Actualizar» sean idénticos.
+ *
+ * @param actions acciones extra de la barra (por ejemplo «Agregar»), a la derecha de actualizar.
+ * @param floatingActionButton botón flotante del módulo (`UrbanFab`); recibe si debe ir expandido, y
+ * reserva espacio al final de la lista.
+ * @param listState estado de la lista, para módulos con paginación o desplazamiento controlado.
+ * @param pinned contenido fijo bajo el encabezado (buscador, filtros): el encabezado y este
+ * bloque no se desplazan con la lista.
  */
 @Composable
 fun UrbanModuleScreen(
     eyebrow: String,
     title: String,
     subtitle: String?,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onRefresh: (() -> Unit)? = null,
     refreshing: Boolean = false,
+    actions: @Composable RowScope.() -> Unit = {},
+    floatingActionButton: (@Composable (expanded: Boolean) -> Unit)? = null,
+    listState: LazyListState = rememberLazyListState(),
+    pinned: (@Composable ColumnScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit
 ) {
     Scaffold(
@@ -83,25 +101,38 @@ fun UrbanModuleScreen(
         topBar = {
             UrbanTopBar("", onBack) {
                 if (onRefresh != null) {
-                    if (refreshing) {
-                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
-                        }
-                    } else {
-                        IconButton(onClick = onRefresh) { Icon(Icons.Default.Refresh, "Actualizar") }
-                    }
+                    UrbanRefreshButton(refreshing, onRefresh)
+                }
+                actions()
+            }
+        },
+        floatingActionButton = { floatingActionButton?.invoke(rememberFabExpanded(listState)) }
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Módulo (tiene volver): encabezado compacto.
+            if (pinned != null) {
+                Column(
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Xxs),
+                    verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
+                ) {
+                    UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true)
+                    pinned()
                 }
             }
-        }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Módulo (tiene volver): encabezado compacto.
-            item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
-            content()
+            LazyColumn(
+                Modifier.fillMaxWidth().weight(1f),
+                state = listState,
+                contentPadding = PaddingValues(
+                    start = UrbanSpace.Gutter,
+                    end = UrbanSpace.Gutter,
+                    top = if (pinned != null) UrbanSpace.Md else UrbanSpace.Xxs,
+                    bottom = if (floatingActionButton != null) UrbanSpace.FabClearance else UrbanSpace.Xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
+            ) {
+                if (pinned == null) item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
+                content()
+            }
         }
     }
 }
@@ -251,7 +282,7 @@ fun UrbanMascotState(
 
 /**
  * Tres o cuatro números en una sola tarjeta, cada uno en su columna. Reemplaza a varias
- * UrbanMetricCard angostas en fila, que partían las etiquetas a media palabra.
+ * fichas de KPI angostas en fila, que partían las etiquetas a media palabra.
  */
 @Composable
 fun UrbanStatStrip(stats: List<Triple<String, String, Color>>, onClick: (() -> Unit)? = null) {

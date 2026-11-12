@@ -3,14 +3,12 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -24,9 +22,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,9 +44,6 @@ import com.urbanblade.mobile.data.model.OrderRow
 import com.urbanblade.mobile.ui.components.UrbanCard
 import com.urbanblade.mobile.ui.components.UrbanEmptyState
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
@@ -59,14 +52,14 @@ import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPremiumCard
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.ORDER_PAYMENT_METHODS
 import com.urbanblade.mobile.ui.viewmodel.OrderFilter
 import com.urbanblade.mobile.ui.viewmodel.OrdersViewModel
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private fun money(value: Double) = UrbanFormat.money(value)
 private fun moneyShort(value: Double) = UrbanFormat.moneyShort(value)
@@ -88,105 +81,88 @@ fun OrdersScreen(user: AuthUser, onBack: () -> Unit, vm: OrdersViewModel = viewM
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item {
-                UrbanPageHeader(
-                    title = if (staff) "Pedidos" else "Mis pedidos",
-                    subtitle = if (staff && priorityOrders.isNotEmpty()) {
+    UrbanModuleScreen(
+        eyebrow = if (staff) "OPERACIÓN" else "CUENTA",
+        title = if (staff) "Pedidos" else "Mis pedidos",
+        subtitle = if (staff && priorityOrders.isNotEmpty()) {
                         UrbanFormat.count(priorityOrders.size, "pedido listo para entregar", "pedidos listos para entregar")
                     } else if (staff) "Entrega, cobra o cancela los pedidos de la tienda." else "Sigue tus compras de la tienda.",
-                    eyebrow = if (staff) "OPERACIÓN" else "CUENTA"
-                )
-            }
-            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (state.error != null && state.items.isEmpty() && !state.loading) {
-                item { UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar los pedidos", state.error, "Reintentar") { vm.load() } }
-            } else {
-                state.error?.let { item { UrbanErrorBanner(it) } }
-            }
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.loadingMore || state.busyOrderId != null
+    ) {
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Errores de entregar o cancelar: el de la consulta de la lista sale más abajo, con su reintento.
+        state.error?.let { item { UrbanErrorBanner(it) } }
 
-            if (staff) {
-                state.stats?.let { stats ->
-                    item {
-                        UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                            Text("POR COBRAR", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
-                            Text(moneyShort(stats.porCobrar), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                            Text("en pedidos pendientes de entregar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                            HorizontalDivider(Modifier.padding(vertical = 10.dp), color = UrbanColors.Line)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                OrderSummaryValue("Pendientes", stats.pendientes.toString(), Modifier.weight(1f), stats.pendientes > 0)
-                                OrderSummaryValue("Entregados", stats.entregados.toString(), Modifier.weight(1f))
-                            }
+        if (staff) {
+            state.stats?.let { stats ->
+                item {
+                    UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                        Text("POR COBRAR", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
+                        Text(moneyShort(stats.porCobrar), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                        Text("en pedidos pendientes de entregar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                        HorizontalDivider(Modifier.padding(vertical = 10.dp), color = UrbanColors.Line)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            OrderSummaryValue("Pendientes", stats.pendientes.toString(), Modifier.weight(1f), stats.pendientes > 0)
+                            OrderSummaryValue("Entregados", stats.entregados.toString(), Modifier.weight(1f))
                         }
                     }
                 }
-                item {
-                    UrbanTextField(
-                        value = state.query,
-                        onValueChange = vm::setQuery,
-                        label = "Buscar por folio",
-                        leadingIcon = Icons.Default.Search,
-                        imeAction = ImeAction.Search,
-                        onImeAction = { vm.load() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
             item {
-                // Los cuatro filtros a la vista: si no caben en una línea bajan a la siguiente (antes «Cancelados» quedaba cortado).
-                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrderFilter.entries.forEach { f ->
-                        FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
-                    }
+                UrbanTextField(
+                    value = state.query,
+                    onValueChange = vm::setQuery,
+                    label = "Buscar por folio",
+                    leadingIcon = Icons.Default.Search,
+                    imeAction = ImeAction.Search,
+                    onImeAction = { vm.load() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        item {
+            // Los cuatro filtros a la vista: si no caben en una línea bajan a la siguiente (antes «Cancelados» quedaba cortado).
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OrderFilter.entries.forEach { f ->
+                    FilterChip(selected = state.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) })
                 }
             }
+        }
 
-            if (state.loading && state.items.isEmpty()) item { UrbanSkeletonList(3) }
-            if (!state.loading && state.items.isEmpty() && state.error == null) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (state.filter == OrderFilter.Todos && state.query.isBlank()) "Aún no hay pedidos" else "Sin resultados",
-                        if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras de la tienda aparecerán aquí."
-                    )
-                }
+        urbanListFeedback(
+            state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
+            "No pudimos cargar los pedidos",
+            if (state.filter == OrderFilter.Todos && state.query.isBlank()) "Aún no hay pedidos" else "Sin resultados",
+            if (staff) "Los pedidos de la tienda aparecerán aquí." else "Tus compras de la tienda aparecerán aquí."
+        ) { vm.load() }
+        if (priorityOrders.isNotEmpty()) {
+            item { UrbanSectionTitle("Por entregar ahora", UrbanFormat.count(priorityOrders.size, "pedido pendiente", "pedidos pendientes")) }
+            items(priorityOrders, key = { it.id }) { order ->
+                OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
             }
-            if (priorityOrders.isNotEmpty()) {
-                item { UrbanSectionTitle("Por entregar ahora", UrbanFormat.count(priorityOrders.size, "pedido pendiente", "pedidos pendientes")) }
-                items(priorityOrders, key = { it.id }) { order ->
-                    OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
-                }
+        }
+        if (historyOrders.isNotEmpty()) {
+            item {
+                UrbanSectionTitle(
+                    if (priorityOrders.isNotEmpty()) "Historial reciente" else if (staff) "Bandeja" else "Tus pedidos",
+                    UrbanFormat.count(if (priorityOrders.isNotEmpty()) historyOrders.size else state.total, "pedido", "pedidos")
+                )
             }
-            if (historyOrders.isNotEmpty()) {
-                item {
-                    UrbanSectionTitle(
-                        if (priorityOrders.isNotEmpty()) "Historial reciente" else if (staff) "Bandeja" else "Tus pedidos",
-                        UrbanFormat.count(if (priorityOrders.isNotEmpty()) historyOrders.size else state.total, "pedido", "pedidos")
-                    )
-                }
-                items(historyOrders, key = { it.id }) { order ->
-                    OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
-                }
+            items(historyOrders, key = { it.id }) { order ->
+                OrderCard(order, staff, state.busyOrderId == order.id, { vm.clearMessages(); cancelling = order }, { vm.clearMessages(); delivering = order })
             }
-            if (state.hasMore) {
-                item {
-                    UrbanOutlineButton(
-                        text = if (state.loadingMore) "Cargando…" else "Cargar más pedidos",
-                        onClick = { vm.loadMore() },
-                        icon = Icons.Default.ExpandMore,
-                        enabled = !state.loading && !state.loadingMore,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        }
+        if (state.hasMore) {
+            item {
+                UrbanOutlineButton(
+                    text = if (state.loadingMore) "Cargando…" else "Cargar más pedidos",
+                    onClick = { vm.loadMore() },
+                    icon = Icons.Default.ExpandMore,
+                    enabled = !state.loading && !state.loadingMore,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

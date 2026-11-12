@@ -21,7 +21,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +58,7 @@ import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.InvoicesViewModel
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private fun money(value: Double) = UrbanFormat.money(value)
 
@@ -297,7 +297,7 @@ private fun MembershipInvoice(invoice: MembershipInvoiceRow, opening: Boolean, o
 private fun ReceiptButton(opening: Boolean, onClick: () -> Unit) {
     Spacer(Modifier.height(4.dp))
     // Sin el margen interno del botón para que el ícono quede alineado con el texto de la tarjeta.
-    TextButton(onClick = onClick, enabled = !opening, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
+    UrbanTextButton(onClick = onClick, enabled = !opening, modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
         if (opening) {
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = UrbanColors.Gold)
         } else {

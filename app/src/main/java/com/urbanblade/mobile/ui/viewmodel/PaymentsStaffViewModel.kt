@@ -10,6 +10,9 @@ import com.urbanblade.mobile.data.model.PendingPaymentRow
 import com.urbanblade.mobile.data.repository.UrbanRepository
 import com.urbanblade.mobile.ui.screens.ReportRange
 import com.urbanblade.mobile.ui.screens.dates
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,11 +48,23 @@ data class PaymentsStaffState(
     val query: String = "",
     val method: PaymentMethodFilter = PaymentMethodFilter.Todos,
     val range: ReportRange = ReportRange.All,
+    /** True cuando la consulta del historial terminó bien; hasta entonces las cifras y los vacíos no son datos. */
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val loadingMore: Boolean = false,
     /** Comprobante en revisión (aprobando o rechazando) para bloquear sus botones. */
     val busyPaymentId: String? = null,
+    /** Error de aprobar, rechazar, cobrar, condonar o abrir un comprobante; la consulta usa [listError]. */
     val error: String? = null,
+    /** Error de la consulta del historial (y de «cargar más»): no se mezcla con los de las acciones. */
+    val listError: String? = null,
+    /**
+     * Fallo parcial: el historial cargó, pero no se pudo consultar alguna lista de revisión (comprobantes,
+     * anticipos o adeudos). Se conserva lo anterior, que puede estar incompleto, y se avisa.
+     */
+    val reviewListsError: String? = null,
+    /** True si no se pudo confirmar la lista de comprobantes o anticipos: no se puede decir «todo al día». */
+    val reviewUnknown: Boolean = false,
     val notice: String? = null
 ) {
     val hasMore: Boolean get() = page < lastPage
@@ -62,17 +77,40 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
     private val _state = MutableStateFlow(PaymentsStaffState())
     val state: StateFlow<PaymentsStaffState> = _state.asStateFlow()
 
+    private var loadRequest: Job? = null
+    private var moreRequest: Job? = null
+
+    /** Consulta secundaria: si falla se conserva lo anterior y se avisa, pero nunca se traga una cancelación. */
+    private suspend fun <T> secundaria(anterior: T, consulta: suspend () -> T): Pair<T, Boolean> =
+        try {
+            consulta() to true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            anterior to false
+        }
+
+    /** Cada consulta cancela la anterior (y la paginación en curso): una respuesta tardía no pisa la última. */
     fun load() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+        loadRequest?.cancel()
+        moreRequest?.cancel()
+        _state.value = _state.value.copy(loading = true, loadingMore = false, error = null, listError = null)
+        loadRequest = viewModelScope.launch {
             try {
                 val s = _state.value
                 val (desde, hasta) = s.range.dates()
                 val history = repo.paymentsForStaff(1, s.query.trim().ifEmpty { null }, s.method.param, desde, hasta)
-                // Si falla la lista de pendientes no se oculta el historial: se conserva la anterior.
-                val pending = runCatching { repo.pendingPayments().data }.getOrDefault(_state.value.pending)
-                val deposits = runCatching { repo.pendingDeposits().data }.getOrDefault(_state.value.deposits)
-                val fees = runCatching { repo.noShowFees().data }.getOrDefault(_state.value.fees)
+                coroutineContext.ensureActive()
+                // Si falla una lista de revisión no se oculta el historial: se conserva la anterior y se avisa.
+                val pending = secundaria(_state.value.pending) { repo.pendingPayments().data }
+                val deposits = secundaria(_state.value.deposits) { repo.pendingDeposits().data }
+                val fees = secundaria(_state.value.fees) { repo.noShowFees().data }
+                coroutineContext.ensureActive()
+                val fallidas = buildList {
+                    if (!pending.second) add("los comprobantes por revisar")
+                    if (!deposits.second) add("los anticipos por revisar")
+                    if (!fees.second) add("los adeudos por inasistencia")
+                }
                 val meta = history.meta
                 _state.value = _state.value.copy(
                     items = history.data,
@@ -80,13 +118,20 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                     total = meta?.total ?: history.data.size,
                     page = meta?.currentPage ?: 1,
                     lastPage = meta?.lastPage ?: 1,
-                    pending = pending,
-                    deposits = deposits,
-                    fees = fees,
+                    pending = pending.first,
+                    deposits = deposits.first,
+                    fees = fees.first,
+                    reviewListsError = if (fallidas.isEmpty()) null else
+                        "No pudimos consultar ${fallidas.joinToString(", ")}. La lista puede estar incompleta.",
+                    reviewUnknown = !pending.second || !deposits.second,
+                    loaded = true,
                     loading = false
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.value = _state.value.copy(loading = false, error = e.toFriendlyMessage("No se pudieron cargar los pagos."))
+                coroutineContext.ensureActive()
+                _state.value = _state.value.copy(loading = false, listError = e.toFriendlyMessage("No se pudieron cargar los pagos."))
             }
         }
     }
@@ -94,11 +139,12 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
     fun loadMore() {
         val s = _state.value
         if (s.loadingMore || s.loading || !s.hasMore) return
-        viewModelScope.launch {
-            _state.value = _state.value.copy(loadingMore = true)
+        moreRequest = viewModelScope.launch {
+            _state.value = _state.value.copy(loadingMore = true, listError = null)
             try {
                 val (desde, hasta) = s.range.dates()
                 val response = repo.paymentsForStaff(s.page + 1, s.query.trim().ifEmpty { null }, s.method.param, desde, hasta)
+                coroutineContext.ensureActive()
                 val known = _state.value.items.map { it.id }.toSet()
                 _state.value = _state.value.copy(
                     items = _state.value.items + response.data.filter { it.id !in known },
@@ -106,8 +152,11 @@ class PaymentsStaffViewModel @JvmOverloads constructor(
                     lastPage = response.meta?.lastPage ?: s.lastPage,
                     loadingMore = false
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.value = _state.value.copy(loadingMore = false, error = e.toFriendlyMessage("No se pudieron cargar más pagos."))
+                coroutineContext.ensureActive()
+                _state.value = _state.value.copy(loadingMore = false, listError = e.toFriendlyMessage("No se pudieron cargar más pagos."))
             }
         }
     }

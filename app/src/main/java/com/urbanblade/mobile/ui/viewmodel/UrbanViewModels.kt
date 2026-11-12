@@ -39,6 +39,8 @@ class DashboardViewModel : ViewModel() {
 class AppointmentsViewModel @JvmOverloads constructor(
     private val repo: UrbanRepository = AppContainer.urbanRepository
 ) : ViewModel() {
+    private val _hasLoaded = MutableStateFlow(false)
+    val hasLoaded = _hasLoaded.asStateFlow()
     private val _data = MutableStateFlow(AppointmentsResponse())
     val data = _data.asStateFlow()
     private val _loading = MutableStateFlow(false)
@@ -136,6 +138,30 @@ class AppointmentsViewModel @JvmOverloads constructor(
         _savedCards.value = try { repo.savedCards() } catch (_: Exception) { emptyList() }
     }
 
+    /** Datos bancarios para transferir; null mientras cargan. Si fallan, se muestran como «sin configurar». */
+    private val _transferInfo = MutableStateFlow<TransferInfo?>(null)
+    val transferInfo = _transferInfo.asStateFlow()
+
+    private val _transferInfoError = MutableStateFlow<String?>(null)
+    val transferInfoError = _transferInfoError.asStateFlow()
+    private var transferRequest: Job? = null
+    fun loadTransferInfo(appointmentId: String, propina: Double = 0.0) {
+        transferRequest?.cancel()
+        _transferInfo.value = null
+        _transferInfoError.value = null
+        transferRequest = viewModelScope.launch {
+            try {
+                val info = repo.transferInfo(appointmentId, propina)
+                ensureActive()
+                _transferInfo.value = info
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _transferInfoError.value = e.toFriendlyMessage("No se pudo consultar el importe de transferencia.") }
+        }
+    }
+
+    /** Quita un error anterior (p. ej. al cambiar de método de pago) para que no parezca del paso actual. */
+    fun clearError() { _error.value = null }
+
     fun clearSavedCardConfirm() { _savedCardConfirm.value = null }
 
     /**
@@ -171,11 +197,11 @@ class AppointmentsViewModel @JvmOverloads constructor(
     }
 
     /** Stripe rechazó o no pudo procesar la tarjeta. La cita no se marca como pagada (solo el webhook de barber puede hacerlo). */
+    @Suppress("UNUSED_PARAMETER") // No mostrar detalles internos del SDK en la interfaz.
     fun onStripeFailed(reason: String?) {
         _stripeClientSecret.value = null
         _paymentNotice.value = null
-        val detail = reason?.trim()?.takeIf { it.isNotEmpty() }?.let { ": $it" } ?: "."
-        _error.value = "El pago con tarjeta no se completó$detail Intenta con otra tarjeta o paga por transferencia."
+        _error.value = "El pago con tarjeta no se completó. Intenta con otra tarjeta o paga por transferencia."
     }
 
     /** Reintenta cargar las citas hasta ~10s esperando a que el webhook confirme el pago. */
@@ -247,6 +273,7 @@ class AppointmentsViewModel @JvmOverloads constructor(
                 coroutineContext.ensureActive()
                 page = 1
                 _data.value = response
+                _hasLoaded.value = true
                 // Un servidor sin paginación no manda `meta`: se trata como lista completa.
                 _hasMore.value = response.meta?.hasMore == true
             }
@@ -474,12 +501,32 @@ class BookingViewModel @JvmOverloads constructor(
     private val _paymentNote = MutableStateFlow<String?>(null)
     val paymentNote = _paymentNote.asStateFlow()
 
+    /** Flujo finalizado con cita creada; no significa que el backend haya confirmado el pago. */
+    private val _reservationCompleted = MutableStateFlow(false)
+    val reservationCompleted = _reservationCompleted.asStateFlow()
+
     private var pendingDone: ((String?) -> Unit)? = null
     private var pendingId: String? = null
 
     /** Datos bancarios y tarjetas guardadas; si fallan, el pago sigue disponible (sin CLABE o sin tarjetas guardadas). */
+    private val _transferInfoError = MutableStateFlow<String?>(null)
+    val transferInfoError = _transferInfoError.asStateFlow()
+    private var transferRequest: Job? = null
+    fun loadTransferQuote(serviceId: String, propina: Double) {
+        transferRequest?.cancel()
+        _transferInfo.value = null
+        _transferInfoError.value = null
+        transferRequest = viewModelScope.launch {
+            try {
+                val info = repo.transferInfo(propina = propina, serviceId = serviceId)
+                ensureActive()
+                _transferInfo.value = info
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _transferInfoError.value = e.toFriendlyMessage("No se pudo consultar el importe de transferencia.") }
+        }
+    }
+
     fun loadPaymentOptions() = viewModelScope.launch {
-        _transferInfo.value = try { repo.transferInfo() } catch (_: Exception) { TransferInfo() }
         _savedCards.value = try { repo.savedCards() } catch (_: Exception) { emptyList() }
     }
 
@@ -553,12 +600,15 @@ class BookingViewModel @JvmOverloads constructor(
         aceptaCargo: Boolean = false,
         onDone: (String?) -> Unit
     ) {
+        // El bloqueo se toma antes de lanzar: dos eventos en el mismo frame no crean dos citas.
+        if (_busy.value || _reservationCompleted.value) return
         if (barberId.isBlank() || serviceId.isBlank() || date.isBlank() || time.isBlank()) {
             _error.value = "Selecciona barbero, servicio, fecha y horario."
             return
         }
+        _busy.value = true
         viewModelScope.launch {
-            _busy.value = true; _error.value = null; _message.value = null; _paymentNote.value = null
+            _error.value = null; _message.value = null; _paymentNote.value = null
             val res = try {
                 // Igual que la web: "pagar ahora" (tarjeta, o transferencia con comprobante) le pide a barber
                 // que fije el cobro completo con el descuento real del cliente; se cobra por el endpoint de depósito.
@@ -589,7 +639,7 @@ class BookingViewModel @JvmOverloads constructor(
             when (method) {
                 BookingPayMethod.EFECTIVO -> {
                     _paymentNote.value = "Pagas en el salón el día de tu cita."
-                    _busy.value = false; onDone(id)
+                    finishReservation(id, onDone)
                 }
                 BookingPayMethod.TRANSFERENCIA -> {
                     // El comprobante es opcional al reservar: si no lo trae, lo sube después desde Mis citas.
@@ -602,7 +652,7 @@ class BookingViewModel @JvmOverloads constructor(
                     } catch (e: Exception) {
                         "Tu cita quedó reservada, pero no se pudo subir el comprobante. Súbelo desde Mis citas."
                     }
-                    _busy.value = false; onDone(id)
+                    finishReservation(id, onDone)
                 }
                 BookingPayMethod.TARJETA -> {
                     try {
@@ -617,9 +667,9 @@ class BookingViewModel @JvmOverloads constructor(
                         ).clientSecret
                         _cardConfirm.value = CardConfirm(secret, savedCardId)
                     } catch (e: Exception) {
-                        pendingDone = null
+                        pendingDone = null; pendingId = null
                         _paymentNote.value = "Tu cita quedó reservada, pero no pudimos iniciar el pago con tarjeta. Págala desde Mis citas."
-                        _busy.value = false; onDone(id)
+                        finishReservation(id, onDone)
                     }
                 }
             }
@@ -627,16 +677,25 @@ class BookingViewModel @JvmOverloads constructor(
     }
 
     /** Resultado de confirmar la tarjeta con Stripe. El cobro real lo confirma el webhook de barber. */
+    @Suppress("UNUSED_PARAMETER")
     fun onCardResult(completed: Boolean, canceled: Boolean, reason: String?) {
+        // El launcher puede volver a entregar un resultado; solo se consume el pendiente actual.
+        val done = pendingDone ?: return
+        val id = pendingId
+        pendingDone = null; pendingId = null
         _cardConfirm.value = null
         _paymentNote.value = when {
             completed -> "Pago con tarjeta enviado. UrbanBlade lo está confirmando."
             canceled -> "Cancelaste el pago. Tu cita quedó reservada y puedes pagarla desde Mis citas."
-            else -> "El pago con tarjeta no se completó${reason?.takeIf { it.isNotBlank() }?.let { ": $it" } ?: ""}. Tu cita quedó reservada; págala desde Mis citas."
+            else -> "El pago con tarjeta no se completó. Tu cita quedó reservada; págala desde Mis citas."
         }
+        finishReservation(id, done)
+    }
+
+    private fun finishReservation(id: String?, onDone: (String?) -> Unit) {
+        _reservationCompleted.value = true
         _busy.value = false
-        pendingDone?.invoke(pendingId)
-        pendingDone = null
+        onDone(id)
     }
 
     fun defaultDate(): String = LocalDate.now().toString()
@@ -811,6 +870,7 @@ class WalletViewModel @JvmOverloads constructor(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun onCheckoutResult(ok: Boolean, canceled: Boolean, detail: String?) = viewModelScope.launch {
         _checkout.value = null
         when {
@@ -821,7 +881,7 @@ class WalletViewModel @JvmOverloads constructor(
                 load()
             }
             canceled -> _message.value = "Cancelaste el pago. Puedes intentarlo de nuevo cuando quieras."
-            else -> _error.value = "No se pudo cobrar tu tarjeta" + (detail?.let { ": $it" } ?: ".")
+            else -> _error.value = "No se pudo cobrar tu tarjeta. Intenta de nuevo o utiliza otra tarjeta."
         }
         _busy.value = false
     }

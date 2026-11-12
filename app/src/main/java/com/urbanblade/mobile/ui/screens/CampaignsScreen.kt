@@ -3,14 +3,12 @@ package com.urbanblade.mobile.ui.screens
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,14 +24,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,18 +58,12 @@ import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFieldLabel
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanInfoBanner
-import com.urbanblade.mobile.ui.components.UrbanMetricCard
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
 import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
 import com.urbanblade.mobile.ui.components.UrbanSectionTitle
-import com.urbanblade.mobile.ui.components.UrbanSkeletonList
 import com.urbanblade.mobile.ui.components.UrbanStatusPill
 import com.urbanblade.mobile.ui.components.UrbanTextField
-import com.urbanblade.mobile.ui.components.UrbanTopBar
-import com.urbanblade.mobile.ui.components.UrbanMascotState
-import com.urbanblade.mobile.ui.components.UrbanPageHeader
 import com.urbanblade.mobile.ui.components.UrbanStatStrip
-import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import com.urbanblade.mobile.ui.components.statusStyle
 import com.urbanblade.mobile.ui.theme.UrbanColors
@@ -83,6 +73,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.urbanListFeedback
+import com.urbanblade.mobile.ui.components.UrbanStatCard
 
 /** Campañas de marketing por segmento (solo administrador): historial y envío inmediato o programado. */
 @Composable
@@ -94,58 +88,46 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.load() }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { vm.clearMessages(); creating = true },
-                containerColor = UrbanColors.Gold,
-                contentColor = UrbanColors.OnGold,
-                icon = { Icon(Icons.Default.Add, null) },
-                text = { Text("Nueva campaña", fontWeight = FontWeight.Bold) }
-            )
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Campañas",
+        subtitle = "Promociones por correo y notificación para cada segmento de clientes.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = state.loading || state.sending,
+        floatingActionButton = { expanded ->
+            UrbanFab("Nueva campaña", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
         }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { UrbanPageHeader(title = "Campañas", subtitle = "Promociones por correo y notificación para cada segmento de clientes.", eyebrow = "Marketing") }
-            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
-            if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
+    ) {
+        if (state.sending) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+        // Con la hoja de nueva campaña abierta el error de enviar se muestra dentro de ella, no aquí.
+        if (!creating) state.error?.let { item { UrbanErrorBanner(it) } }
 
-            if (data.segmentCounts.isNotEmpty()) {
-                item { UrbanSectionTitle("Clientes por segmento", "A quién puedes llegar") }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        data.segmentCounts.entries.chunked(2).forEach { row ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                row.forEach { (key, count) ->
-                                    UrbanMetricCard(labels[key] ?: key, count.toString(), Icons.Default.Groups, Modifier.weight(1f))
-                                }
-                                if (row.size == 1) Spacer(Modifier.weight(1f))
+        if (data.segmentCounts.isNotEmpty()) {
+            item { UrbanSectionTitle("Clientes por segmento", "A quién puedes llegar") }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    data.segmentCounts.entries.chunked(2).forEach { row ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { (key, count) ->
+                                UrbanStatCard(labels[key] ?: key, count.toString(), Modifier.weight(1f), icon = Icons.Default.Groups)
                             }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
-
-            item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
-            if (state.loading && data.data.isEmpty()) item { UrbanSkeletonList(3) }
-            if (!state.loading && data.data.isEmpty() && state.error == null) {
-                item {
-                    // Sin botón propio: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY, "Sin campañas todavía", "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
-                    )
-                }
-            }
-            items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
-            item { Spacer(Modifier.height(80.dp)) }
         }
+
+        item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
+        // Sin botón propio en el vacío: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
+        urbanListFeedback(
+            state.loaded, state.loading, data.data.isNotEmpty(), state.listError,
+            "No pudimos cargar las campañas", "Sin campañas todavía",
+            "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
+        ) { vm.load() }
+        items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
     }
 
     if (creating) {

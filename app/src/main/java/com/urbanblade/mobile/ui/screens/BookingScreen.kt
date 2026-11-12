@@ -49,6 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 private enum class BookingStep(val label: String, val title: String, val hint: String) {
     SERVICE("Servicio", "Elige tu servicio", "Precio y duración reales de UrbanBlade."),
@@ -123,6 +125,12 @@ fun BookingScreen(
     var notes by rememberSaveable { mutableStateOf("") }
     var slotsRequested by rememberSaveable { mutableStateOf(false) }
     var confirmed by rememberSaveable { mutableStateOf(false) }
+    val reservationCompleted by vm.reservationCompleted.collectAsState()
+    // El ViewModel sobrevive a una recreación durante Stripe; el callback anterior puede
+    // pertenecer a la composición destruida. La nueva pantalla observa el resultado vigente.
+    LaunchedEffect(reservationCompleted) {
+        if (reservationCompleted) confirmed = true
+    }
     // El cliente acepta el cargo por inasistencia en el último paso (el backend guarda cuándo lo aceptó).
     var acceptsNoShowFee by rememberSaveable { mutableStateOf(false) }
     val pay = rememberBookingPaymentState()
@@ -130,6 +138,7 @@ fun BookingScreen(
     val paymentNote by vm.paymentNote.collectAsState()
     val cardConfirm by vm.cardConfirm.collectAsState()
     val transferInfo by vm.transferInfo.collectAsState()
+    val transferInfoError by vm.transferInfoError.collectAsState()
     val savedCards by vm.savedCards.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val cardAvailable = rememberStripeReady()
@@ -142,17 +151,20 @@ fun BookingScreen(
         }
     }
     // Con la cita ya creada, confirma el cobro con la tarjeta guardada o con lo que el cliente escribió.
+    val authorizePayment = com.urbanblade.mobile.core.payment.rememberPaymentAuthorization { vm.onCardResult(false, true, null) }
     LaunchedEffect(cardConfirm) {
         val confirm = cardConfirm ?: return@LaunchedEffect
-        val savedId = confirm.paymentMethodId
-        if (savedId != null) {
-            paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
-        } else {
-            val params = pay.paymentMethodParams()
-            if (params != null) {
-                paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+        authorizePayment {
+            val savedId = confirm.paymentMethodId
+            if (savedId != null) {
+                paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodId(savedId, confirm.clientSecret))
             } else {
-                vm.onCardResult(false, false, "no se pudieron leer los datos de la tarjeta")
+                val params = pay.paymentMethodParams()
+                if (params != null) {
+                    paymentLauncher.confirm(ConfirmPaymentIntentParams.createWithPaymentMethodCreateParams(params, confirm.clientSecret))
+                } else {
+                    vm.onCardResult(false, false, "no se pudieron leer los datos de la tarjeta")
+                }
             }
         }
     }
@@ -175,6 +187,12 @@ fun BookingScreen(
     }
 
     val selectedService = services.firstOrNull { it.id == serviceId }
+    val transferTip = pay.tipFor(selectedService?.precio ?: 0.0)
+    LaunchedEffect(pay.method, serviceId, transferTip) {
+        if (pay.method == BookingPayMethod.TRANSFERENCIA && serviceId.isNotBlank()) vm.loadTransferQuote(serviceId, transferTip)
+    }
+    val validTransferQuote = transferInfo?.cotizacion?.matches(serviceId = serviceId, tip = transferTip) == true
+
     // Si llega desde el Muro de Inspiración trae el id del usuario del barbero: se traduce al de su perfil.
     LaunchedEffect(barbers) {
         if (barberId.isBlank()) barbers.firstOrNull { it.esFavorito }?.let { barberId = it.id }
@@ -272,7 +290,7 @@ fun BookingScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 18.dp)
+                            .padding(horizontal = UrbanSpace.Gutter)
                     ) {
                         Text(nextActionHint, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
@@ -336,7 +354,8 @@ fun BookingScreen(
                                     BookingPaymentSection(
                                         state = pay,
                                         servicePrice = selectedService?.precio ?: 0.0,
-                                        transferInfo = transferInfo,
+                                        transferInfo = transferInfo?.let { if (validTransferQuote) it else it.copy(cotizacion = null) },
+                                        transferError = transferInfoError,
                                         savedCards = savedCards,
                                         cardAvailable = cardAvailable && cardEnabledRemotely,
                                         testMode = BuildConfig.STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_"),
@@ -347,15 +366,18 @@ fun BookingScreen(
                         }
                     }
 
+                    if (pay.method == BookingPayMethod.TRANSFERENCIA && transferInfoError != null) {
+                        UrbanTextButton(onClick = { vm.loadTransferQuote(serviceId, transferTip) }) { Text("Reintentar cotización") }
+                    }
                     (localError ?: error)?.let {
-                        Box(Modifier.padding(horizontal = 18.dp)) { UrbanErrorBanner(it) }
+                        Box(Modifier.padding(horizontal = UrbanSpace.Gutter)) { UrbanErrorBanner(it) }
                         Spacer(Modifier.height(8.dp))
                     }
 
                     if (step == BookingStep.PAY) {
                         Row(
                             Modifier.fillMaxWidth().clickable(enabled = !busy) { acceptsNoShowFee = !acceptsNoShowFee }
-                                .padding(horizontal = 18.dp, vertical = 6.dp),
+                                .padding(horizontal = UrbanSpace.Gutter, vertical = 6.dp),
                             verticalAlignment = Alignment.Top
                         ) {
                             Checkbox(checked = acceptsNoShowFee, onCheckedChange = { acceptsNoShowFee = it }, enabled = !busy)
@@ -374,7 +396,7 @@ fun BookingScreen(
             if (selectedService != null) {
                 HorizontalDivider(color = UrbanColors.Line)
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 10.dp),
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -395,7 +417,7 @@ fun BookingScreen(
                 }
             }
             FlowRow(
-                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 maxItemsInEachRow = if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f) 1 else 2
@@ -420,7 +442,9 @@ fun BookingScreen(
                         if (step == BookingStep.PAY) {
                             localError = null
                             val savedId = pay.savedCardToUse(savedCards)
-                            if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.newCardProblem() != null) {
+                            if (pay.method == BookingPayMethod.TRANSFERENCIA && pay.receiptUri != null && !validTransferQuote) {
+                                localError = "Consulta el importe de transferencia antes de enviar el comprobante."
+                            } else if (pay.method == BookingPayMethod.TARJETA && savedId == null && pay.newCardProblem() != null) {
                                 localError = pay.newCardProblem()
                                 // Lleva al formulario para que se vea qué falta (antes quedaba abajo, fuera de la vista).
                                 pay.cardAttention++
@@ -460,18 +484,20 @@ fun BookingScreen(
 /** Encabezado del paso con el patrón de la app: eyebrow con el paso, título serif, avance y resumen. */
 @Composable
 private fun BookingHeader(step: BookingStep, summary: String?) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = UrbanSpace.Gutter)) {
         UrbanPageHeader(
             title = step.title,
             subtitle = step.hint,
-            eyebrow = "Reserva · paso ${step.ordinal + 1} de ${BookingStep.entries.size}"
+            eyebrow = "Reserva · paso ${step.ordinal + 1} de ${BookingStep.entries.size}",
+            compact = true
         )
         Spacer(Modifier.height(12.dp))
         UrbanStepProgress(BookingStep.entries.map { it.label }, step.ordinal)
         summary?.let {
             Spacer(Modifier.height(10.dp))
-            Surface(shape = MaterialTheme.shapes.small, color = UrbanColors.Gold.copy(alpha = 0.10f), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = MaterialTheme.shapes.medium, color = UrbanColors.Card,
+                border = androidx.compose.foundation.BorderStroke(1.dp, UrbanColors.Line), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, null, tint = UrbanColors.Gold, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Ink)
@@ -781,7 +807,7 @@ private fun ExtrasStep(
                             Text("${UrbanFormat.moneyShort(p.precioVenta)}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.GoldText)
                         }
                         if (qty == 0) {
-                            TextButton(onClick = { onQuantity(p.id, 1) }) {
+                            UrbanTextButton(onClick = { onQuantity(p.id, 1) }) {
                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = UrbanColors.Gold)
                                 Spacer(Modifier.width(4.dp))
                                 Text("Agregar", color = UrbanColors.GoldText)

@@ -51,5 +51,5 @@ revisión de producción rechaza la app (por ejemplo, por la brecha de contenido
 
 ## Mientras corre la prueba
 - No cambiar el `applicationId` ni la firma de la app.
-- Cada AAB nuevo necesita un `versionCode` mayor (hoy 3).
+- Cada AAB nuevo necesita un `versionCode` mayor (hoy 4; el 3 es el de la prueba cerrada).
 - Atender los fallos que reporten: una app estable durante la prueba mejora la revisión.

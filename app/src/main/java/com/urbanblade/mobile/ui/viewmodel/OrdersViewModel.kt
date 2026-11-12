@@ -34,11 +34,16 @@ data class OrdersState(
     val lastPage: Int = 1,
     val query: String = "",
     val filter: OrderFilter = OrderFilter.Todos,
+    /** True cuando la primera consulta terminó bien; hasta entonces las cifras en cero no son datos. */
+    val loaded: Boolean = false,
     val loading: Boolean = false,
     val loadingMore: Boolean = false,
     /** Pedido sobre el que se está entregando o cancelando, para bloquear sus botones. */
     val busyOrderId: String? = null,
+    /** Error de entregar o cancelar un pedido; la consulta de la lista usa [listError]. */
     val error: String? = null,
+    /** Error de la consulta de la lista: no se mezcla con los de las acciones. */
+    val listError: String? = null,
     val notice: String? = null
 ) {
     val hasMore: Boolean get() = page < lastPage
@@ -58,7 +63,7 @@ class OrdersViewModel @JvmOverloads constructor(
         pageRequest?.cancel()
         listRequest?.cancel()
         listRequest = viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, loadingMore = false, error = null)
+            _state.value = _state.value.copy(loading = true, loadingMore = false, error = null, listError = null)
             try {
                 val s = _state.value
                 val response = repo.orders(1, s.filter.param, s.query.trim().ifEmpty { null })
@@ -70,12 +75,14 @@ class OrdersViewModel @JvmOverloads constructor(
                     total = meta?.total ?: response.data.size,
                     page = meta?.currentPage ?: 1,
                     lastPage = meta?.lastPage ?: 1,
+                    loaded = true,
                     loading = false
                 )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.value = _state.value.copy(loading = false, error = e.toFriendlyMessage("No se pudieron cargar los pedidos."))
+                ensureActive()
+                _state.value = _state.value.copy(loading = false, listError = e.toFriendlyMessage("No se pudieron cargar los pedidos."))
             }
         }
     }
@@ -84,7 +91,7 @@ class OrdersViewModel @JvmOverloads constructor(
         val s = _state.value
         if (s.loadingMore || s.loading || listRequest?.isActive == true || pageRequest?.isActive == true || !s.hasMore) return
         pageRequest = viewModelScope.launch {
-            _state.value = _state.value.copy(loadingMore = true, error = null)
+            _state.value = _state.value.copy(loadingMore = true, listError = null)
             try {
                 val response = repo.orders(s.page + 1, s.filter.param, s.query.trim().ifEmpty { null })
                 ensureActive()
@@ -98,7 +105,8 @@ class OrdersViewModel @JvmOverloads constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.value = _state.value.copy(loadingMore = false, error = e.toFriendlyMessage("No se pudieron cargar más pedidos."))
+                ensureActive()
+                _state.value = _state.value.copy(loadingMore = false, listError = e.toFriendlyMessage("No se pudieron cargar más pedidos."))
             }
         }
     }

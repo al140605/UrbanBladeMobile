@@ -137,7 +137,7 @@ interface UrbanBladeApi {
     @POST("deposits/{id}/approve") suspend fun approveDeposit(@Path("id") id: String): MessageResponse
     @POST("deposits/{id}/reject") suspend fun rejectDeposit(@Path("id") id: String, @Body body: RejectPaymentRequest): MessageResponse
     @POST("payments/stripe-intent") suspend fun stripeIntent(@Body body: StripeIntentRequest): StripeIntentResponse
-    @GET("payments/transfer-info") suspend fun transferInfo(): TransferInfoResponse
+    @GET("payments/transfer-info") suspend fun transferInfo(@Query("appointment_id") appointmentId: String? = null, @Query("propina") propina: Double? = null, @Query("service_id") serviceId: String? = null): TransferInfoResponse
     @POST("appointments/{code}/deposit/stripe-intent")
     suspend fun depositStripeIntent(@Path("code") code: String, @Body body: DepositIntentRequest): StripeIntentResponse
     @Multipart

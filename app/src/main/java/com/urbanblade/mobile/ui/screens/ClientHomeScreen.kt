@@ -56,6 +56,8 @@ import com.urbanblade.mobile.ui.components.UrbanHeroLabel
 import com.urbanblade.mobile.ui.components.UrbanMascotState
 import com.urbanblade.mobile.ui.components.UrbanStateKind
 import com.urbanblade.mobile.ui.components.UrbanCard
+import com.urbanblade.mobile.ui.components.UrbanRefreshButton
+import com.urbanblade.mobile.ui.components.UrbanStaleContentNotice
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.components.UrbanOutlineButton
@@ -85,6 +87,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.Stars
 import com.urbanblade.mobile.ui.viewmodel.LoyaltySummaryViewModel
 import java.time.LocalTime
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Inicio del cliente: su próxima cita con "Reservar cita" a la vista (o una invitación a
@@ -106,6 +109,7 @@ fun ClientHomeScreen(
 ) {
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) {
         vm.load()
@@ -125,8 +129,9 @@ fun ClientHomeScreen(
         }
     }
     val homeNotice by com.urbanblade.mobile.core.config.UrbanRemoteConfig.homeNotice.collectAsState()
-    val next = response.next
-    val failed = error != null && next == null
+    // Misma regla que en Mis citas: una cita de hoy que ya terminó no es «tu próxima visita».
+    val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }
+    val failed = error != null && !loadedOnce
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
     val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }
     val lastVisit = response.data
@@ -135,17 +140,19 @@ fun ClientHomeScreen(
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Md, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
+        verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
+            UrbanHeroCard {
             UrbanPageHeader(
                 title = firstName,
-                subtitle = "¿Listo para tu próximo corte?",
+                subtitle = "Tu estilo, siempre contigo.",
                 eyebrow = greeting.uppercase(),
                 trailing = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // El cliente no tiene la pestaña "Más": sus avisos se abren desde aquí.
+                        UrbanRefreshButton(loading) { vm.load(); notificationsVm.load(); loyaltyVm.load() }
                         IconButton(onClick = { onNavigate("notifications") }) {
                             BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 9) "9+" else unread.toString()) } }) {
                                 Icon(Icons.Default.Notifications, "Notificaciones", tint = UrbanColors.Gold)
@@ -156,13 +163,16 @@ fun ClientHomeScreen(
                     }
                 }
             )
+            }
         }
 
         // Aviso para todos los clientes desde Firebase Remote Config (vacío = no se muestra).
         if (homeNotice.isNotBlank()) item { UrbanInfoBanner(homeNotice, Icons.Default.Campaign, Modifier.fillMaxWidth()) }
 
+        if (error != null && loadedOnce) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load() } }
+
         when {
-            loading && next == null -> item { UrbanSkeletonList(1) }
+            !loadedOnce && !failed -> item { UrbanSkeletonList(1) }
             failed -> item {
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus citas", error, "Reintentar") { vm.load() }
             }
@@ -226,7 +236,7 @@ fun ClientHomeScreen(
         }
 
         // Pagos y pedidos viven en Cuenta; aquí solo lo que se descubre.
-        item { UrbanSectionTitle("Descubre", "Inspiración para tu próximo corte y productos.") }
+        item { UrbanSectionTitle("Inspírate", "Trabajos del equipo y productos para tu cuidado.") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
@@ -244,22 +254,23 @@ fun ClientHomeScreen(
 
 @Composable
 private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
-    UrbanHeroCard {
+    UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
         UrbanHeroLabel("Tu próxima visita")
         Spacer(Modifier.height(8.dp))
         UrbanStatusPill(next.estado)
         Spacer(Modifier.height(8.dp))
-        Text(UrbanFormat.time(next.horaInicio), style = MaterialTheme.typography.displaySmall, color = UrbanColors.Ink)
-        Text(UrbanFormat.date(next.fecha), style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
-        Spacer(Modifier.height(16.dp))
+        Text("${UrbanFormat.dateShort(next.fecha)} · ${UrbanFormat.time(next.horaInicio)}",
+            style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+        Spacer(Modifier.height(10.dp))
         HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
         UrbanVisitSummary(
             service = next.service?.nombre ?: "Servicio",
             barber = next.barber?.user?.name ?: "Barbero por confirmar",
             photo = rememberBarberPhoto(next.barber),
             amount = (next.precioCobrado ?: next.service?.precio)?.let(UrbanFormat::money),
-            amountLabel = if (next.precioCobrado != null) "Importe de la cita" else "Precio del servicio"
+            amountLabel = if (next.precioCobrado != null) "Importe de la cita" else "Precio del servicio",
+            compact = true
         )
         Spacer(Modifier.height(16.dp))
         UrbanOutlineButton("Ver mi cita", onClick, modifier = Modifier.fillMaxWidth(), icon = Icons.Default.CalendarMonth)
@@ -317,36 +328,5 @@ private fun EmptyAgendaCard(onBook: () -> Unit) {
             icon = Icons.Default.ContentCut,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Composable
-internal fun HomeTile(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    highlighted: Boolean = false
-) {
-    UrbanCard(modifier.heightIn(min = 132.dp), onClick = onClick) {
-        Box(
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(if (highlighted) UrbanColors.Gold else UrbanColors.Gold.copy(alpha = 0.13f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                icon,
-                null,
-                tint = if (highlighted) UrbanColors.OnGold else UrbanColors.Gold,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        Spacer(Modifier.height(14.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
-        Spacer(Modifier.height(2.dp))
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2)
     }
 }

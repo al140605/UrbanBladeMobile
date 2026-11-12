@@ -1,13 +1,24 @@
 package com.urbanblade.mobile.core.payment
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.stripe.android.Stripe
+import com.stripe.android.ApiResultCallback
+import com.stripe.android.model.PaymentIntent
+import com.stripe.android.paymentsheet.PaymentOptionCallback
+import com.stripe.android.paymentsheet.PaymentSheetResultCallback
+import com.stripe.android.paymentsheet.rememberPaymentSheetFlowController
+import java.math.BigDecimal
+import java.text.NumberFormat
+import java.util.Locale
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
-import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.urbanblade.mobile.BuildConfig
 import com.urbanblade.mobile.ui.theme.UrbanColors
 
@@ -65,23 +76,115 @@ private fun urbanStripeColors() = PaymentSheet.Colors(
 @Composable
 fun rememberUrbanPaymentSheet(
     merchantDisplayName: String = "UrbanBlade",
+    onAuthorizationDenied: () -> Unit,
+    onPreparationFailed: (Throwable) -> Unit,
     onResult: (PaymentSheetResult) -> Unit
 ): (String) -> Unit {
     rememberStripeReady()
-    val paymentSheet = rememberPaymentSheet(onResult)
-
-    return remember(paymentSheet) {
-        { clientSecret: String ->
-            // Los colores se leen al abrir la hoja: si el cliente cambió de tema, ya salen con el nuevo.
-            val appearance = PaymentSheet.Appearance(
-                colorsLight = urbanStripeColors(),
-                colorsDark = urbanStripeColors(),
-                shapes = PaymentSheet.Shapes(cornerRadiusDp = 16f, borderStrokeWidthDp = 1f)
-            )
-            paymentSheet.presentWithPaymentIntent(
-                clientSecret,
-                PaymentSheet.Configuration(merchantDisplayName = merchantDisplayName, appearance = appearance)
-            )
+    val context = LocalContext.current
+    val latestResult by rememberUpdatedState(onResult)
+    val latestCancel by rememberUpdatedState(onAuthorizationDenied)
+    val latestError by rememberUpdatedState(onPreparationFailed)
+    val flow = remember { FinalPaymentFlow() }
+    var alive by remember { mutableStateOf(true) }
+    var optionLabel by remember { mutableStateOf("") }
+    var amountLabel by remember { mutableStateOf("") }
+    var attempt by remember { mutableStateOf(0L) }
+    val stripe = remember(context) { Stripe(context, BuildConfig.STRIPE_PUBLISHABLE_KEY) }
+    val optionCallback = remember {
+        PaymentOptionCallback { option ->
+            if (alive && flow.step == FinalPaymentFlow.Step.SELECTING) {
+                if (option == null) { flow.finish(); latestCancel() }
+                else { optionLabel = option.label; flow.selected() }
+            }
         }
     }
+    val resultCallback = remember {
+        PaymentSheetResultCallback { result ->
+            if (alive) { flow.finish(); latestResult(result) }
+        }
+    }
+    val controller = rememberPaymentSheetFlowController(optionCallback, resultCallback)
+    val authorize = rememberPaymentAuthorization { flow.authorizationDenied() }
+    DisposableEffect(flow) {
+        onDispose { alive = false; flow.finish() }
+    }
+    if (flow.step == FinalPaymentFlow.Step.LOADING) {
+        AlertDialog(
+            onDismissRequest = { flow.finish(); latestCancel() },
+            title = { Text("Preparando pago") },
+            text = { Text("Verificando el importe con Stripe…") },
+            confirmButton = {
+                TextButton(onClick = { flow.finish(); latestCancel() }) { Text("Cancelar") }
+            }
+        )
+    }
+    if (flow.step == FinalPaymentFlow.Step.REVIEW || flow.step == FinalPaymentFlow.Step.AUTHORIZING) {
+        val verifying = flow.step == FinalPaymentFlow.Step.AUTHORIZING
+        FinalPaymentReview(
+            merchant = merchantDisplayName, card = optionLabel, amount = amountLabel,
+            verifying = verifying,
+            onPay = {
+                val id = attempt
+                if (flow.pay()) authorize {
+                    if (alive && flow.authorized(id)) controller.confirm()
+                }
+            },
+            onEdit = { if (flow.edit()) controller.presentPaymentOptions() },
+            onCancel = { flow.finish(); latestCancel() }
+        )
+    }
+
+    return remember(controller, stripe, merchantDisplayName) {
+        open@{ clientSecret ->
+            val id = flow.begin() ?: return@open
+            attempt = id
+            optionLabel = ""
+            amountLabel = ""
+            fun fail(error: Exception) {
+                if (alive && flow.isCurrent(id)) { flow.finish(); latestError(error) }
+            }
+            stripe.retrievePaymentIntent(clientSecret, callback = object : ApiResultCallback<PaymentIntent> {
+                override fun onSuccess(result: PaymentIntent) {
+                    if (!alive || !flow.isCurrent(id)) return
+                    val cents = result.amount
+                    if (result.currency != "mxn" || cents == null || cents <= 0) {
+                        fail(IllegalStateException("No se pudo verificar el importe del pago.")); return
+                    }
+                    if (result.status == com.stripe.android.model.StripeIntent.Status.Succeeded ||
+                        result.status == com.stripe.android.model.StripeIntent.Status.Processing) {
+                        fail(IllegalStateException("El pago ya fue enviado. Actualiza tus citas antes de reintentar.")); return
+                    }
+                    amountLabel = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-MX"))
+                        .format(BigDecimal.valueOf(cents).movePointLeft(2)) + " MXN"
+                    val appearance = PaymentSheet.Appearance(
+                        colorsLight = urbanStripeColors(), colorsDark = urbanStripeColors(),
+                        shapes = PaymentSheet.Shapes(cornerRadiusDp = 16f, borderStrokeWidthDp = 1f)
+                    )
+                    controller.configureWithPaymentIntent(clientSecret,
+                        PaymentSheet.Configuration.Builder(merchantDisplayName)
+                            .appearance(appearance)
+                            .link(PaymentSheet.LinkConfiguration(display = PaymentSheet.LinkConfiguration.Display.Never))
+                            .build()
+                    ) { success, error ->
+                        if (alive && flow.isCurrent(id)) {
+                            if (success && flow.loaded(id)) controller.presentPaymentOptions()
+                            else fail(IllegalStateException("No se pudo preparar el pago. Intenta de nuevo.", error))
+                        }
+                    }
+                }
+                override fun onError(e: Exception) { fail(IllegalStateException("No se pudo consultar el importe del pago. Intenta de nuevo.", e)) }
+            })
+        }
+    }
+}
+
+@Composable
+internal fun FinalPaymentReview(
+    merchant: String, card: String, amount: String, verifying: Boolean,
+    onPay: () -> Unit, onEdit: () -> Unit, onCancel: () -> Unit
+) {
+    com.urbanblade.mobile.ui.components.UrbanPaymentReviewDialog(
+        merchant, card, amount, verifying, onPay, onEdit, onCancel
+    )
 }

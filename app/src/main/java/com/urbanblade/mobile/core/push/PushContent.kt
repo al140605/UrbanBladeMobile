@@ -7,7 +7,8 @@ enum class PushChannel(val id: String, val label: String, val description: Strin
     PEDIDOS("pedidos", "Pedidos", "Avisos de tus pedidos de la tienda", false),
     FIDELIDAD("fidelidad", "Beneficios", "Niveles, puntos, sorteos y cumpleaños", false),
     PROMOCIONES("promociones", "Promociones", "Ofertas y novedades de la barbería", false),
-    OPERACION("operacion", "Operación", "Avisos internos para el personal", true);
+    OPERACION("operacion", "Operación", "Avisos internos para el personal", true),
+    COMUNIDAD("comunidad", "Comunidad", "Respuestas a tus reportes del muro de inspiración", false);
 
     companion object {
         /** Un canal desconocido o ausente cae en Citas, igual que en el backend. */
@@ -67,6 +68,10 @@ val PUSH_ROUTES = setOf(
     "home", "appointments", "payments", "orders", "wallet", "notifications", "inventory",
     // Añadidas para los enlaces de los correos (urbanblade://open?route=...).
     "catalog", "barber_agenda", "profile",
+    // Avisos del personal: reseña señalada y reporte de desempeño.
+    "reviews", "reports",
+    // Respuesta a un reporte del muro.
+    "social",
 )
 
 fun safePushRoute(route: String?): String? = route?.trim()?.takeIf { it in PUSH_ROUTES }
@@ -86,7 +91,20 @@ fun routeForNotificationType(type: String?): String? = when (type) {
     "loyalty_level_up", "loyalty_level_downgraded", "loyalty_points_expired", "raffle_win", "client_birthday" -> "wallet"
     "promotion" -> "catalog"
     "inventory_low_stock" -> "inventory"
+    "report_resolved" -> "social"
+    "service_ending" -> "barber_agenda"
+    "barber_review_flagged" -> "reviews"
+    "barber_performance_report" -> "reports"
     else -> null
+}
+
+/**
+ * Pantalla de un push. El backend manda `route`, pero para un tipo que aún no conoce manda la bandeja
+ * («notifications»): en ese caso, si el `type` sí lo conoce la app, se abre su pantalla en vez de la bandeja.
+ */
+fun pushRoute(route: String?, type: String?): String? {
+    val safe = safePushRoute(route)
+    return if (safe == null || safe == "notifications") routeForNotificationType(type) ?: safe else safe
 }
 
 /**
@@ -105,5 +123,5 @@ fun pushContent(notificationTitle: String?, notificationBody: String?, data: Map
     // Los botones necesitan la cita: sin código no se muestran aunque el mensaje los pida.
     val actions = if (code == null) emptyList()
     else data["acciones"].orEmpty().split(',').mapNotNull(::parseServiceAction).distinct()
-    return PushContent(title, body, PushChannel.from(data["channel"]), safePushRoute(data["route"]), actions, code)
+    return PushContent(title, body, PushChannel.from(data["channel"]), pushRoute(data["route"], data["type"]), actions, code)
 }

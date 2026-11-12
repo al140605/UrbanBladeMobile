@@ -15,14 +15,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Envoltura para contenido de formulario (diálogos, columnas planas) que debe
@@ -69,8 +74,16 @@ fun UrbanBladeBackground(
 }
 
 @Composable
-fun UrbanBrandMark(compact: Boolean = false) {
+fun UrbanBrandMark(compact: Boolean = false, unboxed: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        if (unboxed) {
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(com.urbanblade.mobile.R.drawable.urbanblade_brand_symbol),
+                contentDescription = null,
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(UrbanColors.GoldText),
+                modifier = Modifier.size(if (compact) 36.dp else 44.dp)
+            )
+        } else {
         Box(
             Modifier
                 .size(if (compact) 34.dp else 42.dp)
@@ -91,6 +104,7 @@ fun UrbanBrandMark(compact: Boolean = false) {
                 contentDescription = null,
                 modifier = Modifier.size(if (compact) 26.dp else 32.dp)
             )
+        }
         }
         Spacer(Modifier.width(10.dp))
         Column {
@@ -122,12 +136,8 @@ fun UrbanPageHeader(
     /** Encabezado de módulo o pantalla utilitaria: un paso menos de serif (24 sp en vez de 27). */
     compact: Boolean = false
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Column(Modifier.weight(1f)) {
+    val copy: @Composable (Modifier) -> Unit = { textModifier ->
+        Column(textModifier) {
             eyebrow?.let {
                 Text(
                     it.uppercase(),
@@ -139,16 +149,28 @@ fun UrbanPageHeader(
             Text(
                 title,
                 style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
-                color = UrbanColors.Ink
+                color = UrbanColors.Ink,
+                modifier = Modifier.semantics { heading() }
             )
             subtitle?.let {
                 Spacer(Modifier.height(5.dp))
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
             }
         }
-        trailing?.let {
-            Spacer(Modifier.width(12.dp))
-            it()
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val stacked = maxWidth < 300.dp || LocalDensity.current.fontScale >= 1.3f
+        if (stacked && trailing != null) {
+            Column(Modifier.fillMaxWidth()) {
+                copy(Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { trailing() }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                copy(Modifier.weight(1f))
+                trailing?.let { Spacer(Modifier.width(12.dp)); it() }
+            }
         }
     }
 }
@@ -160,17 +182,25 @@ fun UrbanSectionTitle(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+    val copy: @Composable (Modifier) -> Unit = { textModifier ->
+        Column(textModifier) {
+            Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
         }
-        if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) { Text(actionLabel) }
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (actionLabel != null && onAction != null && (maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.3f)) {
+            Column(Modifier.fillMaxWidth()) {
+                copy(Modifier.fillMaxWidth())
+                UrbanTextButton(onClick = onAction, modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) { Text(actionLabel) }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                copy(Modifier.weight(1f))
+                if (actionLabel != null && onAction != null) {
+                    UrbanTextButton(onClick = onAction, modifier = Modifier.heightIn(min = 48.dp)) { Text(actionLabel) }
+                }
+            }
         }
     }
 }
@@ -195,7 +225,7 @@ fun UrbanPremiumCard(
         .border(1.dp, UrbanColors.Line, shape)
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
 
-    Column(base.padding(18.dp), content = content)
+    Column(base.padding(UrbanSpace.Md), content = content)
 }
 
 @Composable
@@ -213,35 +243,6 @@ fun UrbanCard(
         tonalElevation = 0.dp
     ) {
         Column(Modifier.padding(16.dp), content = content)
-    }
-}
-
-@Composable
-fun UrbanMetricCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    UrbanPremiumCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    // Caja neutra e icono dorado: con el tinte dorado en cada tarjeta el dorado
-                    // dejaba de ser énfasis (auditoría, P2-3).
-                    .background(UrbanColors.CardAlt),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(value, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-                Text(label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-        }
     }
 }
 
@@ -283,10 +284,10 @@ fun UrbanQuickAction(
  * crema de "Libreta" (lo mismo que ya hacía UrbanStatusPill).
  */
 @Composable
-internal fun UrbanTonePill(label: String, icon: ImageVector?, tone: Color, modifier: Modifier = Modifier) {
+internal fun UrbanTonePill(label: String, icon: ImageVector?, tone: Color, modifier: Modifier = Modifier, textColor: Color? = null) {
     // El tono ya viene resuelto a Color (StatusTone.color() lo resuelve quien llama).
     val color = tone
-    val content = androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f)
+    val content = textColor ?: androidx.compose.ui.graphics.lerp(color, UrbanColors.Ink, 0.3f)
     Surface(
         modifier = modifier,
         shape = CircleShape,
@@ -315,18 +316,13 @@ fun UrbanStatusPill(status: String) {
 
 @Composable
 fun UrbanRolePill(role: String) {
-    Surface(
-        shape = CircleShape,
-        color = UrbanColors.Gold.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, UrbanColors.Gold.copy(alpha = 0.33f))
-    ) {
-        Text(
-            role.replace('_', ' ').replaceFirstChar { it.uppercase() },
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = UrbanColors.GoldText
-        )
-    }
+    // Misma pastilla que los estados; el rol conserva su dorado legible en cada tema (GoldText).
+    UrbanTonePill(
+        label = role.replace('_', ' ').replaceFirstChar { it.uppercase() },
+        icon = null,
+        tone = UrbanColors.Gold,
+        textColor = UrbanColors.GoldText
+    )
 }
 
 @Composable
@@ -394,14 +390,18 @@ fun UrbanOutlineButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    /** Para botones sobre una fotografía oscura en un tema claro, donde la tinta del tema no se lee. */
+    onPhoto: Boolean = false
 ) {
+    val overPhoto = onPhoto && UrbanColors.current.isLight
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 50.dp),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, UrbanColors.Line)
+        border = BorderStroke(1.dp, if (overPhoto) Color(0xFFF0D68C).copy(alpha = 0.7f) else UrbanColors.Line),
+        colors = if (overPhoto) ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF0D68C)) else ButtonDefaults.outlinedButtonColors()
     ) {
         icon?.let { Icon(it, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
         Text(text)

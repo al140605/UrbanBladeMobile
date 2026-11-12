@@ -25,6 +25,9 @@ import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.components.UrbanFormat
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.*
+import com.urbanblade.mobile.ui.components.UrbanModuleScreen
+import com.urbanblade.mobile.ui.theme.UrbanSpace
+import com.urbanblade.mobile.ui.components.UrbanTonePill
 
 // ── Métricas del negocio ─────────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel
 
     UrbanModuleScreen(
         eyebrow = "ANÁLISIS",
-        title = "Métricas del negocio",
+        title = "Métricas",
         subtitle = "Lo acumulado: ingresos, clientes y cancelaciones.",
         onBack = onBack,
         onRefresh = { vm.load() },
@@ -238,19 +241,8 @@ internal fun SimpleStatusPill(status: String, color: androidx.compose.ui.graphic
         "reclamado" -> UrbanColors.Info
         else -> UrbanColors.Muted
     }
-    Surface(
-        shape = CircleShape,
-        color = resolved.copy(alpha = 0.13f),
-        border = BorderStroke(1.dp, resolved.copy(alpha = 0.35f))
-    ) {
-        Text(
-            status.replaceFirstChar { it.uppercase() },
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = resolved,
-            maxLines = 1
-        )
-    }
+    // Misma pastilla que UrbanStatusPill y UrbanTrendPill: una sola implementación del tinte, el borde y el texto.
+    UrbanTonePill(label = status.replaceFirstChar { it.uppercase() }, icon = null, tone = resolved)
 }
 
 // ── Sorteos ──────────────────────────────────────────────────────────────
@@ -258,6 +250,7 @@ internal fun SimpleStatusPill(status: String, color: androidx.compose.ui.graphic
 @Composable
 fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
     val raffles by vm.raffles.collectAsState()
+    val loadedOnce by vm.hasLoaded.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
@@ -274,70 +267,63 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
         }
     }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item { UrbanPageHeader(title = "Sorteos", subtitle = "Ganadores del sorteo mensual y si ya reclamaron su premio.", eyebrow = "Marketing") }
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
+    UrbanModuleScreen(
+        eyebrow = "ADMINISTRACIÓN",
+        title = "Sorteos",
+        subtitle = "Ganadores del sorteo mensual y si ya reclamaron su premio.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        urbanListFeedback(
+            loadedOnce, busy, shown.isNotEmpty(), error,
+            "No pudimos cargar los sorteos",
+            if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
+            if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado."
+        ) { vm.load() }
 
-            item {
-                // Tres números en una sola tarjeta: en tres tarjetas angostas las etiquetas se partían.
-                UrbanStatStrip(
-                    listOf(
-                        Triple("Total", raffles.stats.total.toString(), UrbanColors.Ink),
-                        Triple("Reclamados", raffles.stats.reclamados.toString(), UrbanColors.Success),
-                        Triple("Vigentes", raffles.stats.vigentes.toString(), UrbanColors.Ink)
-                    )
+        if (loadedOnce) item {
+            // Tres números en una sola tarjeta: en tres tarjetas angostas las etiquetas se partían.
+            UrbanStatStrip(
+                listOf(
+                    Triple("Total", raffles.stats.total.toString(), UrbanColors.Ink),
+                    Triple("Reclamados", raffles.stats.reclamados.toString(), UrbanColors.Success),
+                    Triple("Vigentes", raffles.stats.vigentes.toString(), UrbanColors.Ink)
                 )
-            }
+            )
+        }
 
-            if (raffles.data.isNotEmpty()) {
-                item {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("todos" to "Todos", "vigentes" to "Vigentes", "reclamados" to "Reclamados", "caducados" to "Caducados").forEach { (key, label) ->
-                            FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text(label) }, colors = urbanFilterChipColors())
-                        }
+        if (raffles.data.isNotEmpty()) {
+            item {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("todos" to "Todos", "vigentes" to "Vigentes", "reclamados" to "Reclamados", "caducados" to "Caducados").forEach { (key, label) ->
+                        FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text(label) }, colors = urbanFilterChipColors())
                     }
                 }
             }
-            if (shown.isEmpty() && !busy) {
-                item {
-                    UrbanMascotState(
-                        UrbanStateKind.EMPTY,
-                        if (raffles.data.isEmpty()) "Sin sorteos" else "Sin resultados",
-                        if (raffles.data.isEmpty()) "Todavía no hay resultados de sorteos." else "No hay sorteos con este estado."
+        }
+
+
+        items(shown) { raffle ->
+            UrbanCard(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Text(raffle.client?.user?.name ?: "Cliente sin nombre", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(raffle.premio ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    SimpleStatusPill(
+                        when {
+                            raffle.isClaimed -> "reclamado"
+                            raffle.isExpired -> "caducado"
+                            else -> "vigente"
+                        }
                     )
                 }
-            }
-
-            items(shown) { raffle ->
-                UrbanCard(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                        Column(Modifier.weight(1f)) {
-                            Text(raffle.client?.user?.name ?: "Cliente sin nombre", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(raffle.premio ?: "—", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        SimpleStatusPill(
-                            when {
-                                raffle.isClaimed -> "reclamado"
-                                raffle.isExpired -> "caducado"
-                                else -> "vigente"
-                            }
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    UrbanKeyValue("Mes", raffle.mes ?: "—")
-                    UrbanKeyValue("Nivel ganador", raffle.nivelGanador ?: "—", Modifier.padding(top = 6.dp))
-                    UrbanKeyValue("Vence", raffle.venceEn?.let { UrbanFormat.date(it) } ?: "—", Modifier.padding(top = 6.dp))
-                }
+                Spacer(Modifier.height(8.dp))
+                UrbanKeyValue("Mes", raffle.mes ?: "—")
+                UrbanKeyValue("Nivel ganador", raffle.nivelGanador ?: "—", Modifier.padding(top = 6.dp))
+                UrbanKeyValue("Vence", raffle.venceEn?.let { UrbanFormat.date(it) } ?: "—", Modifier.padding(top = 6.dp))
             }
         }
     }
@@ -395,11 +381,9 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
 
         item {
             UrbanHeroCard {
-                UrbanHeroLabel("Tu semana")
-                Spacer(Modifier.height(6.dp))
                 Text(
                     if (activeDays.isEmpty()) "Sin días activos" else UrbanFormat.count(activeDays.size, "día de trabajo", "días de trabajo"),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = UrbanColors.Ink
                 )
                 Text(
@@ -407,9 +391,9 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
                     style = MaterialTheme.typography.bodySmall,
                     color = UrbanColors.Muted
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     UrbanHeroStat("Horas a la semana", "%.0f".format(weeklyMinutes / 60.0), Icons.Default.Schedule, Modifier.weight(1f))
                     UrbanHeroStat("Días libres", (7 - activeDays.size).toString(), Icons.Default.EventBusy, Modifier.weight(1f))
@@ -509,142 +493,132 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
     var notas by remember { mutableStateOf("") }
     var showConfirm by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load() }) { Icon(Icons.Default.Refresh, "Actualizar") } } }
-    ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
-            error?.let { item { UrbanErrorBanner(it) } }
-            message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+    UrbanModuleScreen(
+        eyebrow = "OPERACIÓN",
+        title = "Corte de caja",
+        subtitle = "${preview.fecha?.let { UrbanFormat.date(it) } ?: "Hoy"} · Revisa y concilia la caja.",
+        onBack = onBack,
+        onRefresh = { vm.load() },
+        refreshing = busy
+    ) {
+        if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
+        error?.let { item { UrbanErrorBanner(it) } }
+        message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
-            item {
-                UrbanPageHeader(
-                    title = "Cierre de hoy",
-                    subtitle = "${preview.fecha?.let { UrbanFormat.date(it) } ?: "Hoy"} · Revisa y concilia la caja.",
-                    eyebrow = "Corte de caja"
+        item {
+            UrbanPremiumCard(Modifier.fillMaxWidth()) {
+                Text("TOTAL REGISTRADO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
+                Text(
+                    UrbanFormat.money(preview.esperadoTotal),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = UrbanColors.Ink
                 )
+                Spacer(Modifier.height(10.dp))
+                HorizontalDivider(color = UrbanColors.Line)
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Efectivo esperado", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                        Text(UrbanFormat.money(preview.efectivoEsperado), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("Propinas", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
+                        Text(UrbanFormat.money(preview.propinas), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
+                    }
+                }
             }
+        }
 
+        if (preview.esperado.values.any { it > 0.0 }) {
             item {
-                UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                    Text("TOTAL REGISTRADO", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
+                val byMethod = preview.esperado.entries.filter { it.value > 0.0 }.sortedByDescending { it.value }
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Text("Cobros registrados", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    byMethod.forEachIndexed { index, (method, amount) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(METODO_LABEL[method] ?: method.replaceFirstChar { c -> c.uppercase() }, color = UrbanColors.Muted)
+                            Text(UrbanFormat.money(amount), fontWeight = FontWeight.SemiBold)
+                        }
+                        if (index < byMethod.lastIndex) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = UrbanColors.Line)
+                    }
                     Text(
-                        UrbanFormat.money(preview.esperadoTotal),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = UrbanColors.Ink
+                        "${preview.pagos} pagos · ${preview.pedidos} pedidos · ${preview.paquetes} paquetes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = UrbanColors.Muted,
+                        modifier = Modifier.padding(top = 10.dp)
                     )
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = UrbanColors.Line)
-                    Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Efectivo esperado", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
-                            Text(UrbanFormat.money(preview.efectivoEsperado), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text("Propinas", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
-                            Text(UrbanFormat.money(preview.propinas), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = UrbanColors.Ink)
-                        }
+                }
+            }
+        }
+
+        val cierre = preview.cierre
+        if (cierre != null) {
+            item {
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    Text("Caja ya cerrada hoy", style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
+                    Spacer(Modifier.height(8.dp))
+                    UrbanKeyValue("Efectivo contado", "${UrbanFormat.money(cierre.efectivoContado)}")
+                    val diff = cierre.diferencia
+                    val (diffText, diffTone) = when {
+                        kotlin.math.abs(diff) < 0.005 -> "Cuadró" to UrbanColors.Success
+                        diff > 0 -> "Sobran " + UrbanFormat.money(diff) to UrbanColors.Warning
+                        else -> "Faltan " + UrbanFormat.money(-diff) to UrbanColors.Danger
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Diferencia", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                        Text(diffText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = diffTone)
+                    }
+                    cierre.cerradoPorNombre?.let { UrbanKeyValue("Cerrado por", it, Modifier.padding(top = 6.dp)) }
+                    cierre.notas?.takeIf { it.isNotBlank() }?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                     }
                 }
             }
-
-            if (preview.esperado.values.any { it > 0.0 }) {
-                item {
-                    val byMethod = preview.esperado.entries.filter { it.value > 0.0 }.sortedByDescending { it.value }
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Text("Cobros registrados", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(8.dp))
-                        byMethod.forEachIndexed { index, (method, amount) ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(METODO_LABEL[method] ?: method.replaceFirstChar { c -> c.uppercase() }, color = UrbanColors.Muted)
-                                Text(UrbanFormat.money(amount), fontWeight = FontWeight.SemiBold)
-                            }
-                            if (index < byMethod.lastIndex) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = UrbanColors.Line)
-                        }
-                        Text(
-                            "${preview.pagos} pagos · ${preview.pedidos} pedidos · ${preview.paquetes} paquetes",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = UrbanColors.Muted,
-                            modifier = Modifier.padding(top = 10.dp)
-                        )
-                    }
-                }
-            }
-
-            val cierre = preview.cierre
-            if (cierre != null) {
-                item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        Text("Caja ya cerrada hoy", style = MaterialTheme.typography.titleMedium, color = UrbanColors.GoldText)
-                        Spacer(Modifier.height(8.dp))
-                        UrbanKeyValue("Efectivo contado", "${UrbanFormat.money(cierre.efectivoContado)}")
-                        val diff = cierre.diferencia
-                        val (diffText, diffTone) = when {
-                            kotlin.math.abs(diff) < 0.005 -> "Cuadró" to UrbanColors.Success
-                            diff > 0 -> "Sobran " + UrbanFormat.money(diff) to UrbanColors.Warning
-                            else -> "Faltan " + UrbanFormat.money(-diff) to UrbanColors.Danger
-                        }
-                        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Diferencia", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
-                            Text(diffText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = diffTone)
-                        }
-                        cierre.cerradoPorNombre?.let { UrbanKeyValue("Cerrado por", it, Modifier.padding(top = 6.dp)) }
-                        cierre.notas?.takeIf { it.isNotBlank() }?.let {
-                            Spacer(Modifier.height(6.dp))
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                        }
-                    }
-                }
-            } else {
-                item { UrbanSectionTitle("1. Cuenta el efectivo", "Compara el monto físico contra lo registrado.") }
-                item {
-                    UrbanCard(Modifier.fillMaxWidth()) {
-                        UrbanFieldLabel("Efectivo contado")
-                        Spacer(Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = efectivoContado,
-                            onValueChange = { efectivoContado = it },
-                            placeholder = { Text("0.00") },
-                            leadingIcon = { Icon(Icons.Default.Payments, null) },
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Text(
-                            "Esperado en efectivo: " + UrbanFormat.money(preview.efectivoEsperado),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = UrbanColors.Muted,
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        UrbanFieldLabel("Notas (opcional)")
-                        Spacer(Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = notas,
-                            onValueChange = { notas = it },
-                            placeholder = { Text("Ej. faltante por cambio de un billete") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-                item {
-                    val contado = efectivoContado.toDoubleOrNull()
-                    UrbanPrimaryButton(
-                        text = "Revisar y cerrar caja",
-                        onClick = { showConfirm = true },
-                        enabled = contado != null && contado >= 0,
-                        loading = closing,
-                        icon = Icons.Default.Lock,
+        } else {
+            item { UrbanSectionTitle("1. Cuenta el efectivo", "Compara el monto físico contra lo registrado.") }
+            item {
+                UrbanCard(Modifier.fillMaxWidth()) {
+                    UrbanFieldLabel("Efectivo contado")
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = efectivoContado,
+                        onValueChange = { efectivoContado = it },
+                        placeholder = { Text("0.00") },
+                        leadingIcon = { Icon(Icons.Default.Payments, null) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "Esperado en efectivo: " + UrbanFormat.money(preview.efectivoEsperado),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = UrbanColors.Muted,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    UrbanFieldLabel("Notas (opcional)")
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = notas,
+                        onValueChange = { notas = it },
+                        placeholder = { Text("Ej. faltante por cambio de un billete") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+            }
+            item {
+                val contado = efectivoContado.toDoubleOrNull()
+                UrbanPrimaryButton(
+                    text = "Revisar y cerrar caja",
+                    onClick = { showConfirm = true },
+                    enabled = contado != null && contado >= 0,
+                    loading = closing,
+                    icon = Icons.Default.Lock,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

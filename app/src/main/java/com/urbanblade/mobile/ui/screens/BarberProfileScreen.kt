@@ -37,6 +37,7 @@ import com.urbanblade.mobile.data.model.BarberWork
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BarberProfileViewModel
+import com.urbanblade.mobile.ui.theme.UrbanSpace
 
 /**
  * Ficha del barbero para el cliente (como /equipo/{slug} en la web): foto, especialidades,
@@ -59,7 +60,7 @@ fun BarberProfileScreen(
         com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("perfil_barbero_visto")
     }
 
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) { IconButton(onClick = { vm.load(slug) }, enabled = !loading) { Icon(Icons.Default.Refresh, "Actualizar perfil") } } }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) { UrbanRefreshButton(loading) { vm.load(slug) } } }) { padding ->
         val data = profile
         when {
             data == null && loading -> Box(Modifier.padding(padding).padding(18.dp)) { UrbanSkeletonList(4) }
@@ -68,7 +69,7 @@ fun BarberProfileScreen(
             }
             data != null -> LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 error?.let { item { UrbanErrorBanner(it) } }
