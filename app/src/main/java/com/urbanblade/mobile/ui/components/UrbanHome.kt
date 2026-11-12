@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.UrbanSpace
@@ -58,7 +59,8 @@ data class UrbanHeroStatSpec(
 
 /**
  * Resumen destacado de un inicio sobre [UrbanHeroCard], en poco alto: etiqueta, cifra o titular (con una
- * tendencia opcional a su lado), un detalle opcional y los datos secundarios en una sola fila, sin cajas
+ * tendencia opcional a su lado), un detalle opcional y datos secundarios que se apilan con poco ancho
+ * o fuente grande. En tamaño normal conserva una sola fila, sin cajas
  * de icono ni nota al pie aparte. Sustituye las copias de Administración, Recepción, Ingeniería y Barbero.
  */
 @Composable
@@ -73,36 +75,58 @@ fun UrbanHeroSummary(
     belowHeadline: (@Composable () -> Unit)? = null
 ) {
     UrbanHeroCard(if (onClick != null) modifier.clickable(onClick = onClick) else modifier) {
-        UrbanHeroLabel(label)
-        Spacer(Modifier.height(UrbanSpace.Xxs))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                headline,
-                style = if (large) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
-                color = UrbanColors.Ink,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            headlineTrailing?.let {
-                Spacer(Modifier.width(UrbanSpace.Xs))
-                it()
-            }
-        }
-        belowHeadline?.let {
-            Spacer(Modifier.height(UrbanSpace.Xxs))
-            it()
-        }
-        Spacer(Modifier.height(UrbanSpace.Sm))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)) {
-            stats.forEach { stat ->
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(stat.icon, null, tint = stat.tone, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(UrbanSpace.Xs))
-                    Column {
-                        Text(stat.value, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(stat.label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val stacked = maxWidth < 320.dp || LocalDensity.current.fontScale >= 1.3f
+            Column {
+                UrbanHeroLabel(label)
+                Spacer(Modifier.height(UrbanSpace.Xxs))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        headline,
+                        style = if (large) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
+                        color = UrbanColors.Ink,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (!stacked) {
+                        headlineTrailing?.let {
+                            Spacer(Modifier.width(UrbanSpace.Xs))
+                            it()
+                        }
+                    }
+                }
+                if (stacked) {
+                    headlineTrailing?.let {
+                        Spacer(Modifier.height(UrbanSpace.Xs))
+                        it()
+                    }
+                }
+                belowHeadline?.let {
+                    Spacer(Modifier.height(UrbanSpace.Xxs))
+                    it()
+                }
+                Spacer(Modifier.height(UrbanSpace.Sm))
+                if (stacked) {
+                    Column(verticalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)) {
+                        stats.forEach { stat -> HeroSummaryStat(stat, Modifier.fillMaxWidth()) }
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)) {
+                        stats.forEach { stat -> HeroSummaryStat(stat, Modifier.weight(1f)) }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HeroSummaryStat(stat: UrbanHeroStatSpec, modifier: Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(stat.icon, null, tint = stat.tone, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(UrbanSpace.Xs))
+        Column(Modifier.weight(1f)) {
+            Text(stat.value, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+            Text(stat.label, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
     }
 }

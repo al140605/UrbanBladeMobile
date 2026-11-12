@@ -1,8 +1,15 @@
 # Mejoras de UI/UX y compatibilidad con la API
 
-Revisión del plan: 4 de noviembre de 2026. Trabajo asociado a TT32 / HT-12.
+Revisión del plan: 9 de noviembre de 2026. Trabajo asociado a TT32 / HT-12.
 Las evidencias históricas de los incrementos conservan sus fechas y alcances.
 Rama de trabajo: `feat/mejoras-interfaz-mobile`. No abrir PR hasta completar los cambios y su validación; no fusionar ni publicar en Google Play durante esta fase.
+
+La [propuesta de evolución por cinco roles](PROPUESTA_MOVIL_CINCO_ROLES_2026-11-06.md)
+contrasta el pedido actual con Android `038ce57` y el contrato local de Laravel.
+Incluye recorridos, componentes Compose, ejemplos JSON, capacidades existentes y
+ampliaciones de backend. Su secuencia comienza por cerrar el pulido vigente y continúa
+con agenda, trabajo en silla, reserva de tres decisiones y analítica. Las funciones
+nuevas quedan identificadas como propuestas pendientes de implementación y validación.
 
 ## Comparativa y prioridad vigente
 

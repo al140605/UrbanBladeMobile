@@ -457,3 +457,19 @@ Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físi
 - App: `PushChannel.COMUNIDAD`, `report_resolved` → pantalla `social`, ícono propio en la bandeja y pruebas.
 - Pendiente: el backend debe publicarse por PR y desplegarse antes de que el aviso llegue; verificar en el
   teléfono cuando esté desplegado.
+
+## Incremento 1 de la propuesta de cinco roles: navegación y letra grande (9 de noviembre de 2026)
+
+- Los atajos a pestañas comparten `openDestination` con la barra inferior. Se evita apilar copias del
+  Muro y se conserva el estado al cambiar de pestaña. Para el personal, el Muro sigue siendo secundario.
+- Inicio permanece en la pila y no restaura módulos secundarios guardados desde él. Esto corrige el
+  recorrido Inicio → Notificaciones → Muro → pestaña Inicio, que podía reabrir Notificaciones.
+- `UrbanBottomNavigation` mide las etiquetas con el tamaño de letra actual: conserva una fila cuando
+  caben y distribuye los destinos en varias filas cuando necesitan espacio. Mantiene etiquetas completas,
+  estado seleccionado, semántica de pestaña y áreas táctiles de al menos 48 dp.
+- `UrbanHeroSummary` apila tendencia y estadísticas en ancho reducido o fuente desde 130 %, sin elipsis
+  en los importes. Conserva la composición compacta con ancho y fuente normales.
+- No cambia autenticación, llamadas Retrofit, modelos de API ni backend.
+- Validación en curso: pruebas de navegación, medición con el renderizador nativo de Robolectric,
+  lint, APK `.audit` y recorrido físico con API sintética local. Esta evidencia no acredita integración
+  con Laravel ni notificaciones FCM reales.

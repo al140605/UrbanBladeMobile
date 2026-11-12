@@ -1,6 +1,6 @@
 # Verificación UI/UX del contrato móvil actual
 
-Esta lista reemplaza los recorridos antiguos de cinco pestañas y catálogo inicial. Ver `UI_UX_CONTRATO_MOVIL.md` y `UI_UX_VALIDACION_2026-10-11.md`.
+Esta lista recoge los recorridos actuales; el cliente tiene cinco pestañas desde el 5 de noviembre de 2026. Ver `PULIDO_PANTALLAS_POR_ROL.md` para los incrementos posteriores a `UI_UX_CONTRATO_MOVIL.md` y `UI_UX_VALIDACION_2026-10-11.md`.
 
 ## Entorno seguro
 
@@ -37,7 +37,11 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:18765/_qa/control -ContentT
 
 ## Cliente
 
-- Cuatro pestañas: Inicio / Reservar / Mis citas / Cuenta; Beneficios/facturas/pedidos desde Cuenta.
+- Cinco pestañas: Inicio / Reservar / Mis citas / Muro / Cuenta; Beneficios/facturas/pedidos desde Cuenta.
+- Atajo al Muro desde Inicio: Atrás vuelve a Inicio. Repetir el acceso no apila copias del Muro.
+- Muro → perfil de barbero → Atrás conserva el estado del Muro. Cambiar de pestaña también lo conserva.
+- Inicio → Notificaciones → Muro → pestaña Inicio: muestra Inicio, sin restaurar la bandeja anterior.
+- A 320 dp y fuente 200 %, todos los destinos conservan su etiqueta completa y permiten seleccionar; la barra puede ocupar varias filas.
 - Favorito: guardar/quitar, recargar, preseleccionar sin reemplazar selección explícita.
 - Reserva: cuatro pasos; carga/error/reintento de horarios, sin lista de espera durante consulta. Cambios rápidos no dejan horarios anteriores. Atrás coherente.
 - Citas: próximas/historial, reagendar/cancelar con políticas reales y confirmación de acciones destructivas.
@@ -50,6 +54,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:18765/_qa/control -ContentT
 - Roles administrador/recepción/barbero/ingeniero y cuentas mixtas: navegación y permisos correctos.
 - Bladebot adecuado al rol y sin ocultar último contenido.
 - Cuatro temas, 320 dp, fuente ampliada, teclado y recreación: acciones alcanzables y contraste legible.
+- Resúmenes del personal: a 320 dp o fuente ampliada, cifras, tendencias y estadísticas se apilan y se leen completas.
 - TalkBack: nombres, favorito con estado, orden de foco y errores; no depender solo del color.
 
 Registrar versión, dispositivo, entorno y evidencia por caso. No marcar como validado un recorrido solo por leer el código o compilarlo.
