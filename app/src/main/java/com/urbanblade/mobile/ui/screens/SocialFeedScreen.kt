@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.data.model.SocialComment
 import com.urbanblade.mobile.data.model.SocialWork
 import com.urbanblade.mobile.ui.components.*
@@ -163,12 +164,12 @@ private fun WorkPost(
             error?.let { item { UrbanErrorBanner(it) } }
             item {
                 UrbanTextField(commentText, { commentText = it }, "Tu comentario", minLines = 2, maxLines = 4,
-                    helper = "${commentText.length}/500 caracteres · Sé respetuoso: los comentarios ofensivos se eliminan y pueden suspender tu cuenta.",
-                    error = if (commentText.length > 500) "Máximo 500 caracteres." else null)
+                    helper = "${commentText.length}/${FormLimits.COMMENT_MAX} caracteres · Sé respetuoso: los comentarios ofensivos se eliminan y pueden suspender tu cuenta.",
+                    error = if (commentText.length > FormLimits.COMMENT_MAX) "Máximo ${FormLimits.COMMENT_MAX} caracteres." else null)
             }
         }
                 UrbanPrimaryButton("Publicar comentario", { onComment(commentText) { commentText = "" } },
-                    enabled = enabled && commentText.trim().isNotEmpty() && commentText.trim().length <= 500,
+                    enabled = enabled && commentText.trim().isNotEmpty() && commentText.trim().length <= FormLimits.COMMENT_MAX,
                     loading = sending, modifier = Modifier.fillMaxWidth())
         }
     }

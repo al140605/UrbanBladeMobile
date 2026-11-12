@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.data.model.BarberProfileResponse
 import com.urbanblade.mobile.data.model.BarberReviewItem
 import com.urbanblade.mobile.data.model.BarberWork
@@ -277,7 +278,7 @@ private fun ReviewForm(data: BarberProfileResponse, vm: BarberProfileViewModel, 
         Spacer(Modifier.height(10.dp))
         UrbanTextField(
             value = comment,
-            onValueChange = { if (it.length <= 500) comment = it },
+            onValueChange = { if (it.length <= FormLimits.COMMENT_MAX) comment = it },
             label = "Comentario (opcional)",
             placeholder = "¿Cómo te fue con tu corte?",
             minLines = 3

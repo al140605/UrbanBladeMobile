@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonObject
 import com.urbanblade.mobile.core.network.AppContainer
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.data.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -604,7 +605,7 @@ class SocialFeedViewModel @JvmOverloads constructor(private val repo: UrbanRepos
 
     fun comment(id: String, text: String, onDone: () -> Unit) {
         val comment = text.trim()
-        if (comment.isEmpty() || comment.length > 500) return
+        if (comment.isEmpty() || comment.length > FormLimits.COMMENT_MAX) return
         action(id, "No se pudo publicar el comentario.") {
             val res = repo.commentWork(id, comment)
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
