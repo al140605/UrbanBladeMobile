@@ -92,6 +92,7 @@ fun UrbanModuleScreen(
     refreshing: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: (@Composable (expanded: Boolean) -> Unit)? = null,
+    hideFloatingActionButton: Boolean = false,
     listState: LazyListState = rememberLazyListState(),
     pinned: (@Composable ColumnScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit
@@ -106,7 +107,10 @@ fun UrbanModuleScreen(
                 actions()
             }
         },
-        floatingActionButton = { floatingActionButton?.invoke(rememberFabExpanded(listState)) }
+        floatingActionButton = {
+            val expanded = rememberFabExpanded(listState)
+            if (!hideFloatingActionButton) floatingActionButton?.invoke(expanded)
+        }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.
@@ -126,7 +130,7 @@ fun UrbanModuleScreen(
                     start = UrbanSpace.Gutter,
                     end = UrbanSpace.Gutter,
                     top = if (pinned != null) UrbanSpace.Md else UrbanSpace.Xxs,
-                    bottom = if (floatingActionButton != null) UrbanSpace.FabClearance else UrbanSpace.Xl
+                    bottom = if (floatingActionButton != null && !hideFloatingActionButton) UrbanSpace.FabClearance else UrbanSpace.Xl
                 ),
                 verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
             ) {

@@ -65,6 +65,7 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.OffersAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.isConfirmedEmpty
 import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 private enum class OffersTab(val label: String) { Membresias("Membresías"), Paquetes("Paquetes") }
@@ -96,7 +97,13 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
                 vm.clearMessages()
                 if (tab == OffersTab.Membresias) creatingPlan = true else creatingPackage = true
             }
-        }
+        },
+        // Con la pestaña vacía su estado ya trae el botón («Nuevo plan» / «Nuevo paquete»): el flotante sobra.
+        hideFloatingActionButton = isConfirmedEmpty(
+            state.loaded, state.loading,
+            if (tab == OffersTab.Membresias) state.plans.isNotEmpty() else state.packages.isNotEmpty(),
+            state.listError
+        )
     ) {
         item {
             UrbanPillTabs(
