@@ -1,0 +1,8 @@
+{
+  "message": "Perfil actualizado exitosamente",
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez Actualizado",
+    "email": "nuevo@example.com"
+  }
+}

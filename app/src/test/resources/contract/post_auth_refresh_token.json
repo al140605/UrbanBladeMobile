@@ -1,0 +1,11 @@
+{
+  "message": "Token renovado exitosamente.",
+  "token_type": "Bearer",
+  "token": "3|newtoken...",
+  "expires_at": "2026-10-11T12:00:00.000000Z",
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan@example.com"
+  }
+}

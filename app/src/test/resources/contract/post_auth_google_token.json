@@ -1,0 +1,10 @@
+{
+  "message": "Autenticación exitosa.",
+  "token_type": "Bearer",
+  "token": "1|abc123def456...",
+  "user": {
+    "id": 1,
+    "name": "Juan Pérez",
+    "email": "juan@example.com"
+  }
+}
