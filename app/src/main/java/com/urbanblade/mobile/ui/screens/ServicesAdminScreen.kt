@@ -68,6 +68,7 @@ import com.urbanblade.mobile.ui.viewmodel.ServicesAdminViewModel
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
 import com.urbanblade.mobile.ui.components.UrbanTextButton
+import com.urbanblade.mobile.ui.components.isConfirmedEmpty
 import com.urbanblade.mobile.ui.components.urbanListFeedback
 
 /** Catálogo de servicios del administrador: buscar, filtrar, crear, editar, activar y eliminar. */
@@ -80,6 +81,8 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
 
     LaunchedEffect(Unit) { vm.load() }
 
+    val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
+
     UrbanModuleScreen(
         eyebrow = "ADMINISTRACIÓN",
         title = "Servicios",
@@ -89,7 +92,9 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
         refreshing = state.loading || state.loadingMore || state.saving,
         floatingActionButton = { expanded ->
             UrbanFab("Nuevo servicio", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
-        }
+        },
+        // Sin servicios y sin filtros el vacío trae «Nuevo servicio»: el flotante sobra. Con un filtro sin resultados se queda.
+        hideFloatingActionButton = firstTime && isConfirmedEmpty(state.loaded, state.loading, state.items.isNotEmpty(), state.listError)
     ) {
         item {
             UrbanTextField(
@@ -114,7 +119,6 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
         // Con el formulario abierto el error de guardar se muestra dentro de la hoja, no aquí.
         if (editing == null && !creating) state.error?.let { item { UrbanErrorBanner(it) } }
 
-        val firstTime = state.query.isBlank() && state.status == ServiceStatusFilter.Todos
         urbanListFeedback(
             state.loaded, state.loading, state.items.isNotEmpty(), state.listError,
             "No pudimos cargar los servicios",

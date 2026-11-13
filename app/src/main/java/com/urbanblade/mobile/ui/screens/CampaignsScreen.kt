@@ -75,6 +75,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import com.urbanblade.mobile.ui.components.UrbanModuleScreen
 import com.urbanblade.mobile.ui.components.UrbanFab
+import com.urbanblade.mobile.ui.components.isConfirmedEmpty
 import com.urbanblade.mobile.ui.components.urbanListFeedback
 import com.urbanblade.mobile.ui.components.UrbanStatCard
 
@@ -97,7 +98,9 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
         refreshing = state.loading || state.sending,
         floatingActionButton = { expanded ->
             UrbanFab("Nueva campaña", Icons.Default.Add, expanded) { vm.clearMessages(); creating = true }
-        }
+        },
+        // Con el vacío confirmado la acción va en el propio estado vacío: el flotante taparía su texto.
+        hideFloatingActionButton = isConfirmedEmpty(state.loaded, state.loading, data.data.isNotEmpty(), state.listError)
     ) {
         if (state.sending) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -121,11 +124,12 @@ fun CampaignsScreen(onBack: () -> Unit, vm: CampaignsViewModel = viewModel()) {
         }
 
         item { UrbanSectionTitle("Últimas campañas", "Las 10 más recientes") }
-        // Sin botón propio en el vacío: el flotante "Nueva campaña" ya está en pantalla y lo tapaba.
         urbanListFeedback(
             state.loaded, state.loading, data.data.isNotEmpty(), state.listError,
             "No pudimos cargar las campañas", "Sin campañas todavía",
-            "Llega a tus clientes con una promoción por segmento: usa «Nueva campaña»."
+            "Llega a tus clientes con una promoción por segmento.",
+            emptyActionLabel = "Nueva campaña", emptyActionIcon = Icons.Default.Add,
+            onEmptyAction = { vm.clearMessages(); creating = true }
         ) { vm.load() }
         items(data.data, key = { it.id }) { campaign -> CampaignCard(campaign, labels[campaign.segmento] ?: segmentLabel(campaign.segmento, data.levels)) }
     }

@@ -24,6 +24,14 @@ internal fun listFeedbackState(loaded: Boolean, loading: Boolean, hasItems: Bool
 }
 
 /**
+ * Vacío confirmado de un listado: ya cargó, no hay carga ni error en curso y no hay elementos. En ese estado el vacío
+ * lleva su propia acción, así que el botón flotante del módulo se oculta (`hideFloatingActionButton` de
+ * `UrbanModuleScreen`) en vez de tapar el texto o duplicar el mismo botón.
+ */
+internal fun isConfirmedEmpty(loaded: Boolean, loading: Boolean, hasItems: Boolean, error: String?): Boolean =
+    listFeedbackState(loaded, loading, hasItems, error) == ListFeedbackState.EMPTY
+
+/**
  * Solo para consultas: los errores de guardar o ejecutar acciones mantienen su aviso propio.
  * [emptyActionLabel] añade una acción al vacío confirmado (por ejemplo «Registrar cliente»).
  */
