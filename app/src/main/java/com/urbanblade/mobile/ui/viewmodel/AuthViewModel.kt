@@ -210,8 +210,8 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
                 ?: "Tu cuenta no tiene permiso para hacer esto."
             // El servidor explica por qué no se pudo ("el pago aún no está resuelto", "tienes un adeudo…") en
             // español; los errores de validación genéricos de Laravel vienen en inglés y se siguen resumiendo.
-            422 -> serverMessage()?.takeIf { it.isNotBlank() && !it.startsWith("The ") && !it.contains("(and ") }
-                ?: "Revisa los datos capturados."
+            // Si solo hay el resumen genérico, se nombran los campos rechazados («Revisa: Correo, Teléfono.»).
+            422 -> validationMessage(errorBodyText())
             429 -> "Demasiados intentos. Intenta de nuevo más tarde."
             503 -> "UrbanBlade está en mantenimiento."
             else -> fallback

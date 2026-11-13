@@ -77,6 +77,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.core.auth.GoogleAuthHelper
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.ui.components.UrbanPublicPanel
 import com.urbanblade.mobile.ui.components.AuthPrimaryButton
 import com.urbanblade.mobile.ui.components.LegalConsentCheckbox
@@ -305,7 +306,7 @@ fun RegisterScreen(
             StaggerIn(3) {
                 UrbanTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { name = it.take(FormLimits.NAME_MAX) },
                     label = "Nombre",
                     leadingIcon = Icons.Default.Person,
                     capitalization = KeyboardCapitalization.Words
@@ -314,7 +315,7 @@ fun RegisterScreen(
             StaggerIn(4) {
                 UrbanTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = { email = it.take(FormLimits.EMAIL_MAX) },
                     label = "Correo electrónico",
                     leadingIcon = Icons.Default.AlternateEmail,
                     placeholder = "nombre@correo.com",

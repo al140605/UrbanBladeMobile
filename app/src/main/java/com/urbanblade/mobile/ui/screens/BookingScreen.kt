@@ -7,6 +7,7 @@ import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.urbanblade.mobile.BuildConfig
 import com.urbanblade.mobile.core.payment.rememberStripeReady
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -341,7 +342,7 @@ fun BookingScreen(
                                     cart = cart,
                                     onQuantity = { id, qty -> cart = if (qty <= 0) cart - id else cart + (id to qty) },
                                     notes = notes,
-                                    onNotesChange = { notes = it }
+                                    onNotesChange = { notes = it.take(FormLimits.NOTES_MAX) }
                                 )
                                 BookingStep.PAY -> ReviewStep(
                                     service = selectedService,
@@ -829,6 +830,7 @@ private fun ExtrasStep(
             onValueChange = onNotesChange,
             label = "Notas para tu barbero (opcional)",
             placeholder = "Ej. degradado bajo, barba corta…",
+            helper = if (FormLimits.nearLimit(notes, FormLimits.NOTES_MAX)) "${notes.length}/${FormLimits.NOTES_MAX}" else null,
             leadingIcon = Icons.Default.EditNote,
             capitalization = KeyboardCapitalization.Sentences,
             imeAction = ImeAction.Default,

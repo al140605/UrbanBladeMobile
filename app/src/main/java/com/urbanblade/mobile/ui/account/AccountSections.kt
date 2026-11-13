@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.core.validation.FormLimits
 import com.urbanblade.mobile.data.model.AccountUser
 import com.urbanblade.mobile.data.model.NotificationPreferences
 import com.urbanblade.mobile.ui.components.PasswordStrengthMeter
@@ -105,13 +106,13 @@ fun PersonalDataForm(
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         UrbanTextField(
-            name, { name = it }, "Nombre completo",
+            name, { name = it.take(FormLimits.NAME_MAX) }, "Nombre completo",
             leadingIcon = Icons.Default.Person,
             capitalization = KeyboardCapitalization.Words,
             error = nameError.takeIf { dirty }
         )
         UrbanTextField(
-            email, { email = it }, "Correo",
+            email, { email = it.take(FormLimits.EMAIL_MAX) }, "Correo",
             leadingIcon = Icons.Default.AlternateEmail,
             keyboardType = KeyboardType.Email,
             error = emailError.takeIf { dirty },
