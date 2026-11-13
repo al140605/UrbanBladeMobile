@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "id": 10,
+      "producto": "Shampoo Anti-caspa",
+      "tipo": "entrada",
+      "cantidad": 12,
+      "motivo": "Reposición de stock",
+      "responsable": "Admin",
+      "fecha": "2026-04-10T10:30:00Z"
+    }
+  ]
+}

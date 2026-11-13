@@ -1,0 +1,445 @@
+{
+  "data": [
+    {
+      "id": "6ab535ef96a5df8c0a01f10e",
+      "title": "test",
+      "description": "Ejemplo",
+      "work_date": "2026-09-24",
+      "barber": {
+        "id": "6aab96924c163e944d0b36d5",
+        "name": "Gonzalez Ramirez Luis Enrique",
+        "slug": "gonzalez-ramirez-luis-enrique",
+        "foto": null
+      },
+      "images": [
+        "http://localhost:8000/storage/portfolio/IGIDmfOJP4AnLGMBCAdmM6HZU0Xk2M95aWPdHxyv.jpg"
+      ],
+      "media": [
+        {
+          "url": "http://localhost:8000/storage/portfolio/IGIDmfOJP4AnLGMBCAdmM6HZU0Xk2M95aWPdHxyv.jpg",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 2,
+      "comments_count": 0,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": []
+    },
+    {
+      "id": "6aaa3b11d95ef709410e3841",
+      "title": "Degradado quirurgico",
+      "description": "Transformando looks, un cliente a la vez.",
+      "work_date": "2025-11-29",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1534297635766-a262cdcb8ee4?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1534297635766-a262cdcb8ee4?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 21,
+      "comments_count": 3,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": [
+        {
+          "id": "6aaa3b12d95ef709410e3898",
+          "comment": "Se ve buenisimo, recomendado al 100%.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3899",
+          "comment": "Ya quiero mi cita para que me dejen asi.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3897",
+          "comment": "Un artista con las tijeras.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        }
+      ]
+    },
+    {
+      "id": "6aaa3b11d95ef709410e3840",
+      "title": "Fade limpio de la semana",
+      "description": "Cada corte cuenta una historia. Este es el resultado de hoy.",
+      "work_date": "2026-06-25",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 11,
+      "comments_count": 3,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": [
+        {
+          "id": "6aaa3b12d95ef709410e3895",
+          "comment": "Vengo desde hace años y nunca falla.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3896",
+          "comment": "Vengo desde hace años y nunca falla.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3894",
+          "comment": "Trabajo limpio y profesional.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        }
+      ]
+    },
+    {
+      "id": "6aaa3b11d95ef709410e383f",
+      "title": "Estilo moderno urbano",
+      "description": "Transformando looks, un cliente a la vez.",
+      "work_date": "2026-01-01",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 18,
+      "comments_count": 1,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": [
+        {
+          "id": "6aaa3b12d95ef709410e3893",
+          "comment": "Vengo desde hace años y nunca falla.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        }
+      ]
+    },
+    {
+      "id": "6aaa3b11d95ef709410e383e",
+      "title": "Degradado quirurgico",
+      "description": "Cada corte cuenta una historia. Este es el resultado de hoy.",
+      "work_date": "2026-08-21",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 10,
+      "comments_count": 3,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": [
+        {
+          "id": "6aaa3b12d95ef709410e3890",
+          "comment": "Que nivel de detalle, impresionante.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3891",
+          "comment": "Que precision en el degradado.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e3892",
+          "comment": "Que precision en el degradado.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        }
+      ]
+    },
+    {
+      "id": "6aaa3b11d95ef709410e383d",
+      "title": "Precision en cada linea",
+      "description": "Cada corte cuenta una historia. Este es el resultado de hoy.",
+      "work_date": "2025-07-24",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 20,
+      "comments_count": 2,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": [
+        {
+          "id": "6aaa3b12d95ef709410e388f",
+          "comment": "El mejor barbero de la zona, sin duda.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        },
+        {
+          "id": "6aaa3b12d95ef709410e388e",
+          "comment": "Que precision en el degradado.",
+          "user": {
+            "name": null
+          },
+          "created_at": "2026-09-16T00:45:38-06:00"
+        }
+      ]
+    },
+    {
+      "id": "6aaa3b10d95ef709410e383c",
+      "title": "Corte clasico con estilo",
+      "description": "Trabajo minucioso, resultado impecable. Agenda tu cita.",
+      "work_date": "2025-04-13",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 5,
+      "comments_count": 0,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": []
+    },
+    {
+      "id": "6aaa3b10d95ef709410e383b",
+      "title": "Look renovado para el finde",
+      "description": "Otro cliente satisfecho saliendo con estilo de UrbanBlade.",
+      "work_date": "2025-12-02",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1605497787928-40e1c74e4e74?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 0,
+      "comments_count": 0,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": []
+    },
+    {
+      "id": "6aaa3b10d95ef709410e383a",
+      "title": "Transformacion total",
+      "description": "Trabajo minucioso, resultado impecable. Agenda tu cita.",
+      "work_date": "2026-01-17",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 20,
+      "comments_count": 0,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": []
+    },
+    {
+      "id": "6aaa3b10d95ef709410e3839",
+      "title": "Trabajo de detalle",
+      "description": null,
+      "work_date": "2026-07-15",
+      "barber": {
+        "id": null,
+        "name": null,
+        "slug": null,
+        "foto": null
+      },
+      "images": [
+        "https://images.unsplash.com/photo-1534297635766-a262cdcb8ee4?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=900&h=1100&auto=format&fit=crop&q=85",
+        "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85"
+      ],
+      "media": [
+        {
+          "url": "https://images.unsplash.com/photo-1534297635766-a262cdcb8ee4?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1592647420148-bfcc177e2117?w=900&h=1100&auto=format&fit=crop&q=85",
+          "type": "image"
+        }
+      ],
+      "reactions_count": 0,
+      "comments_count": 0,
+      "saved_count": 0,
+      "is_reacted": false,
+      "is_saved": false,
+      "comments": []
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 3,
+    "total": 24
+  }
+}

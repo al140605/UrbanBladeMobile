@@ -1,0 +1,184 @@
+{
+  "data": [
+    {
+      "id": "6aaa3a46d95ef709410e35bc",
+      "nombre": "Afeitado Clásico",
+      "categoria": "Barba",
+      "precio": 180,
+      "duracion_min": 30,
+      "descripcion": "Afeitado tradicional con navaja y toalla caliente.",
+      "imagen": "http://localhost:8000/storage/services/OBSXla86DdParNhf0RnGAfg4HL2cdpCfcnQQnNkk.webp"
+    },
+    {
+      "id": "6aaa3a46d95ef709410e35bb",
+      "nombre": "Arreglo de Barba",
+      "categoria": "Barba",
+      "precio": 100,
+      "duracion_min": 15,
+      "descripcion": "Recorte y perfilado rápido de barba.",
+      "imagen": "http://localhost:8000/storage/services/YcC3ru4tjNMf4OkBKmzAT9TiQoSVS3NzvDDd85Tp.jpg"
+    },
+    {
+      "id": "6aaa3a46d95ef709410e35bd",
+      "nombre": "Combo Corte + Barba",
+      "categoria": "Combos",
+      "precio": 320,
+      "duracion_min": 60,
+      "descripcion": "Paquete completo de corte y arreglo de barba.",
+      "imagen": "http://localhost:8000/storage/services/dy5873ujL0jLV7lmPThhS0vsM4kC6BTcXh4ReftD.jpg"
+    },
+    {
+      "id": "6aaa3a47d95ef709410e35be",
+      "nombre": "Combo Premium",
+      "categoria": "Combos",
+      "precio": 450,
+      "duracion_min": 75,
+      "descripcion": "Corte, barba, tratamiento capilar y toalla caliente.",
+      "imagen": "http://localhost:8000/storage/services/Syot8UweGG8qNu47uzcNcBxtwa3o7A0ZzA4TA5bZ.jpg"
+    },
+    {
+      "id": "6aaa3a43d95ef709410e35b3",
+      "nombre": "Corte Clásico",
+      "categoria": "Cortes",
+      "precio": 180,
+      "duracion_min": 30,
+      "descripcion": "Corte de cabello tradicional con tijera y máquina, acabado prolijo.",
+      "imagen": "http://localhost:8000/storage/services/FdATpKjZg0K5RWA42p978vXgRig5q722RpSdc8bh.jpg"
+    },
+    {
+      "id": "6aaa3a45d95ef709410e35b9",
+      "nombre": "Corte Infantil",
+      "categoria": "Cortes",
+      "precio": 150,
+      "duracion_min": 25,
+      "descripcion": "Corte para niños, ambiente relajado y paciente.",
+      "imagen": "http://localhost:8000/storage/services/LSkeehcKQeM2Uu0UPkYqEfl45MoyMt6Ul9H0cVXs.jpg"
+    },
+    {
+      "id": "6aaa3a45d95ef709410e35b8",
+      "nombre": "Corte Mohicano",
+      "categoria": "Cortes",
+      "precio": 260,
+      "duracion_min": 45,
+      "descripcion": "Cresta central marcada con laterales rapados.",
+      "imagen": "http://localhost:8000/storage/services/j4JvHxOdgDjCB8455h4zpUjda3nIDJuZB2uHgLrT.jpg"
+    },
+    {
+      "id": "6aaa3a49d95ef709410e35c3",
+      "nombre": "Corte a Navaja",
+      "categoria": "Cortes",
+      "precio": 260,
+      "duracion_min": 40,
+      "descripcion": "Corte completo trabajado enteramente a navaja.",
+      "imagen": "http://localhost:8000/storage/services/vYPyy5B6SMEmorRv9fKiyPHPsmj4VLikZXpWvcgv.jpg"
+    },
+    {
+      "id": "6aaa3a45d95ef709410e35ba",
+      "nombre": "Diseño de Barba",
+      "categoria": "Barba",
+      "precio": 150,
+      "duracion_min": 25,
+      "descripcion": "Perfilado y diseño de barba con navaja.",
+      "imagen": "http://localhost:8000/storage/services/her9jzuzKKrSixaLq9yZuDgnrHp5xypfCHMEX87K.jpg"
+    },
+    {
+      "id": "6aaa3a48d95ef709410e35c2",
+      "nombre": "Keratina Express",
+      "categoria": "Tratamientos",
+      "precio": 350,
+      "duracion_min": 50,
+      "descripcion": "Alisado ligero con keratina, brillo inmediato.",
+      "imagen": "http://localhost:8000/storage/services/eFUUmGJD7PGLfYGqkz7T0QTsBBYr8WcBNpsft3iM.jpg"
+    },
+    {
+      "id": "6aaa3a48d95ef709410e35c1",
+      "nombre": "Perfilado de Cejas",
+      "categoria": "Tratamientos",
+      "precio": 90,
+      "duracion_min": 15,
+      "descripcion": "Diseño y limpieza de cejas con navaja o pinza.",
+      "imagen": "http://localhost:8000/storage/services/p0PTL1D81mmPq1pL1pqCWUK6gqIr34JH36HZ8bu5.webp"
+    },
+    {
+      "id": "6aaa3a44d95ef709410e35b7",
+      "nombre": "Pompadour",
+      "categoria": "Cortes",
+      "precio": 240,
+      "duracion_min": 45,
+      "descripcion": "Corte con volumen frontal peinado hacia atrás.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a49d95ef709410e35c4",
+      "nombre": "Rapado Total",
+      "categoria": "Cortes",
+      "precio": 130,
+      "duracion_min": 20,
+      "descripcion": "Rapado uniforme de toda la cabeza.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4ad95ef709410e35c6",
+      "nombre": "Retoque Express",
+      "categoria": "Cortes",
+      "precio": 120,
+      "duracion_min": 15,
+      "descripcion": "Retoque rápido de contornos entre cortes.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a44d95ef709410e35b5",
+      "nombre": "Skin Fade",
+      "categoria": "Cortes",
+      "precio": 250,
+      "duracion_min": 45,
+      "descripcion": "Degradado a piel, look moderno y muy definido.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4ad95ef709410e35c5",
+      "nombre": "Spa Capilar",
+      "categoria": "Tratamientos",
+      "precio": 300,
+      "duracion_min": 40,
+      "descripcion": "Masaje, mascarilla y limpieza profunda del cabello.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a43d95ef709410e35b4",
+      "nombre": "Taper Fade",
+      "categoria": "Cortes",
+      "precio": 220,
+      "duracion_min": 40,
+      "descripcion": "Degradado progresivo en los laterales con transición suave.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a47d95ef709410e35c0",
+      "nombre": "Tinte / Color",
+      "categoria": "Tratamientos",
+      "precio": 380,
+      "duracion_min": 60,
+      "descripcion": "Coloración completa o mechas según preferencia.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a47d95ef709410e35bf",
+      "nombre": "Tratamiento Capilar",
+      "categoria": "Tratamientos",
+      "precio": 280,
+      "duracion_min": 35,
+      "descripcion": "Hidratación y nutrición profunda del cuero cabelludo.",
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a44d95ef709410e35b6",
+      "nombre": "Undercut",
+      "categoria": "Cortes",
+      "precio": 230,
+      "duracion_min": 40,
+      "descripcion": "Rapado en laterales con volumen conservado arriba.",
+      "imagen": null
+    }
+  ]
+}

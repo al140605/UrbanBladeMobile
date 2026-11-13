@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": "6aadd78765a6ba4bd80adfc2",
+      "slug": "gonzalez-ramirez-luis-enrique",
+      "user": {
+        "id": "6aab96924c163e944d0b36d5",
+        "name": "Gonzalez Ramirez Luis Enrique"
+      },
+      "especialidades": "",
+      "descripcion": "Barbero profesional de UrbanBlade.",
+      "foto": "https://uploads.urbanblade.example/avatars/6aab96924c163e944d0b36d5/77335daf-1099-431b-adfc-44780e9aeab1.jpg",
+      "activo": true,
+      "avg_rating": 3,
+      "total_reviews": 1,
+      "citas_conmigo": null,
+      "es_favorito": false
+    }
+  ]
+}

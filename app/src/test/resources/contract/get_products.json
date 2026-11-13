@@ -1,0 +1,238 @@
+{
+  "data": [
+    {
+      "id": "6aaa3a51d95ef709410e35d9",
+      "nombre": "Aceite de Barba Premium",
+      "categoria": "Barba",
+      "descripcion": "Aceite de Barba Premium — producto profesional UrbanBlade.",
+      "precio_venta": 200,
+      "stock_actual": 4,
+      "imagen": "http://localhost:8000/storage/products/ldHXKkwwr7h14r9EQ73jaaezDCfhwxUoT7LM7TMD.jpg"
+    },
+    {
+      "id": "6aaa3a4fd95ef709410e35d5",
+      "nombre": "Acondicionador Hidratante",
+      "categoria": "Cuidado Capilar",
+      "descripcion": "Acondicionador Hidratante — producto profesional UrbanBlade.",
+      "precio_venta": 160,
+      "stock_actual": 29,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a53d95ef709410e35df",
+      "nombre": "Aftershave Refrescante",
+      "categoria": "Afeitado",
+      "descripcion": "Aftershave Refrescante — producto profesional UrbanBlade.",
+      "precio_venta": 140,
+      "stock_actual": 52,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4dd95ef709410e35cd",
+      "nombre": "Arcilla Modeladora",
+      "categoria": "Styling",
+      "descripcion": "Arcilla Modeladora — producto profesional UrbanBlade.",
+      "precio_venta": 160,
+      "stock_actual": 57,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a51d95ef709410e35db",
+      "nombre": "Balsamo de Barba",
+      "categoria": "Barba",
+      "descripcion": "Balsamo de Barba — producto profesional UrbanBlade.",
+      "precio_venta": 180,
+      "stock_actual": 22,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a56d95ef709410e35e9",
+      "nombre": "Cepillo para Barba",
+      "categoria": "Accesorios",
+      "descripcion": "Cepillo para Barba — producto profesional UrbanBlade.",
+      "precio_venta": 110,
+      "stock_actual": 12,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4ad95ef709410e35c7",
+      "nombre": "Cera Mate Fijacion Fuerte",
+      "categoria": "Styling",
+      "descripcion": "Cera Mate Fijacion Fuerte — producto profesional UrbanBlade.",
+      "precio_venta": 150,
+      "stock_actual": 25,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5ed95ef709410e35ff",
+      "nombre": "Colonia UrbanBlade Signature",
+      "categoria": "Fragancias",
+      "descripcion": "Colonia UrbanBlade Signature — producto profesional UrbanBlade.",
+      "precio_venta": 420,
+      "stock_actual": 5,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a54d95ef709410e35e1",
+      "nombre": "Crema de Afeitar Clasica",
+      "categoria": "Afeitado",
+      "descripcion": "Crema de Afeitar Clasica — producto profesional UrbanBlade.",
+      "precio_venta": 120,
+      "stock_actual": 26,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4cd95ef709410e35cb",
+      "nombre": "Gel Fijador Extra Fuerte",
+      "categoria": "Styling",
+      "descripcion": "Gel Fijador Extra Fuerte — producto profesional UrbanBlade.",
+      "precio_venta": 110,
+      "stock_actual": 8,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5dd95ef709410e35fb",
+      "nombre": "Jabon de Barba Artesanal",
+      "categoria": "Barba",
+      "descripcion": "Jabon de Barba Artesanal — producto profesional UrbanBlade.",
+      "precio_venta": 125,
+      "stock_actual": 11,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a52d95ef709410e35dd",
+      "nombre": "Kit Aceite y Balsamo de Barba",
+      "categoria": "Barba",
+      "descripcion": "Kit Aceite y Balsamo de Barba — producto profesional UrbanBlade.",
+      "precio_venta": 320,
+      "stock_actual": 34,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a54d95ef709410e35e3",
+      "nombre": "Locion Post Afeitado",
+      "categoria": "Afeitado",
+      "descripcion": "Locion Post Afeitado — producto profesional UrbanBlade.",
+      "precio_venta": 130,
+      "stock_actual": 10,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a50d95ef709410e35d7",
+      "nombre": "Mascarilla Capilar Nutritiva",
+      "categoria": "Cuidado Capilar",
+      "descripcion": "Mascarilla Capilar Nutritiva — producto profesional UrbanBlade.",
+      "precio_venta": 210,
+      "stock_actual": 9,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a55d95ef709410e35e5",
+      "nombre": "Navajas de Afeitar (5 pzas)",
+      "categoria": "Afeitado",
+      "descripcion": "Navajas de Afeitar (5 pzas) — producto profesional UrbanBlade.",
+      "precio_venta": 95,
+      "stock_actual": 38,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a55d95ef709410e35e7",
+      "nombre": "Peine de Madera",
+      "categoria": "Accesorios",
+      "descripcion": "Peine de Madera — producto profesional UrbanBlade.",
+      "precio_venta": 90,
+      "stock_actual": 58,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4bd95ef709410e35c9",
+      "nombre": "Pomada Brillante Clasica",
+      "categoria": "Styling",
+      "descripcion": "Pomada Brillante Clasica — producto profesional UrbanBlade.",
+      "precio_venta": 140,
+      "stock_actual": 19,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5cd95ef709410e35f9",
+      "nombre": "Serum Brillo Instantaneo",
+      "categoria": "Styling",
+      "descripcion": "Serum Brillo Instantaneo — producto profesional UrbanBlade.",
+      "precio_venta": 165,
+      "stock_actual": 57,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5dd95ef709410e35fd",
+      "nombre": "Set de Viaje Grooming",
+      "categoria": "Accesorios",
+      "descripcion": "Set de Viaje Grooming — producto profesional UrbanBlade.",
+      "precio_venta": 350,
+      "stock_actual": 29,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4ed95ef709410e35d1",
+      "nombre": "Shampoo Anticaida",
+      "categoria": "Cuidado Capilar",
+      "descripcion": "Shampoo Anticaida — producto profesional UrbanBlade.",
+      "precio_venta": 180,
+      "stock_actual": 23,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4fd95ef709410e35d3",
+      "nombre": "Shampoo Carbon Activado",
+      "categoria": "Cuidado Capilar",
+      "descripcion": "Shampoo Carbon Activado — producto profesional UrbanBlade.",
+      "precio_venta": 170,
+      "stock_actual": 38,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a4dd95ef709410e35cf",
+      "nombre": "Spray Fijador Profesional",
+      "categoria": "Styling",
+      "descripcion": "Spray Fijador Profesional — producto profesional UrbanBlade.",
+      "precio_venta": 130,
+      "stock_actual": 47,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5ad95ef709410e35f5",
+      "nombre": "Talco Refrescante",
+      "categoria": "Afeitado",
+      "descripcion": "Talco Refrescante — producto profesional UrbanBlade.",
+      "precio_venta": 95,
+      "stock_actual": 40,
+      "imagen": null
+    },
+    {
+      "id": "6ab70e856688e1bd7b0103dd",
+      "nombre": "Test",
+      "categoria": "Test",
+      "descripcion": "Etgdb",
+      "precio_venta": 200,
+      "stock_actual": 15,
+      "imagen": "http://localhost:8000/storage/products/jJT13Q4rBMwzzX5MGnAiMy2OwLlqLWseWRKSyFWl.jpg"
+    },
+    {
+      "id": "6aaa3a57d95ef709410e35eb",
+      "nombre": "Toalla Facial Premium",
+      "categoria": "Accesorios",
+      "descripcion": "Toalla Facial Premium — producto profesional UrbanBlade.",
+      "precio_venta": 140,
+      "stock_actual": 27,
+      "imagen": null
+    },
+    {
+      "id": "6aaa3a5bd95ef709410e35f7",
+      "nombre": "Tonico Capilar Anticaspa",
+      "categoria": "Cuidado Capilar",
+      "descripcion": "Tonico Capilar Anticaspa — producto profesional UrbanBlade.",
+      "precio_venta": 150,
+      "stock_actual": 6,
+      "imagen": null
+    }
+  ]
+}

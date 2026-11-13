@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Pomada Mate",
+      "categoria": "Fijación",
+      "stock_actual": 15,
+      "low_stock": false,
+      "precio_venta": 25.0
+    }
+  ]
+}
