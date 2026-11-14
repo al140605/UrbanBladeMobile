@@ -213,6 +213,19 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun saveWork(id: String) = api.saveWork(id)
     suspend fun reportComment(id: String, reason: String, details: String? = null) = api.reportComment(id, ReportCommentRequest(reason, details?.trim()?.takeIf { it.isNotEmpty() }))
     suspend fun blockCommentAuthor(id: String) = api.blockCommentAuthor(id)
+    suspend fun barberMe() = api.barberMe()
+
+    /** Guarda bio, especialidades y, si se eligió una, la foto. La foto pasa por la misma política que el avatar (JPG, PNG o WebP hasta 4 MB). */
+    suspend fun updateBarberProfile(context: Context, especialidades: String, descripcion: String, photo: Uri?): BarberProfileUpdateResponse {
+        val photoPart = photo?.let {
+            MediaUploadHelper.uriToPart(context, it, "foto", UploadPolicy.AVATAR) ?: error("No se pudo leer la foto seleccionada.")
+        }
+        return api.updateBarberProfile(
+            MediaUploadHelper.textPart(especialidades.trim()),
+            MediaUploadHelper.textPart(descripcion.trim()),
+            photoPart
+        )
+    }
     suspend fun blockedAuthors() = api.blockedAuthors()
     suspend fun unblockAuthor(blockId: String) = api.unblockAuthor(blockId)
     suspend fun commentReports() = api.commentReports()

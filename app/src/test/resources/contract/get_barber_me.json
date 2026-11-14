@@ -1,0 +1,19 @@
+{
+  "id": "6710a1b2c3d4e5f607182930",
+  "name": "Luis Pérez",
+  "email": "luis@example.com",
+  "especialidades": "Degradados, barba a navaja",
+  "descripcion": "Diez años cortando en el centro.",
+  "foto_url": "https://uploads.urbanblade.example/barbers/6710a1b2c3d4e5f607182930/foto.jpg",
+  "calificacion_promedio": 4.8,
+  "total_resenas": 12,
+  "activo": true,
+  "member_since": "2025-03-01T12:00:00.000000Z",
+  "years_experience": 1,
+  "portfolio_total": 5,
+  "stats": {
+    "citas_hoy": 3,
+    "completadas_mes": 24,
+    "total_completadas": 180
+  }
+}

@@ -24,6 +24,9 @@ object FormLimits {
     /** `descripcion` de recursos (trabajos, servicios…): `max:1000`. */
     const val DESCRIPTION_MAX = 1000
 
+    /** `especialidades` del perfil del barbero (`POST barber/profile`): `max:1000`. */
+    const val SPECIALTIES_MAX = 1000
+
     /** ¿Conviene mostrar un contador? Solo cuando queda poco, para no saturar el formulario. */
     fun nearLimit(text: String, max: Int): Boolean = text.length >= max * 4 / 5
 }

@@ -15,6 +15,7 @@ class FormLimitsTest {
         assertEquals(1000, FormLimits.NOTES_MAX)
         assertEquals(500, FormLimits.COMMENT_MAX)
         assertEquals(1000, FormLimits.DESCRIPTION_MAX)
+        assertEquals(1000, FormLimits.SPECIALTIES_MAX)
     }
 
     @Test

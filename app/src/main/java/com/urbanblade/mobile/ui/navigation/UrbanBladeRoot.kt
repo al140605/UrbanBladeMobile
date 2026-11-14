@@ -366,6 +366,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_portfolio") { BarberPortfolioScreen(onBack = { nav.popBackStack() }) }
                 composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }
+                composable("barber_me") { BarberMeScreen(onBack = { nav.popBackStack() }) }
                 composable("reports") { ReportsScreen(onBack = { nav.popBackStack() }) }
                 composable("logs") { LogsScreen(onBack = { nav.popBackStack() }) }
                 composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
