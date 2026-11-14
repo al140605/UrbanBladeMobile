@@ -114,7 +114,7 @@ fun AdminHomeScreen(
         verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanHomeHeader("ADMINISTRADOR", user.name, user.avatarUrl, state.loading) { vm.load() }
+            HomeHeader("ADMINISTRADOR", user, state.loading, onNavigate) { vm.load() }
         }
 
         if (state.error != null && kpis != null) item { UrbanStaleContentNotice(state.error.orEmpty()) { vm.load() } }

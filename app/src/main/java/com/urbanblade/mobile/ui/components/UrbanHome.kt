@@ -1,6 +1,8 @@
 package com.urbanblade.mobile.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -34,6 +36,9 @@ fun UrbanHomeHeader(
     userName: String,
     avatarUrl: String?,
     refreshing: Boolean,
+    unread: Int = 0,
+    onNotifications: (() -> Unit)? = null,
+    onAccount: (() -> Unit)? = null,
     onRefresh: () -> Unit
 ) {
     UrbanPageHeader(
@@ -43,10 +48,42 @@ fun UrbanHomeHeader(
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 UrbanRefreshButton(refreshing, onRefresh)
-                UrbanAvatar(userName, imageUrl = avatarUrl)
+                // La campana y la foto están en el inicio de los cinco roles: avisos y Cuenta a un toque.
+                if (onNotifications != null) UrbanBellButton(unread, onNotifications)
+                UrbanAccountAvatar(userName, avatarUrl, onAccount)
             }
         }
     )
+}
+
+/** Campana de avisos con el contador de sin leer; TalkBack lee cuántos hay. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun UrbanBellButton(unread: Int, onClick: () -> Unit) {
+    androidx.compose.material3.IconButton(onClick = onClick) {
+        androidx.compose.material3.BadgedBox(
+            badge = {
+                if (unread > 0) androidx.compose.material3.Badge { Text(if (unread > 9) "9+" else unread.toString()) }
+            }
+        ) {
+            Icon(
+                androidx.compose.material.icons.Icons.Default.Notifications,
+                if (unread > 0) "Notificaciones, $unread sin leer" else "Notificaciones",
+                tint = UrbanColors.Gold
+            )
+        }
+    }
+}
+
+/** La foto de la persona; con [onClick] abre su Cuenta. */
+@Composable
+fun UrbanAccountAvatar(name: String, imageUrl: String?, onClick: (() -> Unit)?) {
+    val modifier = if (onClick != null) {
+        Modifier
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clickable(onClickLabel = "Abrir mi cuenta", role = androidx.compose.ui.semantics.Role.Button, onClick = onClick)
+    } else Modifier
+    UrbanAvatar(name, modifier, imageUrl = imageUrl)
 }
 
 /** Dato secundario de [UrbanHeroSummary]. */
