@@ -18,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.width
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.BarberScheduleDay
 import com.urbanblade.mobile.data.model.SystemServiceStatus
@@ -380,68 +383,58 @@ fun BarberScheduleScreen(onBack: () -> Unit, vm: BarberScheduleViewModel = viewM
         message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
 
         item {
-            UrbanHeroCard {
-                Text(
-                    if (activeDays.isEmpty()) "Sin días activos" else UrbanFormat.count(activeDays.size, "día de trabajo", "días de trabajo"),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = UrbanColors.Ink
+            // Tres números en una franja en lugar de una tarjeta alta con foto.
+            UrbanStatStrip(
+                listOf(
+                    Triple("Días activos", activeDays.size.toString(), UrbanColors.Ink),
+                    Triple("Horas a la semana", String.format("%.0f", weeklyMinutes / 60.0), UrbanColors.Ink),
+                    Triple("Días libres", (7 - activeDays.size).toString(), UrbanColors.Ink)
                 )
-                Text(
-                    if (activeDays.isEmpty()) "Activa al menos un día para recibir reservas." else "Los clientes solo ven horarios dentro de estos días.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = UrbanColors.Muted
-                )
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    UrbanHeroStat("Horas a la semana", "%.0f".format(weeklyMinutes / 60.0), Icons.Default.Schedule, Modifier.weight(1f))
-                    UrbanHeroStat("Días libres", (7 - activeDays.size).toString(), Icons.Default.EventBusy, Modifier.weight(1f))
+            )
+        }
+        if (activeDays.isEmpty()) item {
+            Text("Activa al menos un día para recibir reservas.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+
+        item {
+            // Los siete días en una sola tarjeta: interruptor, y las horas se eligen con el reloj, no se escriben.
+            UrbanCard(Modifier.fillMaxWidth()) {
+                days.forEachIndexed { index, day ->
+                    val label = WEEK_DAYS.first { it.first == day.dayOfWeek }.second
+                    if (index > 0) HorizontalDivider(color = UrbanColors.Line, modifier = Modifier.padding(vertical = 8.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.width(92.dp))
+                        if (day.isActive) {
+                            ScheduleTimeChip(day.startTime, !isValidTime(day.startTime)) { v ->
+                                days = days.toMutableList().apply { this[index] = day.copy(startTime = v) }
+                            }
+                            Text("a", color = UrbanColors.Muted)
+                            ScheduleTimeChip(day.endTime, !isValidTime(day.endTime) || minutesBetween(day.startTime, day.endTime) == null) { v ->
+                                days = days.toMutableList().apply { this[index] = day.copy(endTime = v) }
+                            }
+                        } else {
+                            Text("Descanso", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        UrbanSwitch(
+                            checked = day.isActive,
+                            onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } }
+                        )
+                    }
                 }
             }
         }
 
-        itemsIndexed(days) { index, day ->
-            val label = WEEK_DAYS.first { it.first == day.dayOfWeek }.second
-            UrbanCard(Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(label, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            if (day.isActive) "${day.startTime} a ${day.endTime}" else "Descanso",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (day.isActive) UrbanColors.Gold else UrbanColors.Muted
-                        )
-                    }
-                    UrbanSwitch(
-                        checked = day.isActive,
-                        onCheckedChange = { checked -> days = days.toMutableList().apply { this[index] = day.copy(isActive = checked) } }
-                    )
-                }
-                if (day.isActive) {
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(
-                            value = day.startTime,
-                            onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(startTime = v) } },
-                            label = { Text("Entrada") },
-                            placeholder = { Text("HH:mm") },
-                            singleLine = true,
-                            isError = !isValidTime(day.startTime),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = day.endTime,
-                            onValueChange = { v -> days = days.toMutableList().apply { this[index] = day.copy(endTime = v) } },
-                            label = { Text("Salida") },
-                            placeholder = { Text("HH:mm") },
-                            singleLine = true,
-                            isError = !isValidTime(day.endTime) || minutesBetween(day.startTime, day.endTime) == null,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
+        item {
+            UrbanOutlineButton(
+                text = "Copiar las horas del lunes a todos los días",
+                onClick = {
+                    val monday = days.firstOrNull()
+                    if (monday != null) days = days.map { it.copy(startTime = monday.startTime, endTime = monday.endTime) }
+                },
+                icon = Icons.Default.ContentCopy,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         item {
@@ -636,6 +629,36 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                 }) { Text("Sí, cerrar") }
             },
             dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("Cancelar") } }
+        )
+    }
+}
+
+/** Hora de entrada o salida: un botón con la hora que abre el reloj, en lugar de escribirla a mano. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ScheduleTimeChip(value: String, invalid: Boolean, onChange: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val parts = value.split(":")
+    OutlinedButton(
+        onClick = { open = true },
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (invalid) UrbanColors.Danger else UrbanColors.Line),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+    ) { Text(value, color = if (invalid) UrbanColors.Danger else UrbanColors.Ink) }
+    if (open) {
+        val state = androidx.compose.material3.rememberTimePickerState(
+            initialHour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 9,
+            initialMinute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+            is24Hour = true
+        )
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { open = false },
+            containerColor = UrbanColors.Card,
+            text = { androidx.compose.material3.TimePicker(state = state) },
+            confirmButton = {
+                TextButton(onClick = { onChange(String.format("%02d:%02d", state.hour, state.minute)); open = false }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { open = false }) { Text("Cancelar") } }
         )
     }
 }
