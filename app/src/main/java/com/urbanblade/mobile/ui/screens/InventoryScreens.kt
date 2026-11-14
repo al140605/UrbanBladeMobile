@@ -72,11 +72,13 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
         title = "Inventario",
         subtitle = subtitle,
         onBack = onBack,
-        actions = { if (isAdmin) {
-                    IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.Add, "Agregar producto") }
-                }
-                IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
-                UrbanRefreshButton(busy) { vm.load() } }
+        floatingActionButton = if (isAdmin) {
+            { expanded -> UrbanFab("Nuevo producto", Icons.Default.Add, expanded) { showCreate = true } }
+        } else null,
+        actions = {
+            IconButton(onClick = onHistory) { Icon(Icons.Default.History, "Historial de movimientos") }
+            UrbanRefreshButton(busy) { vm.load() }
+        }
     ) {
         // Errores de guardar, editar, eliminar o registrar un movimiento; el de la consulta sale más abajo.
         error?.let { item { UrbanErrorBanner(it) } }
