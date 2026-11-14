@@ -63,7 +63,9 @@ class ApiContractFixturesTest {
         "post_admin_comment_reports_item_resolve.json" to ResolveReportResponse::class.java,
         // Perfil del barbero: forma exacta de ProfileController::showBarberProfile() y updateBarberProfile().
         "get_barber_me.json" to BarberMeResponse::class.java,
-        "post_barber_profile.json" to BarberProfileUpdateResponse::class.java
+        "post_barber_profile.json" to BarberProfileUpdateResponse::class.java,
+        // Referidos: forma exacta de ReferralController::link() (201).
+        "post_referrals_link.json" to MessageResponse::class.java
     )
 
     private fun fixture(name: String): String =

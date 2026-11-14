@@ -82,6 +82,7 @@ interface UrbanBladeApi {
     @POST("gift-cards") suspend fun sellGiftCardCash(@Body body: CashGiftCardRequest): GiftCardSaleResponse
     @GET("gift-cards/{code}") suspend fun giftCardByCode(@Path("code") code: String): GiftCardLookupResponse
     @GET("referrals/mine") suspend fun myReferrals(): ReferralInfoResponse
+    @POST("referrals/link") suspend fun linkReferral(@Body body: LinkReferralRequest): MessageResponse
 
     @GET("orders") suspend fun orders(
         @Query("page") page: Int = 1,

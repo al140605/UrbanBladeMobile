@@ -50,6 +50,10 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
     val busy by vm.busy.collectAsState()
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
+    val referralBusy by vm.referralBusy.collectAsState()
+    val referralNotice by vm.referralNotice.collectAsState()
+    val referralError by vm.referralError.collectAsState()
+    val referralLinked by vm.referralLinked.collectAsState()
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     var copied by remember { mutableStateOf(false) }
@@ -182,6 +186,19 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                             context.startActivity(Intent.createChooser(send, "Compartir mi código"))
                         }
                     )
+                }
+                // Con el código ya registrado (o aceptado ahora) solo queda el aviso; antes, el formulario.
+                if (referralLinked) {
+                    referralNotice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
+                } else {
+                    item {
+                        LinkReferralCard(
+                            busy = referralBusy,
+                            error = referralError,
+                            onEdit = vm::clearReferralMessages,
+                            onSubmit = vm::linkReferral
+                        )
+                    }
                 }
             }
         }
@@ -550,6 +567,41 @@ private fun GiftCardRow(card: GiftCard) {
                 Text("Saldo inicial: ${UrbanFormat.moneyShort(card.montoInicial)}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
             Text("${UrbanFormat.moneyShort(card.saldo)}", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+        }
+    }
+}
+
+/** «¿Te invitó alguien?»: registra el código de quien invitó al cliente (el servidor solo lo admite una vez). */
+@Composable
+private fun LinkReferralCard(busy: Boolean, error: String?, onEdit: () -> Unit, onSubmit: (String) -> Unit) {
+    var code by remember { mutableStateOf("") }
+    UrbanCard(Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("¿Te invitó alguien?", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Escribe su código y, cuando completes tu primera cita, quien te invitó gana sus puntos. Solo se puede registrar una vez.",
+                style = MaterialTheme.typography.bodySmall,
+                color = UrbanColors.Muted
+            )
+            UrbanTextField(
+                value = code,
+                onValueChange = {
+                    code = it.filter { c -> !c.isWhitespace() }.uppercase().take(com.urbanblade.mobile.core.validation.FormLimits.REFERRAL_CODE_MAX)
+                    onEdit()
+                },
+                label = "Código de quien te invitó",
+                error = error,
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                onImeAction = { onSubmit(code) }
+            )
+            UrbanPrimaryButton(
+                text = if (busy) "Registrando…" else "Usar código",
+                onClick = { onSubmit(code) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = code.isNotBlank() && !busy,
+                loading = busy
+            )
         }
     }
 }
