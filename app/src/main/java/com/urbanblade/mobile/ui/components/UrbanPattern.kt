@@ -123,7 +123,7 @@ fun UrbanModuleScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.
-            if (embedded) {
+            if (embedded && pinned != null) {
                 // Dentro de un grupo: solo las acciones del módulo (actualizar, agregar) y sus filtros fijos.
                 Column(
                     Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter),

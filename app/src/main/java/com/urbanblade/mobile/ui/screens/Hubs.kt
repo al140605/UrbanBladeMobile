@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,7 +56,9 @@ fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTa
     var selected by rememberSaveable { mutableStateOf(initial ?: tabs.first().key) }
     val current = tabs.firstOrNull { it.key == selected } ?: tabs.first()
     Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        // consumeWindowInsets: sin esto el Scaffold de cada pestaña vuelve a sumar el margen de la barra de estado
+        // y aparece un hueco vacío sobre el contenido.
+        Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             Column(
                 Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Xxs),
                 verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
