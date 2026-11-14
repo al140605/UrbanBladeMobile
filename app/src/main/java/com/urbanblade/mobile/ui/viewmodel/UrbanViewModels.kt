@@ -789,6 +789,14 @@ class BarberProfileViewModel : ViewModel() {
     }
 }
 
+/** Mensaje si el código de referido está vacío o pasa el tope del servidor; null si se puede enviar. */
+internal fun validateReferralCode(code: String): String? = when {
+    code.isBlank() -> "Escribe el código de quien te invitó."
+    code.trim().length > com.urbanblade.mobile.core.validation.FormLimits.REFERRAL_CODE_MAX ->
+        "El código tiene como máximo ${com.urbanblade.mobile.core.validation.FormLimits.REFERRAL_CODE_MAX} caracteres."
+    else -> null
+}
+
 data class WalletData(
     val loyalty: ClientLoyalty? = null,
     val membership: MyMembership? = null,
@@ -846,6 +854,45 @@ class WalletViewModel @JvmOverloads constructor(
             if (failures > 0 && failures < 7) _error.value = "Algunos beneficios no se pudieron actualizar. Lo anterior se conserva; vuelve a intentar."
         } finally { _loading.value = false }
     }
+
+    private val _referralBusy = MutableStateFlow(false)
+    val referralBusy = _referralBusy.asStateFlow()
+    private val _referralNotice = MutableStateFlow<String?>(null)
+    val referralNotice = _referralNotice.asStateFlow()
+    private val _referralError = MutableStateFlow<String?>(null)
+    val referralError = _referralError.asStateFlow()
+
+    /** True cuando el servidor ya tiene un código de quien invitó a este cliente: no se puede cambiar ni repetir. */
+    private val _referralLinked = MutableStateFlow(false)
+    val referralLinked = _referralLinked.asStateFlow()
+
+    /** Registra el código de quien invitó al cliente. Los motivos de rechazo (inválido, propio, ya registrado) los explica el servidor. */
+    fun linkReferral(code: String) {
+        if (_referralBusy.value) return
+        validateReferralCode(code)?.let {
+            _referralError.value = it; _referralNotice.value = null
+            return
+        }
+        _referralBusy.value = true; _referralError.value = null; _referralNotice.value = null
+        viewModelScope.launch {
+            try {
+                val res = repo.linkReferral(code)
+                _referralNotice.value = res.message ?: "¡Listo! Cuando completes tu primera cita, tu referido ganará sus puntos."
+                _referralLinked.value = true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val text = e.toFriendlyMessage("No se pudo registrar el código. Inténtalo de nuevo.")
+                _referralError.value = text
+                // El servidor no permite cambiarlo: si ya había uno, se deja de ofrecer el formulario.
+                if (text.startsWith("Ya tienes un código")) _referralLinked.value = true
+            } finally {
+                _referralBusy.value = false
+            }
+        }
+    }
+
+    fun clearReferralMessages() { _referralError.value = null; _referralNotice.value = null }
 
     private val _checkout = MutableStateFlow<MembershipCheckout?>(null)
     val checkout = _checkout.asStateFlow()

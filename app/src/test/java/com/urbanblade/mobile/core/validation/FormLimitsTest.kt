@@ -16,6 +16,7 @@ class FormLimitsTest {
         assertEquals(500, FormLimits.COMMENT_MAX)
         assertEquals(1000, FormLimits.DESCRIPTION_MAX)
         assertEquals(1000, FormLimits.SPECIALTIES_MAX)
+        assertEquals(20, FormLimits.REFERRAL_CODE_MAX)
     }
 
     @Test
