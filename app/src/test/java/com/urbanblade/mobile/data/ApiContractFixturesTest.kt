@@ -67,7 +67,9 @@ class ApiContractFixturesTest {
         // Referidos: forma exacta de ReferralController::link() (201).
         "post_referrals_link.json" to MessageResponse::class.java,
         // Check-in: forma exacta de AppointmentCheckInController (200).
-        "post_appointments_item_check_in.json" to CheckInResponse::class.java
+        "post_appointments_item_check_in.json" to CheckInResponse::class.java,
+        // Inventario: forma exacta de InventoryController::markProductOrdered (200).
+        "post_inventory_products_item_mark_ordered.json" to MessageResponse::class.java
     )
 
     private fun fixture(name: String): String =

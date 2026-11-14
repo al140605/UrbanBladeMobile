@@ -224,6 +224,8 @@ interface UrbanBladeApi {
     @DELETE("inventory/products/{id}") suspend fun deleteProduct(@Path("id") id: String): MessageResponse
     @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject
     @GET("inventory/low-stock") suspend fun lowStock(): JsonObject
+    /** Silencia la alerta de stock bajo unos días (InventoryController::markProductOrdered); admin y recepción. */
+    @POST("inventory/products/{id}/mark-ordered") suspend fun markProductOrdered(@Path("id") id: String): MessageResponse
     @GET("inventory/movements") suspend fun inventoryMovements(): JsonObject
     @GET("inventory/movements") suspend fun inventoryMovementsPage(
         @Query("page") page: Int = 1,

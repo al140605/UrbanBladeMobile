@@ -116,7 +116,11 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
                 )
             }
             items(attentionProducts, key = { it.id }) { product ->
-                InventoryProductCard(product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product })
+                InventoryProductCard(
+                    product, isAdmin, { showMovement = product }, { showEdit = product }, { showDeleteConfirm = product },
+                    onOrdered = if (product.lowStock && !product.pendingRestock) { { vm.markOrdered(product.id) } } else null,
+                    enabled = !saving
+                )
             }
         }
 
@@ -179,7 +183,10 @@ private fun InventoryProductCard(
     isAdmin: Boolean,
     onMovement: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    /** Solo con stock bajo y sin pedido en curso: silencia la alerta unos días (el servidor lo limpia al entrar stock). */
+    onOrdered: (() -> Unit)? = null,
+    enabled: Boolean = true
 ) {
     UrbanCard(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -201,8 +208,8 @@ private fun InventoryProductCard(
                 // El precio también se repite por fila; el dorado queda para la acción de la tarjeta.
                 Text("${UrbanFormat.money(product.precioVenta)}", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
                 when {
-                    product.lowStock -> SimpleStatusPill("stock bajo", UrbanColors.Danger)
                     product.pendingRestock -> SimpleStatusPill("reposición pendiente", UrbanColors.Warning)
+                    product.lowStock -> SimpleStatusPill("stock bajo", UrbanColors.Danger)
                 }
             }
         }
@@ -214,6 +221,14 @@ private fun InventoryProductCard(
             if (isAdmin) {
                 IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Editar ${product.nombre}") }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Eliminar ${product.nombre}", tint = UrbanColors.Danger) }
+            }
+        }
+        if (onOrdered != null) {
+            Spacer(Modifier.height(6.dp))
+            TextButton(onClick = onOrdered, enabled = enabled) {
+                Icon(Icons.Default.LocalShipping, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Ya lo pedí")
             }
         }
     }

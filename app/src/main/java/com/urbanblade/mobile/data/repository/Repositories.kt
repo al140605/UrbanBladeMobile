@@ -318,6 +318,7 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     }
     suspend fun deleteWork(id: String) = api.deleteWork(id)
     suspend fun deleteProduct(id: String) = api.deleteProduct(id)
+    suspend fun markProductOrdered(id: String) = api.markProductOrdered(id)
     suspend fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?) =
         api.registerMovement(RegisterMovementRequest(productId, tipo, cantidad, motivo))
 

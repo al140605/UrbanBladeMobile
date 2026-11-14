@@ -372,6 +372,16 @@ class InventoryViewModel @JvmOverloads constructor(private val repo: UrbanReposi
         finally { _saving.value = false }
     }
 
+    /** «Ya lo pedí»: el servidor silencia la alerta de ese producto; se recarga para ver «reposición pendiente». */
+    fun markOrdered(id: String) = viewModelScope.launch {
+        if (_saving.value) return@launch
+        _saving.value = true; _error.value = null
+        try { _message.value = repo.markProductOrdered(id).message ?: "Producto marcado como pedido."; load() }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo marcar el producto como pedido.") }
+        finally { _saving.value = false }
+    }
+
     fun registerMovement(productId: String, tipo: String, cantidad: Int, motivo: String?, onDone: () -> Unit) = viewModelScope.launch {
         _saving.value = true; _error.value = null
         try { repo.registerMovement(productId, tipo, cantidad, motivo); _message.value = "Movimiento registrado."; onDone(); load() }
