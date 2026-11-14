@@ -224,63 +224,21 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit) {
 @Composable
 fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
     val roles = user.roles.toSet()
-    val staff = roles.any { it == "administrador" || it == "recepcionista" }
-    val admin = "administrador" in roles
-    val engineer = "ingeniero" in roles
     val barber = "barbero" in roles
-    val client = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
-
-    val modules = buildList {
-        if (!com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)) {
-            add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, "GENERAL"))
-            add(ModuleItem("social", "Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups, "GENERAL"))
-            add(ModuleItem("blocked_authors", "Autores bloqueados", "Deshacer un bloqueo del muro", Icons.Default.Block, "GENERAL"))
+    val admin = "administrador" in roles
+    val engineer = com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)
+    // Cada grupo junta pantallas que antes eran módulos sueltos (ver Hubs.kt): menos puertas de entrada.
+    val hubs = hubEntries(user)
+    val quick = buildList {
+        if (barber) add(ModuleItem("barber_agenda", "Mi agenda", "Tu día de trabajo", Icons.Default.Event, ""))
+        if (!engineer) {
+            add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, ""))
+            add(ModuleItem("social", "Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups, ""))
+            if (!admin) add(ModuleItem("blocked_authors", "Autores bloqueados", "Deshacer un bloqueo del muro", Icons.Default.Block, ""))
         }
-        add(ModuleItem("notifications", "Notificaciones", "Novedades de tu cuenta", Icons.Default.Notifications, "GENERAL"))
-        add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, "GENERAL"))
-        if (staff || client) {
-            add(ModuleItem("payments", "Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments, "OPERACIÓN"))
-            add(ModuleItem("orders", "Pedidos", "Tienda y entregas", Icons.Default.ReceiptLong, "OPERACIÓN"))
-        }
-        if (staff) {
-            add(ModuleItem("clients", "Clientes", "Atención y gestión", Icons.Default.People, "OPERACIÓN"))
-            add(ModuleItem("inventory", "Inventario", "Stock y movimientos", Icons.Default.Inventory2, "OPERACIÓN"))
-            add(ModuleItem("waitlist_staff", "Lista de espera", "Clientes esperando un horario", Icons.Default.HourglassTop, "OPERACIÓN"))
-            add(ModuleItem("gift_cards", "Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard, "OPERACIÓN"))
-            add(ModuleItem("cash", "Corte de caja", "Resumen de turno", Icons.Default.PointOfSale, "OPERACIÓN"))
-        }
-        if (barber) {
-            add(ModuleItem("barber_agenda", "Mi agenda", "Tu día de trabajo", Icons.Default.Event, "BARBERO"))
-            add(ModuleItem("barber_portfolio", "Portafolio", "Muestra tus trabajos", Icons.Default.PhotoLibrary, "BARBERO"))
-            add(ModuleItem("barber_schedule", "Mi horario", "Disponibilidad semanal", Icons.Default.Schedule, "BARBERO"))
-            add(ModuleItem("barber_me", "Mi perfil", "Bio, especialidades y foto", Icons.Default.Face, "BARBERO"))
-        }
-        add(ModuleItem("analytics", "Analítica", "Actividad y rendimiento", Icons.Default.QueryStats, "ANÁLISIS"))
-        if (admin || engineer) {
-            add(ModuleItem("reports", "Reportes", "Datos del negocio", Icons.Default.Assessment, "ANÁLISIS"))
-            add(ModuleItem("logs", "Bitácora", "Trazabilidad del sistema", Icons.Default.Terminal, "ANÁLISIS"))
-            add(ModuleItem("admin_metrics", "Métricas", "KPIs operativos", Icons.Default.MonitorHeart, "ANÁLISIS"))
-            add(ModuleItem("insights", "Insights IA", "Señales y predicciones", Icons.Default.AutoAwesome, "ANÁLISIS"))
-        }
-        if (admin) {
-            add(ModuleItem("offers_admin", "Membresías y paquetes", "Planes mensuales y paquetes de usos", Icons.Default.CardMembership, "ADMINISTRACIÓN"))
-            add(ModuleItem("barbers_admin", "Barberos", "Equipo, comisiones y rendimiento", Icons.Default.Badge, "ADMINISTRACIÓN"))
-            add(ModuleItem("services_admin", "Servicios", "Catálogo, precios y duración", Icons.Default.ContentCut, "ADMINISTRACIÓN"))
-            add(ModuleItem("campaigns", "Campañas", "Marketing y alcance", Icons.Default.Campaign, "ADMINISTRACIÓN"))
-            add(ModuleItem("raffles", "Sorteos", "Lealtad y promociones", Icons.Default.EmojiEvents, "ADMINISTRACIÓN"))
-            add(ModuleItem("reviews", "Reseñas", "Opiniones de clientes", Icons.Default.Star, "ADMINISTRACIÓN"))
-            add(ModuleItem("moderation", "Moderación", "Comentarios reportados del muro", Icons.Default.Gavel, "ADMINISTRACIÓN"))
-            add(ModuleItem("users", "Usuarios", "Roles y accesos", Icons.Default.ManageAccounts, "ADMINISTRACIÓN"))
-            add(ModuleItem("settings", "Configuración", "Ajustes del negocio", Icons.Default.Settings, "ADMINISTRACIÓN"))
-        }
-        if (engineer || admin) add(ModuleItem("system", "Estado del sistema", "Servicios y salud", Icons.Default.Dns, "SISTEMA"))
+        add(ModuleItem("notifications", "Notificaciones", "Novedades de tu cuenta", Icons.Default.Notifications, ""))
+        add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, ""))
     }
-
-    val grouped = modules.groupBy { it.section }
-    // Arranca abierta solo la sección propia del rol (Operación, Barbero…); «General» queda plegada.
-    val startSection = grouped.keys.firstOrNull { it != "GENERAL" } ?: grouped.keys.firstOrNull()
-    val open = remember { mutableStateListOf<String>() }
-    LaunchedEffect(startSection) { if (startSection != null && open.isEmpty()) open.add(startSection) }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -300,41 +258,45 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
                 user.roles.take(3).forEach { UrbanRolePill(it) }
             }
         }
-        grouped.forEach { (section, group) ->
-            val isOpen = section in open
-            item {
-                // Sección plegable: así «Más» cabe en una pantalla y no hay que desplazarse por 30 módulos.
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { if (isOpen) open.remove(section) else open.add(section) }
-                        .padding(vertical = 8.dp)
-                        .semantics { heading() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(section.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-                    Text("  ·  ${group.size}", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Muted)
-                    Spacer(Modifier.weight(1f))
-                    Icon(
-                        if (isOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        if (isOpen) "Contraer ${section.lowercase()}" else "Mostrar ${section.lowercase()}",
-                        tint = UrbanColors.Muted
-                    )
-                }
-            }
-            if (isOpen) item {
-                UrbanRowGroup(group) { module ->
-                    UrbanActionRow(
-                        title = module.title,
-                        subtitle = module.subtitle,
-                        icon = module.icon,
-                        onClick = { onNavigate(module.route) }
-                    )
+        if (hubs.isNotEmpty()) {
+            item { UrbanSectionTitle("Herramientas") }
+            items(hubs.chunked(2)) { pair ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    pair.forEach { hub -> HubTile(hub, Modifier.weight(1f)) { onNavigate(hub.route) } }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
+        item { UrbanSectionTitle("Accesos") }
+        item {
+            UrbanRowGroup(quick) { module ->
+                UrbanActionRow(
+                    title = module.title,
+                    subtitle = module.subtitle,
+                    icon = module.icon,
+                    onClick = { onNavigate(module.route) }
+                )
+            }
+        }
         item { Spacer(Modifier.height(8.dp)) }
+    }
+}
+
+/** Tarjeta de un grupo de Más: ícono, nombre, qué incluye y cuántas secciones tiene. */
+@Composable
+private fun HubTile(hub: HubEntry, modifier: Modifier, onClick: () -> Unit) {
+    UrbanCard(modifier.heightIn(min = 124.dp), onClick = onClick) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(UrbanColors.Gold.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(hub.icon, null, tint = UrbanColors.Gold) }
+            Column {
+                Text(hub.title, style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                Text(hub.subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            }
+            if (hub.tabs > 1) Text("${hub.tabs} secciones", style = MaterialTheme.typography.labelSmall, color = UrbanColors.Gold)
+        }
     }
 }
 

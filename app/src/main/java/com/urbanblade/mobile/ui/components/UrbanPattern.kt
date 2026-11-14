@@ -82,6 +82,12 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
  * @param pinned contenido fijo bajo el encabezado (buscador, filtros): el encabezado y este
  * bloque no se desplazan con la lista.
  */
+/**
+ * `true` cuando el módulo se muestra como pestaña dentro de un grupo (HubScreen): el grupo ya pone la
+ * barra superior y el encabezado, así que el módulo solo dibuja su contenido y sus acciones.
+ */
+val LocalEmbeddedInHub = androidx.compose.runtime.compositionLocalOf { false }
+
 @Composable
 fun UrbanModuleScreen(
     eyebrow: String,
@@ -97,14 +103,17 @@ fun UrbanModuleScreen(
     pinned: (@Composable ColumnScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit
 ) {
+    val embedded = LocalEmbeddedInHub.current
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            UrbanTopBar("", onBack) {
-                if (onRefresh != null) {
-                    UrbanRefreshButton(refreshing, onRefresh)
+            if (!embedded) {
+                UrbanTopBar("", onBack) {
+                    if (onRefresh != null) {
+                        UrbanRefreshButton(refreshing, onRefresh)
+                    }
+                    actions()
                 }
-                actions()
             }
         },
         floatingActionButton = {
@@ -114,7 +123,19 @@ fun UrbanModuleScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.
-            if (pinned != null) {
+            if (embedded && pinned != null) {
+                // Dentro de un grupo: solo las acciones del módulo (actualizar, agregar) y sus filtros fijos.
+                Column(
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter),
+                    verticalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)
+                ) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        if (onRefresh != null) UrbanRefreshButton(refreshing, onRefresh)
+                        actions()
+                    }
+                    pinned?.invoke(this)
+                }
+            } else if (pinned != null) {
                 Column(
                     Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Xxs),
                     verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
@@ -134,7 +155,13 @@ fun UrbanModuleScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
             ) {
-                if (pinned == null) item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
+                if (pinned == null && !embedded) item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
+                if (pinned == null && embedded) item {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        if (onRefresh != null) UrbanRefreshButton(refreshing, onRefresh)
+                        actions()
+                    }
+                }
                 content()
             }
         }

@@ -302,8 +302,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     WalletScreen(onBack = { nav.popBackStack() }, onBook = { nav.openBooking("booking") })
                 }
                 composable("store") { StoreScreen(user = user, onOrders = { nav.navigate("orders") }, onBack = { nav.popBackStack() }) }
-                composable("orders") { OrdersScreen(user = user, onBack = { nav.popBackStack() }) }
-                composable("payments") { PaymentsScreen(user = user, onBack = { nav.popBackStack() }) }
+                // Las pantallas sueltas de «Más» viven ahora como pestañas de un grupo (ver Hubs.kt); las rutas
+                // de siempre se conservan para avisos y atajos, y abren el grupo en su pestaña.
+                composable("orders") { CashHub(user, "pedidos") { nav.popBackStack() } }
+                composable("payments") { CashHub(user, "pagos") { nav.popBackStack() } }
+                composable("cash") { CashHub(user, "corte") { nav.popBackStack() } }
+                composable("gift_cards") { CashHub(user, "regalo") { nav.popBackStack() } }
                 composable("notifications") {
                     NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> nav.openDestination(route, rootRoutes, singleTop = true) })
                 }
@@ -328,7 +332,11 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     )
                 }
 
-                composable("analytics") { AnalyticsScreen(onBack = { nav.popBackStack() }) }
+                composable("analytics") { AnalysisHub(user, "actividad") { nav.popBackStack() } }
+                composable("admin_metrics") { AnalysisHub(user, "metricas") { nav.popBackStack() } }
+                composable("reports") { AnalysisHub(user, "reportes") { nav.popBackStack() } }
+                composable("insights") { AnalysisHub(user, "insights") { nav.popBackStack() } }
+                composable("logs") { AnalysisHub(user, "bitacora") { nav.popBackStack() } }
                 composable("social") {
                     SocialFeedScreen(
                         // Para el cliente es una pestaña de la barra: sin flecha de volver.
@@ -339,11 +347,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     )
                 }
                 composable("clients") {
-                    ClientsListScreen(
-                        user = user,
-                        onClientClick = { id -> nav.navigate("client_detail/$id") },
-                        onBack = { nav.popBackStack() }
-                    )
+                    ClientsHub(user, "clientes", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
+                }
+                composable("waitlist_staff") {
+                    ClientsHub(user, "espera", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
                 }
                 composable(
                     "client_detail/{id}",
@@ -355,30 +362,23 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         onBack = { nav.popBackStack() }
                     )
                 }
-                composable("inventory") { InventoryListScreen(user = user, onBack = { nav.popBackStack() }, onHistory = { nav.navigate("inventory_movements") }) }
-                composable("cash") { CashCloseScreen(onBack = { nav.popBackStack() }) }
-                composable("inventory_movements") { InventoryMovementsScreen(onBack = { nav.popBackStack() }) }
-                composable("waitlist_staff") { WaitlistStaffScreen(onBack = { nav.popBackStack() }) }
-                composable("gift_cards") { GiftCardsStaffScreen(onBack = { nav.popBackStack() }) }
-                composable("offers_admin") { OffersAdminScreen(onBack = { nav.popBackStack() }) }
-                composable("barbers_admin") { BarbersAdminScreen(onBack = { nav.popBackStack() }) }
-                composable("services_admin") { ServicesAdminScreen(onBack = { nav.popBackStack() }) }
+                composable("inventory") { InventoryHub(user, "stock") { nav.popBackStack() } }
+                composable("inventory_movements") { InventoryHub(user, "movimientos") { nav.popBackStack() } }
+                composable("barbers_admin") { TeamHub(user.id, "barberos") { nav.popBackStack() } }
+                composable("services_admin") { TeamHub(user.id, "servicios") { nav.popBackStack() } }
+                composable("users") { TeamHub(user.id, "usuarios") { nav.popBackStack() } }
+                composable("campaigns") { MarketingHub("campanas") { nav.popBackStack() } }
+                composable("raffles") { MarketingHub("sorteos") { nav.popBackStack() } }
+                composable("offers_admin") { MarketingHub("membresias") { nav.popBackStack() } }
+                composable("reviews") { CommunityHub(user, "resenas") { nav.popBackStack() } }
+                composable("moderation") { CommunityHub(user, "moderacion") { nav.popBackStack() } }
+                composable("blocked_authors") { CommunityHub(user, "bloqueados") { nav.popBackStack() } }
+                composable("settings") { SettingsHub(user, "config") { nav.popBackStack() } }
+                composable("system") { SettingsHub(user, "sistema") { nav.popBackStack() } }
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
-                composable("barber_portfolio") { BarberPortfolioScreen(onBack = { nav.popBackStack() }) }
-                composable("barber_schedule") { BarberScheduleScreen(onBack = { nav.popBackStack() }) }
-                composable("barber_me") { BarberMeScreen(onBack = { nav.popBackStack() }) }
-                composable("reports") { ReportsScreen(onBack = { nav.popBackStack() }) }
-                composable("logs") { LogsScreen(onBack = { nav.popBackStack() }) }
-                composable("admin_metrics") { AdminMetricsScreen(onBack = { nav.popBackStack() }) }
-                composable("insights") { InsightsScreen(onBack = { nav.popBackStack() }) }
-                composable("campaigns") { CampaignsScreen(onBack = { nav.popBackStack() }) }
-                composable("raffles") { RafflesScreen(onBack = { nav.popBackStack() }) }
-                composable("reviews") { ReviewsScreen(onBack = { nav.popBackStack() }) }
-                composable("moderation") { ModerationScreen(onBack = { nav.popBackStack() }) }
-                composable("blocked_authors") { BlockedAuthorsScreen(onBack = { nav.popBackStack() }) }
-                composable("users") { UsersScreen(currentUserId = user.id, onBack = { nav.popBackStack() }) }
-                composable("settings") { SettingsScreen(onBack = { nav.popBackStack() }) }
-                composable("system") { SystemStatusScreen(onBack = { nav.popBackStack() }) }
+                composable("barber_me") { MyProfileHub("perfil") { nav.popBackStack() } }
+                composable("barber_schedule") { MyProfileHub("horario") { nav.popBackStack() } }
+                composable("barber_portfolio") { MyProfileHub("portafolio") { nav.popBackStack() } }
             }
         }
     }
