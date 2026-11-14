@@ -73,7 +73,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
         onRefresh = { vm.load(search.takeIf { it.isNotBlank() }, segment) },
         refreshing = busy || loadingMore || saving,
         actions = {
-            IconButton(onClick = { showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
+            IconButton(onClick = { vm.clearError(); showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
         },
         pinned = {
             OutlinedTextField(
@@ -100,7 +100,7 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
         urbanListFeedback(
             hasLoaded, busy, clients.data.isNotEmpty(), listError,
             "No pudimos cargar los clientes", "Sin clientes", "No hay clientes que coincidan con la búsqueda.",
-            emptyActionLabel = "Registrar cliente", emptyActionIcon = Icons.Default.PersonAdd, onEmptyAction = { showCreate = true }
+            emptyActionLabel = "Registrar cliente", emptyActionIcon = Icons.Default.PersonAdd, onEmptyAction = { vm.clearError(); showCreate = true }
         ) { vm.load(search.takeIf { it.isNotBlank() }, segment) }
         if (clients.data.isNotEmpty()) {
             item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
@@ -141,48 +141,19 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
     }
 
     if (showCreate) {
-        CreateClientDialog(
+        ClientFormSheet(
+            initial = null,
+            saving = saving,
+            error = error,
             onDismiss = { showCreate = false },
-            onCreate = { name, email, telefono, password ->
-                vm.create(name, email, telefono, password) {
+            onSubmit = { values ->
+                vm.create(values.name, values.email, values.telefono, values.password.orEmpty()) {
                     showCreate = false
                     vm.load(search.takeIf { it.isNotBlank() }, segment)
                 }
-            },
-            saving = vm.saving.collectAsState().value
+            }
         )
     }
-}
-
-@Composable
-private fun CreateClientDialog(onDismiss: () -> Unit, onCreate: (String, String, String?, String) -> Unit, saving: Boolean) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Nuevo cliente") },
-        text = {
-            UrbanFormScroll(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                UrbanTextField(name, { name = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
-                UrbanTextField(email, { email = it }, "Correo", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
-                UrbanTextField(telefono, { telefono = it }, "Teléfono (opcional)", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
-                UrbanTextField(password, { password = it }, "Contraseña", Modifier.fillMaxWidth(), isPassword = true)
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving && name.isNotBlank() && email.isNotBlank() && password.length >= 8,
-                onClick = { onCreate(name, email, telefono.takeIf { it.isNotBlank() }, password) }
-            ) { Text(if (saving) "Guardando…" else "Crear") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
 }
 
 @Composable
@@ -193,33 +164,21 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
     val message by vm.message.collectAsState()
     val error by vm.error.collectAsState()
     val context = LocalContext.current
-    var editing by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
-    var notas by remember { mutableStateOf("") }
+    var showEdit by remember { mutableStateOf(false) }
+    // El formulario se cierra solo cuando el guardado terminó sin error; con error queda abierto para corregir.
+    var submitted by remember { mutableStateOf(false) }
 
     LaunchedEffect(clientId) { vm.loadDetail(clientId) }
-    LaunchedEffect(detail) {
-        detail?.let {
-            name = it.name.orEmpty()
-            email = it.email.orEmpty()
-            telefono = it.telefono.orEmpty()
-            notas = it.notas.orEmpty()
+    LaunchedEffect(saving) {
+        if (submitted && !saving) {
+            submitted = false
+            if (error == null) showEdit = false
         }
     }
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
-            UrbanTopBar(detail?.name ?: "Cliente", onBack) {
-                if (user.roles.contains("administrador")) {
-                    IconButton(onClick = { showDeleteConfirm = true }) { Icon(Icons.Default.Delete, "Eliminar cliente") }
-                }
-            }
-        }
+        topBar = { UrbanTopBar(detail?.name ?: "Cliente", onBack) }
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
@@ -294,37 +253,16 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         UrbanSectionTitle("Datos de contacto")
-                        UrbanTextButton(onClick = { editing = !editing }) { Text(if (editing) "Cancelar" else "Editar") }
+                        UrbanTextButton(onClick = { vm.clearError(); showEdit = true }) { Text("Editar") }
                     }
                 }
                 item {
                     UrbanCard(Modifier.fillMaxWidth()) {
-                        if (editing) {
-                            UrbanTextField(name, { name = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
-                            Spacer(Modifier.height(10.dp))
-                            UrbanTextField(email, { email = it }, "Correo", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Email)
-                            Spacer(Modifier.height(10.dp))
-                            UrbanTextField(telefono, { telefono = it }, "Teléfono", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
-                            Spacer(Modifier.height(10.dp))
-                            UrbanTextField(notas, { notas = it }, "Notas", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
-                            Spacer(Modifier.height(12.dp))
-                            UrbanPrimaryButton(
-                                text = "Guardar cambios",
-                                onClick = {
-                                    vm.update(clientId, name.takeIf { it.isNotBlank() }, email.takeIf { it.isNotBlank() }, telefono.takeIf { it.isNotBlank() }, notas)
-                                    editing = false
-                                },
-                                loading = saving,
-                                icon = Icons.Default.Save,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        } else {
-                            UrbanKeyValue("Correo", d.email ?: "—")
-                            UrbanKeyValue("Teléfono", d.telefono ?: "—", Modifier.padding(top = 6.dp))
-                            if (!d.notas.isNullOrBlank()) {
-                                Spacer(Modifier.height(6.dp))
-                                Text(d.notas, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                            }
+                        UrbanKeyValue("Correo", d.email ?: "—")
+                        UrbanKeyValue("Teléfono", d.telefono ?: "—", Modifier.padding(top = 6.dp))
+                        if (!d.notas.isNullOrBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(d.notas, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                         }
                     }
                 }
@@ -347,18 +285,21 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
         }
     }
 
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("¿Eliminar cliente?") },
-            text = { Text("Esta acción no se puede deshacer. Un cliente con citas registradas no se puede eliminar.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirm = false
-                    vm.delete(clientId, onBack)
-                }) { Text("Sí, eliminar") }
+    val current = detail
+    if (showEdit && current != null) {
+        ClientFormSheet(
+            initial = ClientFormInitial(current.name.orEmpty(), current.email.orEmpty(), current.telefono.orEmpty(), current.notas.orEmpty()),
+            saving = saving,
+            error = error,
+            onDismiss = { showEdit = false },
+            onSubmit = { values ->
+                submitted = true
+                vm.update(clientId, values.name.takeIf { it.isNotBlank() }, values.email.takeIf { it.isNotBlank() }, values.telefono, values.notas)
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancelar") } }
+            onDelete = if (user.roles.contains("administrador")) {
+                { showEdit = false; vm.delete(clientId, onBack) }
+            } else null,
+            deleteNote = "Un cliente con citas registradas no se puede eliminar."
         )
     }
 }

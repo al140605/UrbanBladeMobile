@@ -288,6 +288,9 @@ class ClientsViewModel @JvmOverloads constructor(private val repo: UrbanReposito
         finally { _busy.value = false }
     }
 
+    /** Al abrir un formulario no debe verse el error de la acción anterior. */
+    fun clearError() { _error.value = null }
+
     fun create(name: String, email: String, telefono: String?, password: String, onDone: () -> Unit) = viewModelScope.launch {
         _saving.value = true; _error.value = null
         try {
