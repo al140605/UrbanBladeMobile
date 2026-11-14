@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -72,7 +73,7 @@ class HubTab(val key: String, val label: String, val content: @Composable (selec
  * al volver, y volver regresa a Más, no a otra pestaña.
  */
 @Composable
-fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTab>, initial: String?, onBack: () -> Unit) {
+fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTab>, initial: String?, onBack: (() -> Unit)?) {
     var selected by rememberSaveable { mutableStateOf(initial ?: tabs.first().key) }
     val current = tabs.firstOrNull { it.key == selected } ?: tabs.first()
     val host = remember { HubActionsHost() }
@@ -85,7 +86,8 @@ fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTa
                 Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Volver", tint = UrbanColors.Ink) }
+                // Sin flecha cuando el grupo es una pestaña de la barra inferior (p. ej. Mi perfil del barbero).
+                if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Volver", tint = UrbanColors.Ink) } else Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f).padding(start = 2.dp)) {
                     Text(
                         eyebrow.uppercase(),
@@ -238,7 +240,7 @@ fun SettingsHub(user: AuthUser, initial: String?, onBack: () -> Unit) {
 }
 
 @Composable
-fun MyProfileHub(initial: String?, onBack: () -> Unit) {
+fun MyProfileHub(initial: String?, onBack: (() -> Unit)?) {
     val tabs = listOf(
         HubTab("perfil", "Perfil") { BarberMeScreen(onBack = {}) },
         HubTab("horario", "Horario") { BarberScheduleScreen(onBack = {}) },

@@ -140,6 +140,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val current = backStack?.destination?.route
     val clientOnly = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
     val engineerOnly = com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)
+    // El barbero que no administra ni atiende recepción: su barra es Inicio, Agenda, Mi perfil y Cuenta.
+    val barberOnly = "barbero" in user.roles && user.roles.none { it == "administrador" || it == "recepcionista" || it == "ingeniero" }
 
     // Nav por rol. Cliente: cinco pestañas con un solo verbo para
     // reservar; Beneficios, pagos y pedidos viven en Cuenta y en el Inicio, ya no en la barra.
@@ -152,6 +154,15 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
             // El muro es sobre todo del cliente (ve trabajos y reserva con el barbero): va en la barra; el
             // personal lo sigue encontrando en «Más».
             UrbanBottomDestination("social", "Muro", Icons.Default.PhotoLibrary),
+            UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person)
+        )
+    } else if (barberOnly) {
+        // Agenda y Mi perfil (perfil, horario y portafolio) reemplazan a Citas y Más: lo demás que tenía Más ya
+        // está en la campana, en Cuenta y en el Inicio.
+        listOf(
+            UrbanBottomDestination("home", "Inicio", Icons.Default.Home),
+            UrbanBottomDestination("appointments", "Agenda", Icons.Default.CalendarMonth),
+            UrbanBottomDestination("barber_me", "Mi perfil", Icons.Default.Face),
             UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person)
         )
     } else {
@@ -255,6 +266,9 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     // El cliente tiene su propia vista (Próximas / Historial); el personal, la agenda del negocio.
                     if (clientOnly) {
                         ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { nav.openDestination(it, rootRoutes) })
+                    } else if (barberOnly) {
+                        // La agenda del barbero con sus acciones (llegó, iniciar, completar, +tiempo, ticket).
+                        BarberAgendaScreen(onBack = null)
                     } else {
                         AppointmentsScreen(user = user, onBook = { nav.openBooking("booking") })
                     }
@@ -376,9 +390,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("settings") { SettingsHub(user, "config") { nav.popBackStack() } }
                 composable("system") { SettingsHub(user, "sistema") { nav.popBackStack() } }
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
-                composable("barber_me") { MyProfileHub("perfil") { nav.popBackStack() } }
-                composable("barber_schedule") { MyProfileHub("horario") { nav.popBackStack() } }
-                composable("barber_portfolio") { MyProfileHub("portafolio") { nav.popBackStack() } }
+                // Para el barbero es una pestaña de la barra: sin flecha de volver.
+                composable("barber_me") { MyProfileHub("perfil", if (barberOnly) null else ({ nav.popBackStack() })) }
+                composable("barber_schedule") { MyProfileHub("horario", if (barberOnly) null else ({ nav.popBackStack() })) }
+                composable("barber_portfolio") { MyProfileHub("portafolio", if (barberOnly) null else ({ nav.popBackStack() })) }
             }
         }
     }

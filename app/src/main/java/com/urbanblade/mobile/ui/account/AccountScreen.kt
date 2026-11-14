@@ -59,6 +59,8 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -105,11 +107,12 @@ private fun shortcutsFor(roles: List<String>): List<AccountShortcut> = when {
         AccountShortcut("system", "Estado", Icons.Default.Dns),
         AccountShortcut("logs", "Bitácora", Icons.Default.Terminal)
     )
+    // Perfil, horario, portafolio y agenda ya están en la barra inferior del barbero; aquí, lo que no.
     "barbero" in roles -> listOf(
-        AccountShortcut("barber_me", "Perfil", Icons.Default.Face),
         AccountShortcut("barber_schedule", "Horario", Icons.Default.Schedule),
-        AccountShortcut("barber_portfolio", "Portafolio", Icons.Default.PhotoLibrary),
-        AccountShortcut("barber_agenda", "Agenda", Icons.Default.Event)
+        AccountShortcut("social", "Muro", Icons.Default.PhotoLibrary),
+        AccountShortcut("catalog", "Catálogo", Icons.Default.ContentCut),
+        AccountShortcut("chatbot", "Bladebot", Icons.Default.SmartToy)
     )
     else -> listOf(
         AccountShortcut("wallet", "Beneficios", Icons.Default.Stars),

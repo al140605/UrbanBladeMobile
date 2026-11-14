@@ -20,6 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import com.urbanblade.mobile.ui.components.UrbanFormChoice
 import com.urbanblade.mobile.ui.components.UrbanFormSection
 import com.urbanblade.mobile.ui.components.UrbanFormSheet
@@ -64,31 +67,19 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
         subtitle = "Tus mejores trabajos, a la vista de tus clientes.",
         onBack = onBack,
         onRefresh = { vm.load() },
-        refreshing = busy
+        refreshing = busy,
+        floatingActionButton = { expanded ->
+            UrbanFab("Subir trabajo", Icons.Default.AddAPhoto, expanded) { showUpload = true }
+        }
     ) {
         if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
         if (hasLoaded) item {
-            UrbanHeroCard {
-                Text(
-                    UrbanFormat.count(portfolio.stats.totalWorks, "trabajo publicado", "trabajos publicados"),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = UrbanColors.Ink
+            UrbanStatStrip(
+                listOf(
+                    Triple("Trabajos", portfolio.stats.totalWorks.toString(), UrbanColors.Ink),
+                    Triple("Reacciones", portfolio.stats.totalReactions.toString(), UrbanColors.Ink),
+                    Triple("Guardados", portfolio.stats.totalSaves.toString(), UrbanColors.Ink)
                 )
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    UrbanHeroStat("Reacciones", portfolio.stats.totalReactions.toString(), Icons.Default.Favorite, Modifier.weight(1f))
-                    UrbanHeroStat("Guardados", portfolio.stats.totalSaves.toString(), Icons.Default.Bookmark, Modifier.weight(1f))
-                }
-            }
-        }
-        item {
-            UrbanPrimaryButton(
-                text = "Subir trabajo",
-                onClick = { showUpload = true },
-                icon = Icons.Default.AddAPhoto,
-                modifier = Modifier.fillMaxWidth()
             )
         }
         message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -109,12 +100,12 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
             }
             else -> {
                 error?.let { item { UrbanErrorBanner(it) } }
-                items(portfolio.works.chunked(2)) { row ->
+                items(portfolio.works.chunked(3)) { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         row.forEach { work ->
                             Box(Modifier.weight(1f)) { WorkTile(work, onDelete = { showDeleteConfirm = work }) }
                         }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
@@ -146,58 +137,76 @@ fun BarberPortfolioScreen(onBack: () -> Unit, vm: PortfolioViewModel = viewModel
 
 @Composable
 private fun WorkTile(work: WorkRow, onDelete: () -> Unit) {
-    // Un toque al trabajo reproduce su primer video (si tiene).
+    // Cuadro con las reacciones sobre la foto; un toque abre el menú del trabajo (ver video, eliminar).
     val videoUrl = work.media.firstOrNull { it.type == "video" }?.url
     var playing by remember { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
     if (playing && videoUrl != null) VideoPlayerDialog(videoUrl, onDismiss = { playing = false })
 
-    Column {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .then(if (videoUrl != null) Modifier.clickable { playing = true } else Modifier)
-        ) {
-            val first = work.media.firstOrNull()
-            if (first != null) {
-                WorkMediaThumb(
-                    url = first.url,
-                    isVideo = first.type == "video",
-                    contentDescription = null,
-                    playIconSize = 36.dp,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)).background(UrbanColors.Card), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Image, null, tint = UrbanColors.Muted)
-                }
-            }
-            if (first?.type != "video" && videoUrl != null) {
-                Icon(
-                    Icons.Default.PlayCircle,
-                    "Tiene video",
-                    tint = androidx.compose.ui.graphics.Color.White,
-                    modifier = Modifier.align(Alignment.Center).size(36.dp)
-                )
-            }
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-            ) {
-                Icon(Icons.Default.Delete, "Eliminar", tint = UrbanColors.Danger)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClickLabel = "Abrir opciones del trabajo") { menu = true }
+    ) {
+        val first = work.media.firstOrNull()
+        if (first != null) {
+            WorkMediaThumb(
+                url = first.url,
+                isVideo = first.type == "video",
+                contentDescription = work.title,
+                playIconSize = 28.dp,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(Modifier.fillMaxSize().background(UrbanColors.Card), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Image, null, tint = UrbanColors.Muted)
             }
         }
-        Spacer(Modifier.height(6.dp))
-        Text(work.title ?: "—", style = MaterialTheme.typography.titleSmall, maxLines = 1)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Favorite, "Reacciones", tint = UrbanColors.Gold, modifier = Modifier.size(14.dp))
-            Text("${work.reactionsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-            Icon(Icons.Default.ChatBubble, "Comentarios", tint = UrbanColors.Gold, modifier = Modifier.size(14.dp))
-            Text("${work.commentsCount}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        if (first?.type != "video" && videoUrl != null) {
+            Icon(
+                Icons.Default.PlayCircle,
+                "Tiene video",
+                tint = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(22.dp)
+            )
+        }
+        Row(
+            Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color.Transparent, androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f))))
+                .padding(start = 8.dp, end = 8.dp, top = 18.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(work.title ?: "—", style = MaterialTheme.typography.labelMedium, color = androidx.compose.ui.graphics.Color.White, maxLines = 1, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.Favorite, null, tint = UrbanColors.Gold, modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(3.dp))
+            Text("${work.reactionsCount}", style = MaterialTheme.typography.labelMedium, color = androidx.compose.ui.graphics.Color.White)
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text("${work.reactionsCount} reacciones · ${work.commentsCount} comentarios") },
+                leadingIcon = { Icon(Icons.Default.Favorite, null) },
+                enabled = false,
+                onClick = {}
+            )
+            if (videoUrl != null) DropdownMenuItem(
+                text = { Text("Reproducir video") },
+                leadingIcon = { Icon(Icons.Default.PlayCircle, null) },
+                onClick = { menu = false; playing = true }
+            )
+            DropdownMenuItem(
+                text = { Text("Eliminar trabajo", color = UrbanColors.Danger) },
+                leadingIcon = { Icon(Icons.Default.Delete, null, tint = UrbanColors.Danger) },
+                onClick = { menu = false; onDelete() }
+            )
         }
     }
 }
+
 
 @Composable
 private fun UploadWorkDialog(

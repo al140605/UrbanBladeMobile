@@ -44,7 +44,7 @@ private fun nextStatesFor(estado: String): List<String> = when (estado) {
 }
 
 @Composable
-fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel()) {
+fun BarberAgendaScreen(onBack: (() -> Unit)?, vm: BarberAgendaViewModel = viewModel()) {
     val agenda by vm.agenda.collectAsState()
     val busy by vm.busy.collectAsState()
     val hasLoaded by vm.hasLoaded.collectAsState()
@@ -81,7 +81,7 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
 
     UrbanModuleScreen(
         eyebrow = "BARBERO",
-        title = "Mi agenda",
+        title = "Agenda",
         subtitle = "Confirma, inicia y termina tus citas.",
         onBack = onBack,
         onRefresh = { reload() },
@@ -109,21 +109,14 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
 
         if (!hasLoaded && error == null) item { UrbanSkeletonList(1) }
         if (hasLoaded) item {
-            UrbanHeroCard {
-                Text(
-                    UrbanFormat.count(agenda.stats.totalPeriod, "cita", "citas"),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = UrbanColors.Ink
+            // Una franja de tres números en lugar de una tarjeta alta: la agenda queda a la vista.
+            UrbanStatStrip(
+                listOf(
+                    Triple("Citas", agenda.stats.totalPeriod.toString(), UrbanColors.Ink),
+                    Triple("Terminadas", agenda.stats.completedPeriod.toString(), UrbanColors.Success),
+                    Triple("Tus ingresos", UrbanFormat.moneyShort(agenda.stats.incomeTotal), UrbanColors.Ink)
                 )
-                Text("Productividad ${agenda.stats.productivity}%", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider(color = UrbanColors.Ink.copy(alpha = 0.22f))
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    UrbanHeroStat("Terminadas", agenda.stats.completedPeriod.toString(), Icons.Default.CheckCircle, Modifier.weight(1f), tone = UrbanColors.Success)
-                    UrbanHeroStat("Tus ingresos", UrbanFormat.moneyShort(agenda.stats.incomeTotal), Icons.Default.Payments, Modifier.weight(1f))
-                }
-            }
+            )
         }
 
         item {
