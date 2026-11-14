@@ -1,6 +1,26 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.urbanblade.mobile.ui.components.HubActionsHost
+import com.urbanblade.mobile.ui.components.LocalHubActions
+import com.urbanblade.mobile.ui.theme.UrbanColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,30 +75,68 @@ class HubTab(val key: String, val label: String, val content: @Composable (selec
 fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTab>, initial: String?, onBack: () -> Unit) {
     var selected by rememberSaveable { mutableStateOf(initial ?: tabs.first().key) }
     val current = tabs.firstOrNull { it.key == selected } ?: tabs.first()
-    Scaffold(containerColor = Color.Transparent, topBar = { UrbanTopBar("", onBack) }) { padding ->
+    val host = remember { HubActionsHost() }
+    Scaffold(containerColor = Color.Transparent) { padding ->
         // consumeWindowInsets: sin esto el Scaffold de cada pestaña vuelve a sumar el margen de la barra de estado
         // y aparece un hueco vacío sobre el contenido.
         Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-            Column(
-                Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Xxs),
-                verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
+            // Una sola barra: volver, grupo y acciones de la pestaña (actualizar, agregar…) en la misma línea.
+            Row(
+                Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true)
-                if (tabs.size > 1) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        tabs.forEach { tab ->
-                            FilterChip(
-                                selected = tab.key == current.key,
-                                onClick = { selected = tab.key },
-                                label = { Text(tab.label) },
-                                colors = urbanFilterChipColors()
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Volver", tint = UrbanColors.Ink) }
+                Column(Modifier.weight(1f).padding(start = 2.dp)) {
+                    Text(
+                        eyebrow.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = UrbanColors.Gold,
+                        maxLines = 1
+                    )
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = UrbanColors.Ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                }
+                host.actions?.invoke(this)
+            }
+            if (tabs.size > 1) {
+                // Pestañas subrayadas: se distinguen de los filtros, que son botones redondos.
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = UrbanSpace.Gutter),
+                    horizontalArrangement = Arrangement.spacedBy(22.dp)
+                ) {
+                    tabs.forEach { tab ->
+                        val isSelected = tab.key == current.key
+                        Column(
+                            Modifier
+                                .clickable(role = Role.Tab) { selected = tab.key }
+                                .semantics { this.selected = isSelected }
+                                .padding(top = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                tab.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (isSelected) UrbanColors.Ink else UrbanColors.Muted,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                Modifier.height(2.dp).fillMaxWidth()
+                                    .background(if (isSelected) UrbanColors.Gold else Color.Transparent)
                             )
                         }
                     }
                 }
             }
-            Box(Modifier.weight(1f).fillMaxWidth().padding(top = UrbanSpace.Xs)) {
-                CompositionLocalProvider(LocalEmbeddedInHub provides true) {
+            HorizontalDivider(color = UrbanColors.Line)
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                CompositionLocalProvider(LocalEmbeddedInHub provides true, LocalHubActions provides host) {
                     current.content { selected = it }
                 }
             }

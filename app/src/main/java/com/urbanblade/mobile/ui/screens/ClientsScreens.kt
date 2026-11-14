@@ -72,8 +72,8 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
         onBack = onBack,
         onRefresh = { vm.load(search.takeIf { it.isNotBlank() }, segment) },
         refreshing = busy || loadingMore || saving,
-        actions = {
-            IconButton(onClick = { vm.clearError(); showCreate = true }) { Icon(Icons.Default.PersonAdd, "Agregar cliente") }
+        floatingActionButton = { expanded ->
+            UrbanFab("Nuevo cliente", Icons.Default.PersonAdd, expanded) { vm.clearError(); showCreate = true }
         },
         pinned = {
             OutlinedTextField(

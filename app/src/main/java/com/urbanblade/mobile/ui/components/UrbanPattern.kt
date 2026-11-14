@@ -9,6 +9,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,6 +89,13 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
  */
 val LocalEmbeddedInHub = androidx.compose.runtime.compositionLocalOf { false }
 
+/** Dónde dejan sus acciones los módulos incrustados para que el grupo las dibuje en su barra superior. */
+class HubActionsHost {
+    var actions by androidx.compose.runtime.mutableStateOf<(@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)?>(null)
+}
+
+val LocalHubActions = androidx.compose.runtime.compositionLocalOf<HubActionsHost?> { null }
+
 @Composable
 fun UrbanModuleScreen(
     eyebrow: String,
@@ -104,6 +112,17 @@ fun UrbanModuleScreen(
     content: LazyListScope.() -> Unit
 ) {
     val embedded = LocalEmbeddedInHub.current
+    val hubActions = LocalHubActions.current
+    if (embedded && hubActions != null) {
+        // Las acciones del módulo (actualizar, agregar…) se muestran en la barra del grupo, junto al título.
+        androidx.compose.runtime.SideEffect {
+            hubActions.actions = {
+                if (onRefresh != null) UrbanRefreshButton(refreshing, onRefresh)
+                actions()
+            }
+        }
+        androidx.compose.runtime.DisposableEffect(hubActions) { onDispose { hubActions.actions = null } }
+    }
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -124,16 +143,12 @@ fun UrbanModuleScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Módulo (tiene volver): encabezado compacto.
             if (embedded && pinned != null) {
-                // Dentro de un grupo: solo las acciones del módulo (actualizar, agregar) y sus filtros fijos.
+                // Dentro de un grupo: solo los filtros fijos; las acciones (actualizar, agregar) suben a la barra del grupo.
                 Column(
-                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter),
+                    Modifier.fillMaxWidth().padding(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = UrbanSpace.Sm),
                     verticalArrangement = Arrangement.spacedBy(UrbanSpace.Sm)
                 ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        if (onRefresh != null) UrbanRefreshButton(refreshing, onRefresh)
-                        actions()
-                    }
-                    pinned?.invoke(this)
+                    pinned.invoke(this)
                 }
             } else if (pinned != null) {
                 Column(
@@ -156,12 +171,6 @@ fun UrbanModuleScreen(
                 verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
             ) {
                 if (pinned == null && !embedded) item { UrbanPageHeader(title = title, subtitle = subtitle, eyebrow = eyebrow, compact = true) }
-                if (pinned == null && embedded) item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        if (onRefresh != null) UrbanRefreshButton(refreshing, onRefresh)
-                        actions()
-                    }
-                }
                 content()
             }
         }
@@ -176,33 +185,19 @@ fun UrbanModuleScreen(
  */
 @Composable
 fun UrbanHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    // Sin la foto de la barbería (13-nov): ocupaba media pantalla para un solo número. Ahora es una tarjeta
+    // limpia con un velo dorado muy suave arriba, más baja y fácil de leer en los cuatro temas.
     val shape = MaterialTheme.shapes.large
     Box(
         modifier
             .fillMaxWidth()
             .clip(shape)
-            .border(1.dp, UrbanColors.Gold.copy(alpha = 0.45f), shape)
+            .background(
+                Brush.verticalGradient(listOf(UrbanColors.Gold.copy(alpha = 0.10f), UrbanColors.Card))
+            )
+            .border(1.dp, UrbanColors.Gold.copy(alpha = 0.35f), shape)
     ) {
-        Image(
-            painter = painterResource(R.drawable.auth_barbershop_background),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize()
-        )
-        Box(
-            Modifier
-                .matchParentSize()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            UrbanColors.Background.copy(alpha = 0.95f),
-                            UrbanColors.Background.copy(alpha = 0.85f),
-                            UrbanColors.Background.copy(alpha = 0.65f)
-                        )
-                    )
-                )
-        )
-        Column(Modifier.padding(18.dp), content = content)
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), content = content)
     }
 }
 
