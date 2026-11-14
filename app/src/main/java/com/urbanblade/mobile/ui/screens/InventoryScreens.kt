@@ -16,6 +16,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.urbanblade.mobile.data.model.AuthUser
@@ -255,34 +269,41 @@ private fun MovementDialog(
     var cantidad by remember { mutableStateOf("1") }
     var motivo by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Movimiento: ${product.nombre}") },
-        text = {
-            UrbanFormScroll(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (allowEntrada) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = tipo == "entrada", onClick = { tipo = "entrada" }, label = { Text("Entrada") })
-                        FilterChip(selected = tipo == "salida", onClick = { tipo = "salida" }, label = { Text("Salida") })
-                    }
-                } else {
-                    Text("Tipo: Salida (consumo)", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                }
-                UrbanTextField(cantidad, { cantidad = it.filter(Char::isDigit) }, "Cantidad", Modifier.fillMaxWidth(), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
-                UrbanTextField(motivo, { motivo = it }, "Motivo (opcional)", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
+    val form = rememberUrbanFormState()
+    val cantidadError = if ((cantidad.toIntOrNull() ?: 0) <= 0) "Escribe una cantidad mayor a 0." else null
+
+    UrbanFormSheet(
+        eyebrow = "Inventario",
+        title = "Registrar movimiento",
+        primaryLabel = "Registrar ${if (tipo == "entrada") "entrada" else "salida"}",
+        onSubmit = { onConfirm(tipo, cantidad.toInt(), motivo.trim().takeIf { it.isNotEmpty() }) },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(listOfNotNull("Cantidad".takeIf { cantidadError != null }))
+    ) {
+        UrbanFormSection(product.nombre, icon = Icons.Default.Inventory2) {
+            if (allowEntrada) {
+                UrbanFormChoice(
+                    label = "Tipo", options = listOf("entrada", "salida"), selected = tipo, onSelect = { tipo = it },
+                    optionLabel = { if (it == "entrada") "Entrada" else "Salida" }, icon = Icons.Default.SwapVert
+                )
+            } else {
+                Text("Tipo: salida (consumo)", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving && (cantidad.toIntOrNull() ?: 0) > 0,
-                onClick = { onConfirm(tipo, cantidad.toInt(), motivo.takeIf { it.isNotBlank() }) }
-            ) { Text(if (saving) "Guardando…" else "Registrar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+            UrbanTextField(
+                cantidad, { cantidad = it.filter(Char::isDigit) }, "Cantidad", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Tag, placeholder = "1", helper = "Hay ${product.stockActual} disponibles.",
+                error = form.error("cantidad", cantidadError), onBlur = { form.touch("cantidad") },
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+            )
+            UrbanTextField(
+                motivo, { motivo = it }, "Motivo (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Consumo en servicio, compra, ajuste",
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2
+            )
+        }
+    }
 }
 
 /** Errores por campo del formulario de producto, en el orden en que aparecen (vacío = todo bien). */

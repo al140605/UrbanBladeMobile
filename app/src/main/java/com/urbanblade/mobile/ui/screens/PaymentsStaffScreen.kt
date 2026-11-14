@@ -54,6 +54,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.NoShowFeeItem
 import com.urbanblade.mobile.data.model.PaymentRow
@@ -380,35 +392,31 @@ private fun FeeCard(fee: NoShowFeeItem, busy: Boolean, onPay: (String) -> Unit, 
 @Composable
 private fun WaiveFeeDialog(fee: NoShowFeeItem, busy: Boolean, error: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var motivo by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
-        containerColor = UrbanColors.Card,
-        title = { Text("Condonar cargo de ${money(fee.monto)}") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "${fee.cita?.cliente ?: "El cliente"} volverá a poder reservar. El motivo queda registrado.",
-                    color = UrbanColors.Muted,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                UrbanTextField(
-                    value = motivo,
-                    onValueChange = { motivo = it.take(300) },
-                    label = "Motivo",
-                    capitalization = KeyboardCapitalization.Sentences,
-                    helper = "${motivo.length}/300",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                error?.let { UrbanErrorBanner(it) }
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = !busy && motivo.trim().length >= 3, onClick = { onConfirm(motivo) }) {
-                Text(if (busy) "Enviando…" else "Condonar", color = UrbanColors.Danger)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Volver") } }
-    )
+    UrbanFormSheet(
+        eyebrow = "Cobros",
+        title = "Condonar cargo",
+        primaryLabel = "Condonar ${money(fee.monto)}",
+        onSubmit = { onConfirm(motivo.trim()) },
+        onDismiss = onDismiss,
+        saving = busy,
+        blocker = formBlockerText(listOfNotNull("Motivo".takeIf { motivo.trim().length < 3 })),
+        error = error
+    ) {
+        UrbanFormSection("Cargo por inasistencia", icon = Icons.Default.Receipt) {
+            Text(
+                "${fee.cita?.cliente ?: "El cliente"} volverá a poder reservar. El motivo queda registrado.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = UrbanColors.Muted
+            )
+            UrbanTextField(
+                motivo, { motivo = it.take(300) }, "Motivo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Por qué se condona el cargo",
+                helper = "${motivo.length}/300", minLines = 3,
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Default
+            )
+        }
+    }
 }
 
 @Composable
@@ -443,38 +451,33 @@ private fun PaymentCard(payment: PaymentRow, onReceipt: () -> Unit) {
 @Composable
 private fun RejectDialog(payment: PendingPaymentRow, busy: Boolean, error: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var reason by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = UrbanColors.Card,
-        title = { Text("Rechazar comprobante") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "El cliente${payment.appointment?.client?.let { " ($it)" } ?: ""} verá este motivo y podrá subir otro comprobante.",
-                    color = UrbanColors.Muted,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    REJECT_QUICK_REASONS.forEach { quick ->
-                        FilterChip(selected = reason == quick, onClick = { reason = quick }, label = { Text(quick) })
-                    }
-                }
-                UrbanTextField(
-                    value = reason,
-                    onValueChange = { reason = it.take(REJECT_REASON_MAX) },
-                    label = "Motivo del rechazo",
-                    capitalization = KeyboardCapitalization.Sentences,
-                    helper = "${reason.length}/$REJECT_REASON_MAX",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                error?.let { UrbanErrorBanner(it) }
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = !busy && reason.isNotBlank(), onClick = { onConfirm(reason) }) {
-                Text(if (busy) "Enviando…" else "Rechazar", color = UrbanColors.Danger)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Volver") } }
-    )
+    UrbanFormSheet(
+        eyebrow = "Cobros",
+        title = "Rechazar comprobante",
+        primaryLabel = "Rechazar comprobante",
+        onSubmit = { onConfirm(reason.trim()) },
+        onDismiss = onDismiss,
+        saving = busy,
+        blocker = formBlockerText(listOfNotNull("Motivo".takeIf { reason.isBlank() })),
+        error = error
+    ) {
+        UrbanFormSection("Motivo del rechazo", icon = Icons.Default.Receipt) {
+            Text(
+                "El cliente${payment.appointment?.client?.let { " ($it)" } ?: ""} verá este motivo y podrá subir otro comprobante.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = UrbanColors.Muted
+            )
+            UrbanFormChoice(
+                label = "Motivos frecuentes", options = REJECT_QUICK_REASONS, selected = reason.takeIf { it in REJECT_QUICK_REASONS },
+                onSelect = { reason = it }, optionLabel = { it }
+            )
+            UrbanTextField(
+                reason, { reason = it.take(REJECT_REASON_MAX) }, "Motivo del rechazo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Escribe el motivo o elige uno de arriba",
+                helper = "${reason.length}/$REJECT_REASON_MAX", minLines = 3,
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Default
+            )
+        }
+    }
 }

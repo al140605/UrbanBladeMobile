@@ -38,6 +38,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.data.model.OrderRow
@@ -242,25 +255,23 @@ private fun OrderSummaryValue(label: String, value: String, modifier: Modifier =
 @Composable
 private fun DeliverDialog(order: OrderRow, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var method by remember { mutableStateOf(ORDER_PAYMENT_METHODS.first()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = UrbanColors.Card,
-        title = { Text("Entregar pedido") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "Confirma que ${order.client?.name ?: "el cliente"} pagó ${money(order.total)} por el pedido ${order.folio ?: ""}.",
-                    color = UrbanColors.Muted
-                )
-                UrbanFieldLabel("Método de pago")
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ORDER_PAYMENT_METHODS.forEach { m ->
-                        FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.replaceFirstChar { it.uppercase() }) })
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(method) }) { Text("Entregar y cobrar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Volver") } }
-    )
+    UrbanFormSheet(
+        eyebrow = "Caja",
+        title = "Entregar pedido",
+        primaryLabel = "Entregar y cobrar ${money(order.total)}",
+        onSubmit = { onConfirm(method) },
+        onDismiss = onDismiss
+    ) {
+        UrbanFormSection("Pedido ${order.folio ?: ""}".trim(), icon = Icons.Default.ShoppingBag) {
+            Text(
+                "Confirma que ${order.client?.name ?: "el cliente"} pagó ${money(order.total)}. Es dinero real: revisa el método antes de continuar.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = UrbanColors.Muted
+            )
+            UrbanFormChoice(
+                label = "Método de pago", options = ORDER_PAYMENT_METHODS, selected = method, onSelect = { method = it },
+                optionLabel = { it.replaceFirstChar { c -> c.uppercase() } }, icon = Icons.Default.Payments
+            )
+        }
+    }
 }
