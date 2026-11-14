@@ -49,6 +49,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SmartButton
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.CampaignRow
 import com.urbanblade.mobile.data.model.CreateCampaignRequest
@@ -204,77 +214,71 @@ private fun CampaignFormSheet(
     val draft = CampaignDraft(titulo, cuerpo, ctaLabel, ctaUrl, schedule, scheduledAt)
     val errors = validateCampaign(draft, recipients)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text("Nueva campaña", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-            UrbanTextField(
-                value = titulo, onValueChange = { titulo = it }, label = "Título",
-                error = if (submitted) errors.titulo else null, helper = "${titulo.length}/$CAMPAIGN_TITLE_MAX",
-                capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth()
-            )
-            UrbanTextField(
-                value = cuerpo, onValueChange = { cuerpo = it }, label = "Mensaje",
-                error = if (submitted) errors.cuerpo else null, helper = "${cuerpo.length}/$CAMPAIGN_BODY_MAX",
-                capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth()
-            )
-            UrbanTextField(
-                value = ctaLabel, onValueChange = { ctaLabel = it }, label = "Texto del botón (opcional)",
-                error = if (submitted) errors.ctaLabel else null, modifier = Modifier.fillMaxWidth()
-            )
-            UrbanTextField(
-                value = ctaUrl, onValueChange = { ctaUrl = it }, label = "Enlace del botón (opcional)",
-                error = if (submitted) errors.ctaUrl else null, keyboardType = KeyboardType.Uri, modifier = Modifier.fillMaxWidth()
-            )
+    val form = rememberUrbanFormState()
+    val blockerLabels = listOfNotNull(
+        "Título".takeIf { errors.titulo != null }, "Mensaje".takeIf { errors.cuerpo != null },
+        "Texto del botón".takeIf { errors.ctaLabel != null }, "Enlace del botón".takeIf { errors.ctaUrl != null },
+        "Fecha y hora".takeIf { errors.scheduledAt != null }, "Segmento".takeIf { errors.segment != null }
+    )
 
-            Column {
-                UrbanFieldLabel("Segmento")
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    segmentCounts.keys.forEach { key ->
-                        FilterChip(
-                            selected = segmento == key,
-                            onClick = { segmento = key },
-                            label = { Text("${labels[key] ?: key} (${segmentCounts[key] ?: 0})") }
-                        )
-                    }
-                }
-                errors.segment?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
-            }
-
-            Column {
-                UrbanFieldLabel("Envío")
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !schedule, onClick = { schedule = false }, label = { Text("Ahora") })
-                    FilterChip(selected = schedule, onClick = { schedule = true }, label = { Text("Programar") })
-                }
-            }
+    UrbanFormSheet(
+        eyebrow = "Campañas",
+        title = "Nueva campaña",
+        primaryLabel = if (schedule) "Programar campaña" else "Enviar ahora",
+        onSubmit = { confirming = true },
+        onDismiss = onDismiss,
+        saving = sending,
+        blocker = formBlockerText(blockerLabels),
+        error = error
+    ) {
+        UrbanFormSection("Mensaje", icon = Icons.Default.Campaign) {
+            UrbanTextField(
+                titulo, { titulo = it }, "Título", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Campaign, placeholder = "2x1 en barba este viernes",
+                error = form.error("titulo", errors.titulo), onBlur = { form.touch("titulo") },
+                helper = "${titulo.length}/$CAMPAIGN_TITLE_MAX",
+                capitalization = KeyboardCapitalization.Sentences
+            )
+            UrbanTextField(
+                cuerpo, { cuerpo = it }, "Mensaje", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.ChatBubbleOutline, placeholder = "Lo que recibirá el cliente",
+                error = form.error("cuerpo", errors.cuerpo), onBlur = { form.touch("cuerpo") },
+                helper = "${cuerpo.length}/$CAMPAIGN_BODY_MAX",
+                capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default, minLines = 4
+            )
+            UrbanTextField(
+                ctaLabel, { ctaLabel = it }, "Texto del botón (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.SmartButton, placeholder = "Reservar ahora",
+                error = form.error("ctaLabel", errors.ctaLabel), onBlur = { form.touch("ctaLabel") }
+            )
+            UrbanTextField(
+                ctaUrl, { ctaUrl = it }, "Enlace del botón (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Link, placeholder = "https://",
+                error = form.error("ctaUrl", errors.ctaUrl), onBlur = { form.touch("ctaUrl") },
+                keyboardType = KeyboardType.Uri
+            )
+        }
+        UrbanFormSection("A quién", icon = Icons.Default.Groups) {
+            UrbanFormChoice(
+                label = "Segmento", options = segmentCounts.keys.toList(), selected = segmento, onSelect = { segmento = it },
+                optionLabel = { "${labels[it] ?: it} (${segmentCounts[it] ?: 0})" }
+            )
+            errors.segment?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
+        }
+        UrbanFormSection("Envío", icon = Icons.Default.Schedule) {
+            UrbanFormChoice(
+                label = "Cuándo", options = listOf(false, true), selected = schedule, onSelect = { schedule = it },
+                optionLabel = { if (it) "Programar" else "Ahora" }
+            )
             if (schedule) {
-                Column {
-                    UrbanOutlineButton(
-                        text = scheduledAt?.let { formatWhen(formatScheduleForServer(it).replace(' ', 'T')) } ?: "Elegir fecha y hora",
-                        onClick = { pickingDate = true },
-                        icon = Icons.Default.Today,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    if (submitted) errors.scheduledAt?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
-                }
+                UrbanOutlineButton(
+                    text = scheduledAt?.let { formatWhen(formatScheduleForServer(it).replace(' ', 'T')) } ?: "Elegir fecha y hora",
+                    onClick = { pickingDate = true },
+                    icon = Icons.Default.Today,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                errors.scheduledAt?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
             }
-
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = if (schedule) "Programar campaña" else "Enviar ahora",
-                onClick = {
-                    submitted = true
-                    if (!errors.hasAny) confirming = true
-                },
-                loading = sending,
-                icon = Icons.Default.Send,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 

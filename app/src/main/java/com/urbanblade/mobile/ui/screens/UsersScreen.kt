@@ -48,6 +48,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Shield
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormDangerZone
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.SystemUserRow
 import com.urbanblade.mobile.ui.components.UrbanAvatar
@@ -182,7 +192,9 @@ fun UsersScreen(onBack: () -> Unit, currentUserId: String? = null, vm: UsersAdmi
                 } else {
                     vm.update(target.id, name, email, password, role) { editing = null }
                 }
-            }
+            },
+            // Nadie borra su propia cuenta desde aquí; el servidor también lo impide.
+            onDelete = editing?.takeIf { it.id != currentUserId }?.let { target -> { vm.delete(target.id); editing = null } }
         )
     }
 
@@ -227,7 +239,24 @@ private fun UserCard(user: SystemUserRow, isSelf: Boolean, onEdit: () -> Unit, o
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Errores por campo del formulario de usuario (null = bien). */
+internal data class UserFormErrors(val name: String?, val email: String?, val role: String?, val password: String?) {
+    val missing: List<String>
+        get() = listOfNotNull(
+            "Nombre".takeIf { name != null }, "Correo".takeIf { email != null },
+            "Rol".takeIf { role != null }, "Contraseña".takeIf { password != null }
+        )
+}
+
+internal fun validateUserForm(name: String, email: String, role: String, password: String, confirmation: String, isEdit: Boolean) =
+    UserFormErrors(
+        name = if (name.isBlank()) "Escribe el nombre." else null,
+        email = if (!email.contains("@")) "Escribe un correo válido, como nombre@correo.com." else null,
+        role = if (role.isBlank()) "Elige un rol." else null,
+        password = passwordProblem(password, confirmation, required = !isEdit)
+    )
+
+/** Formulario de usuario: el mismo para crear (user null) y para editar. */
 @Composable
 private fun UserFormSheet(
     user: SystemUserRow?,
@@ -235,7 +264,8 @@ private fun UserFormSheet(
     saving: Boolean,
     error: String?,
     onDismiss: () -> Unit,
-    onSubmit: (name: String, email: String, password: String?, role: String) -> Unit
+    onSubmit: (name: String, email: String, password: String?, role: String) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     val isEdit = user != null
     var name by remember { mutableStateOf(user?.name.orEmpty()) }
@@ -243,61 +273,55 @@ private fun UserFormSheet(
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(user?.roles?.firstOrNull() ?: roles.firstOrNull().orEmpty()) }
-    var submitted by remember { mutableStateOf(false) }
+    val form = rememberUrbanFormState()
+    val errors = validateUserForm(name, email, role, password, confirmation, isEdit)
 
-    val nameError = if (submitted && name.isBlank()) "Escribe el nombre." else null
-    val emailError = if (submitted && !email.contains("@")) "Escribe un correo válido." else null
-    val passwordError = if (submitted) passwordProblem(password, confirmation, required = !isEdit) else null
-    val roleError = if (submitted && role.isBlank()) "Elige un rol." else null
-
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(if (isEdit) "Editar usuario" else "Nuevo usuario", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+    UrbanFormSheet(
+        eyebrow = "Usuarios",
+        title = if (isEdit) "Editar usuario" else "Nuevo usuario",
+        primaryLabel = if (isEdit) "Guardar cambios" else "Crear usuario",
+        onSubmit = { onSubmit(name.trim(), email.trim().lowercase(), password.takeIf { it.isNotEmpty() }, role) },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.missing),
+        error = error
+    ) {
+        UrbanFormSection("Cuenta", icon = Icons.Default.Person) {
             UrbanTextField(
-                value = name, onValueChange = { name = it }, label = "Nombre", error = nameError,
-                capitalization = KeyboardCapitalization.Words, modifier = Modifier.fillMaxWidth()
+                name, { name = it }, "Nombre completo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Person, placeholder = "Ej. Ana Torres",
+                error = form.error("name", errors.name), onBlur = { form.touch("name") },
+                capitalization = KeyboardCapitalization.Words
             )
             UrbanTextField(
-                value = email, onValueChange = { email = it }, label = "Correo", error = emailError,
-                keyboardType = KeyboardType.Email, modifier = Modifier.fillMaxWidth()
+                email, { email = it }, "Correo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Email, placeholder = "ana@urbanblade.mx",
+                error = form.error("email", errors.email), onBlur = { form.touch("email") },
+                keyboardType = KeyboardType.Email
             )
-            Column {
-                UrbanFieldLabel("Rol")
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    roles.forEach { r ->
-                        FilterChip(selected = role == r, onClick = { role = r }, label = { Text(r.replace('_', ' ').replaceFirstChar { it.uppercase() }) })
-                    }
-                }
-                roleError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
-            }
+        }
+        UrbanFormSection("Permisos", icon = Icons.Default.Shield) {
+            UrbanFormChoice(
+                label = "Rol", options = roles, selected = role, onSelect = { role = it },
+                optionLabel = { it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() } }
+            )
+        }
+        UrbanFormSection("Acceso", icon = Icons.Default.Lock) {
             UrbanTextField(
-                value = password, onValueChange = { password = it },
-                label = if (isEdit) "Nueva contraseña (opcional)" else "Contraseña",
-                error = passwordError, isPassword = true, modifier = Modifier.fillMaxWidth()
+                password, { password = it }, if (isEdit) "Nueva contraseña (opcional)" else "Contraseña", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Lock, placeholder = "Mínimo 8 caracteres",
+                helper = if (isEdit) "Déjala vacía para conservar la actual." else null,
+                error = form.error("password", errors.password), onBlur = { form.touch("password") },
+                isPassword = true
             )
             if (password.isNotEmpty() || !isEdit) {
                 UrbanTextField(
-                    value = confirmation, onValueChange = { confirmation = it }, label = "Confirmar contraseña",
-                    isPassword = true, imeAction = ImeAction.Done, modifier = Modifier.fillMaxWidth()
+                    confirmation, { confirmation = it }, "Confirmar contraseña", Modifier.fillMaxWidth(),
+                    leadingIcon = Icons.Default.Lock, placeholder = "Repite la contraseña",
+                    isPassword = true, imeAction = ImeAction.Done
                 )
             }
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = if (isEdit) "Guardar cambios" else "Crear usuario",
-                onClick = {
-                    submitted = true
-                    val valid = name.isNotBlank() && email.contains("@") && role.isNotBlank() &&
-                        passwordProblem(password, confirmation, required = !isEdit) == null
-                    if (valid) onSubmit(name.trim(), email.trim().lowercase(), password.takeIf { it.isNotEmpty() }, role)
-                },
-                loading = saving,
-                icon = Icons.Default.Save,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
+        if (isEdit && onDelete != null) UrbanFormDangerZone("usuario", onDelete, enabled = !saving, note = "Perderá el acceso al sistema.")
     }
 }

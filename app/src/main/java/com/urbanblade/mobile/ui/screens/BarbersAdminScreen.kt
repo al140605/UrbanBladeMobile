@@ -44,6 +44,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Star
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.UrbanFormSwitch
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.BarberAdminItem
 import com.urbanblade.mobile.data.model.BarberPerformance
@@ -184,7 +197,19 @@ private fun BarberAdminCard(barber: BarberAdminItem, onOpen: () -> Unit, onToggl
 private fun formatPct(value: Double): String =
     if (value % 1.0 == 0.0) "${value.toInt()} %" else "%.1f %%".format(value)
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Errores por campo del formulario de barbero, en orden de aparición (vacío = todo bien). */
+internal fun validateBarberForm(nombre: String, email: String, comision: String): LinkedHashMap<String, String> {
+    val errors = LinkedHashMap<String, String>()
+    if (nombre.isBlank()) errors["nombre"] = "Escribe el nombre."
+    if (!email.contains("@")) errors["email"] = "Escribe un correo válido, como nombre@correo.com."
+    val c = if (comision.isBlank()) 0.0 else comision.replace(',', '.').toDoubleOrNull()
+    if (c == null || c !in 0.0..100.0) errors["comision"] = "Entre 0 y 100 %."
+    return errors
+}
+
+private val BARBER_FIELD_LABEL = mapOf("nombre" to "Nombre", "email" to "Correo", "comision" to "Comisión")
+
+/** Formulario de barbero (se edita desde la lista; las altas se hacen en Usuarios). */
 @Composable
 private fun BarberFormSheet(
     barber: BarberAdminItem,
@@ -201,70 +226,68 @@ private fun BarberFormSheet(
     var descripcion by remember { mutableStateOf(barber.descripcion.orEmpty()) }
     var comision by remember { mutableStateOf(if (barber.comisionPct == 0.0) "" else formatPctInput(barber.comisionPct)) }
     var activo by remember { mutableStateOf(barber.activo) }
-    var submitted by remember { mutableStateOf(false) }
+    val form = rememberUrbanFormState()
+    val errors = validateBarberForm(nombre, email, comision)
 
-    val comisionValue = if (comision.isBlank()) 0.0 else comision.replace(',', '.').toDoubleOrNull()
-    val nombreError = if (submitted && nombre.isBlank()) "Escribe el nombre." else null
-    val emailError = if (submitted && !email.contains("@")) "Escribe un correo válido." else null
-    val comisionError = if (submitted && (comisionValue == null || comisionValue !in 0.0..100.0)) "Entre 0 y 100 %." else null
-
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text("Editar barbero", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-            PerformanceCard(performance, performanceLoading)
-
+    UrbanFormSheet(
+        eyebrow = "Barberos",
+        title = "Editar barbero",
+        primaryLabel = "Guardar cambios",
+        onSubmit = {
+            val comisionValue = if (comision.isBlank()) 0.0 else comision.replace(',', '.').toDouble()
+            onSave(
+                BarberUpsertRequest(
+                    nombre.trim(), email.trim().lowercase(),
+                    especialidades.trim().ifEmpty { null }, descripcion.trim().ifEmpty { null },
+                    barber.foto, activo, comisionValue
+                )
+            )
+        },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.keys.map { BARBER_FIELD_LABEL.getValue(it) }),
+        error = error
+    ) {
+        PerformanceCard(performance, performanceLoading)
+        UrbanFormSection("Perfil", icon = Icons.Default.Person) {
             UrbanTextField(
-                value = nombre, onValueChange = { nombre = it }, label = "Nombre",
-                error = nombreError, capitalization = KeyboardCapitalization.Words, modifier = Modifier.fillMaxWidth()
+                nombre, { nombre = it }, "Nombre completo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Person, placeholder = "Ej. Diego Ramírez",
+                error = form.error("nombre", errors["nombre"]), onBlur = { form.touch("nombre") },
+                capitalization = KeyboardCapitalization.Words
             )
             UrbanTextField(
-                value = email, onValueChange = { email = it }, label = "Correo",
-                error = emailError, keyboardType = KeyboardType.Email, modifier = Modifier.fillMaxWidth()
+                email, { email = it }, "Correo", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Email, placeholder = "diego@urbanblade.mx",
+                error = form.error("email", errors["email"]), onBlur = { form.touch("email") },
+                keyboardType = KeyboardType.Email
+            )
+        }
+        UrbanFormSection("Lo que ven los clientes", icon = Icons.Default.Star) {
+            UrbanTextField(
+                especialidades, { especialidades = it }, "Especialidades (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.ContentCut, placeholder = "Fade, barba, diseño",
+                capitalization = KeyboardCapitalization.Sentences
             )
             UrbanTextField(
-                value = especialidades, onValueChange = { especialidades = it }, label = "Especialidades (opcional)",
-                capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth()
+                descripcion, { descripcion = it }, "Sobre él (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Su estilo y experiencia",
+                capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default, minLines = 3
             )
+        }
+        UrbanFormSection("Pago y estado", icon = Icons.Default.Payments) {
             UrbanTextField(
-                value = descripcion, onValueChange = { descripcion = it }, label = "Descripción (opcional)",
-                capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth()
-            )
-            UrbanTextField(
-                value = comision, onValueChange = { comision = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                label = "Comisión (%)", error = comisionError, keyboardType = KeyboardType.Decimal,
+                comision, { comision = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Comisión (%)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Percent, placeholder = "0",
                 helper = "Porcentaje del precio de lista de cada servicio que completa.",
-                imeAction = ImeAction.Done, modifier = Modifier.fillMaxWidth()
+                error = form.error("comision", errors["comision"]), onBlur = { form.touch("comision") },
+                keyboardType = KeyboardType.Decimal
             )
-            UrbanSwitchRow("Recibe citas", "Si lo apagas, no aparece al reservar.", checked = activo, onCheckedChange = { activo = it })
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = "Guardar cambios",
-                onClick = {
-                    submitted = true
-                    if (nombre.isNotBlank() && email.contains("@") && comisionValue != null && comisionValue in 0.0..100.0) {
-                        onSave(
-                            BarberUpsertRequest(
-                                nombre.trim(), email.trim().lowercase(),
-                                especialidades.trim().ifEmpty { null }, descripcion.trim().ifEmpty { null },
-                                barber.foto, activo, comisionValue
-                            )
-                        )
-                    }
-                },
-                loading = saving,
-                icon = Icons.Default.Save,
-                modifier = Modifier.fillMaxWidth()
-            )
+            UrbanFormSwitch("Recibe citas", "Si lo apagas, no aparece al reservar.", activo, { activo = it }, icon = Icons.Default.PowerSettingsNew)
         }
     }
 }
+
 
 private fun formatPctInput(value: Double): String = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
 
