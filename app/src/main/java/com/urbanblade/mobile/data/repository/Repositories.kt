@@ -376,6 +376,8 @@ class UrbanRepository(private val api: UrbanBladeApi) {
     suspend fun updateAppointmentStatus(code: String, estado: String) =
         api.updateAppointmentStatus(code, com.google.gson.JsonObject().apply { addProperty("estado", estado) })
 
+    /** Marca que el cliente llegó (recepción o barbero de la cita); idempotente y sin cambiar el estado de la cita. */
+    suspend fun checkInAppointment(code: String) = api.checkInAppointment(code)
     suspend fun extendAppointment(code: String, minutos: Int, forzar: Boolean = false) =
         api.extendAppointment(code, com.google.gson.JsonObject().apply { addProperty("minutos", minutos); addProperty("forzar", forzar) })
     suspend fun appointmentTicket(code: String) = api.appointmentTicket(code).data

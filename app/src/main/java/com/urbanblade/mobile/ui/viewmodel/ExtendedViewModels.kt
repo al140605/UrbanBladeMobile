@@ -423,6 +423,23 @@ class BarberAgendaViewModel @JvmOverloads constructor(private val repo: UrbanRep
     private val _updating = MutableStateFlow<String?>(null); val updating = _updating.asStateFlow()
     private val _error = MutableStateFlow<String?>(null); val error = _error.asStateFlow()
 
+    /** Llegadas registradas en esta sesión (código de cita → hora ISO): la agenda del servidor no trae `llegada_en`. */
+    private val _arrivals = MutableStateFlow<Map<String, String>>(emptyMap()); val arrivals = _arrivals.asStateFlow()
+
+    /** «Llegó»: registra la llegada del cliente sin cambiar el estado de la cita; el servidor es idempotente. */
+    fun checkIn(code: String) = viewModelScope.launch {
+        if (_updating.value != null) return@launch
+        _updating.value = code; _error.value = null
+        try {
+            val res = repo.checkInAppointment(code)
+            res.llegadaEn?.let { _arrivals.value = _arrivals.value + (code to it) }
+            _notice.value = res.message ?: "Llegada registrada."
+        }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo registrar la llegada.") }
+        finally { _updating.value = null }
+    }
+
     fun load(period: String = "day", estado: String? = null, offset: Int = 0) = viewModelScope.launch {
         _busy.value = true; _error.value = null
         try { _agenda.value = repo.barberAgenda(period, estado, offset); _hasLoaded.value = true }

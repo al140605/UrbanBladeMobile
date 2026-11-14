@@ -352,6 +352,29 @@ class AppointmentsViewModel @JvmOverloads constructor(
         _notice.value = null
     }
 
+    /** Llegadas registradas en esta sesión (código de cita → hora ISO): el listado del servidor no trae `llegada_en`. */
+    private val _arrivals = MutableStateFlow<Map<String, String>>(emptyMap())
+    val arrivals = _arrivals.asStateFlow()
+
+    /** «Llegó»: registra la llegada del cliente sin cambiar el estado de la cita; el servidor es idempotente. */
+    fun checkIn(item: AppointmentRow) = viewModelScope.launch {
+        val code = item.code ?: return@launch
+        if (_actionBusy.value) return@launch
+        _actionBusy.value = true; _error.value = null
+        try {
+            val res = repo.checkInAppointment(code)
+            res.llegadaEn?.let { _arrivals.value = _arrivals.value + (code to it) }
+            _notice.value = res.message ?: "Llegada registrada."
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: HttpException) {
+            _error.value = if (e.code() == 422) e.serverMessage() ?: "No se puede registrar la llegada de esta cita."
+            else e.toFriendlyMessage("No se pudo registrar la llegada.")
+        } catch (e: Exception) {
+            _error.value = e.toFriendlyMessage("No se pudo registrar la llegada.")
+        } finally { _actionBusy.value = false }
+    }
+
     /** Confirmar, iniciar, completar o marcar inasistencia; la máquina de estados la valida el servidor. */
     fun changeStatus(item: AppointmentRow, estado: String) = viewModelScope.launch {
         val code = item.code ?: return@launch

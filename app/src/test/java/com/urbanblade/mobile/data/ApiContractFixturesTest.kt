@@ -65,7 +65,9 @@ class ApiContractFixturesTest {
         "get_barber_me.json" to BarberMeResponse::class.java,
         "post_barber_profile.json" to BarberProfileUpdateResponse::class.java,
         // Referidos: forma exacta de ReferralController::link() (201).
-        "post_referrals_link.json" to MessageResponse::class.java
+        "post_referrals_link.json" to MessageResponse::class.java,
+        // Check-in: forma exacta de AppointmentCheckInController (200).
+        "post_appointments_item_check_in.json" to CheckInResponse::class.java
     )
 
     private fun fixture(name: String): String =

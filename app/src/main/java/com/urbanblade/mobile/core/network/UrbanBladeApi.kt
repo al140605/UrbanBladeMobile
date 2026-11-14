@@ -53,6 +53,7 @@ interface UrbanBladeApi {
     @PUT("appointments/{code}") suspend fun updateAppointment(@Path("code") code: String, @Body body: AppointmentRequest): MessageResponse
     @PATCH("appointments/{code}/status") suspend fun updateAppointmentStatus(@Path("code") code: String, @Body body: JsonObject): MessageResponse
     @DELETE("appointments/{code}") suspend fun cancelAppointment(@Path("code") code: String): MessageResponse
+    @POST("appointments/{code}/check-in") suspend fun checkInAppointment(@Path("code") code: String): CheckInResponse
 
     /** Agregar tiempo al servicio en curso (flujo V2): `{minutos, forzar}`. 422 con `puede_forzar` si choca con la siguiente cita. */
     @POST("appointments/{code}/extend") suspend fun extendAppointment(@Path("code") code: String, @Body body: JsonObject): MessageResponse

@@ -32,6 +32,8 @@ import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.urbanblade.mobile.BuildConfig
+import com.urbanblade.mobile.core.appointments.arrivalTime
+import com.urbanblade.mobile.core.appointments.canCheckIn
 import com.urbanblade.mobile.core.payment.isStripeConfigured
 import com.urbanblade.mobile.core.payment.rememberUrbanPaymentSheet
 import com.urbanblade.mobile.data.model.AppointmentRow
@@ -61,6 +63,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
+    val arrivals by vm.arrivals.collectAsState()
     val waitlistEntries by vm.waitlistEntries.collectAsState()
     var confirmCancel by remember { mutableStateOf<AppointmentRow?>(null) }
     var rescheduling by remember { mutableStateOf<AppointmentRow?>(null) }
@@ -284,7 +287,9 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                             onCancel = if (appt.code != null && appt.estado in listOf("pendiente", "confirmada")) {
                                 { { confirmCancel = appt } }
                             } else null,
-                            onCharge = if (appt.isChargeable && !appt.hasPayment) { { charging = appt } } else null
+                            onCharge = if (appt.isChargeable && !appt.hasPayment) { { charging = appt } } else null,
+                            arrivedAt = appt.code?.let { arrivals[it] },
+                            onArrived = if (appt.code != null && canCheckIn(appt.estado, appt.fecha)) { { vm.checkIn(appt) } } else null
                         )
                     }
                 }
@@ -486,7 +491,10 @@ private fun StaffTimelineAppointment(
     appt: AppointmentRow,
     onStatus: ((String) -> Unit)?,
     onCancel: (() -> Unit)?,
-    onCharge: (() -> Unit)?
+    onCharge: (() -> Unit)?,
+    /** Hora ISO de llegada si ya se registró en esta sesión; [onArrived] es null cuando la cita no admite el check-in. */
+    arrivedAt: String? = null,
+    onArrived: (() -> Unit)? = null
 ) {
     var stampedAction by remember { mutableStateOf<String?>(null) }
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -523,11 +531,15 @@ private fun StaffTimelineAppointment(
                             startBlocked = appt.estado == "confirmada" && appt.puedeIniciar == false,
                             startBlockReason = appt.motivoNoIniciar,
                             onCancel = onCancel,
-                            onCharge = onCharge
+                            onCharge = onCharge,
+                            onArrived = onArrived
                         )
                     }
                     Text(appt.client?.user?.name ?: "Cliente por confirmar", style = MaterialTheme.typography.bodyMedium)
                     Text(appt.barber?.user?.name ?: "Barbero por confirmar", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                    arrivalTime(arrivedAt)?.let {
+                        Text("Llegó a las $it", style = MaterialTheme.typography.labelLarge, color = UrbanColors.Success)
+                    }
                     ReminderLine(appt)
                 }
             }
@@ -599,7 +611,8 @@ private fun StaffAppointmentMenu(
     startBlocked: Boolean = false,
     startBlockReason: String? = null,
     onCancel: (() -> Unit)?,
-    onCharge: (() -> Unit)?
+    onCharge: (() -> Unit)?,
+    onArrived: (() -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val next = when (currentStatus) {
@@ -607,7 +620,7 @@ private fun StaffAppointmentMenu(
         "en_proceso" -> "completada" to "Completar servicio"
         else -> null
     }
-    if (next != null || onCancel != null || onCharge != null) {
+    if (next != null || onCancel != null || onCharge != null || onArrived != null) {
         Box {
             IconButton(onClick = { expanded = true }) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Más acciones")
@@ -626,6 +639,13 @@ private fun StaffAppointmentMenu(
                         text = { Text(startBlockReason) },
                         enabled = false,
                         onClick = {}
+                    )
+                }
+                if (onArrived != null) {
+                    DropdownMenuItem(
+                        text = { Text("Llegó") },
+                        leadingIcon = { Icon(Icons.Default.HowToReg, null) },
+                        onClick = { expanded = false; onArrived() }
                     )
                 }
                 if (onCharge != null) {
