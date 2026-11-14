@@ -20,6 +20,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.urbanblade.mobile.ui.components.WorkMediaThumb
@@ -196,42 +210,51 @@ private fun UploadWorkDialog(
     var media by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val pickMedia = rememberMultiMediaPicker(maxItems = 10) { media = it }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Subir trabajo") },
-        text = {
-            UrbanFormScroll(
-                modifier = Modifier.heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedTextField(title, { title = it }, label = { Text("Título") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(description, { description = it }, label = { Text("Descripción (opcional)") }, modifier = Modifier.fillMaxWidth())
-                UrbanOutlineButton(
-                    text = if (media.isEmpty()) "Elegir fotos o video (hasta 10)" else "${media.size} archivo(s) elegidos",
-                    onClick = pickMedia,
-                    icon = Icons.Default.AddPhotoAlternate,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (media.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(media) { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp))
-                            )
-                        }
+    val form = rememberUrbanFormState()
+    val titleError = if (title.isBlank()) "Escribe un título para tu trabajo." else null
+
+    UrbanFormSheet(
+        eyebrow = "Portafolio",
+        title = "Subir trabajo",
+        primaryLabel = "Publicar trabajo",
+        onSubmit = { onUpload(title.trim(), description.trim().takeIf { it.isNotEmpty() }, media) },
+        onDismiss = onDismiss,
+        saving = uploading,
+        blocker = formBlockerText(listOfNotNull("Título".takeIf { titleError != null }))
+    ) {
+        UrbanFormSection("Tu trabajo", icon = Icons.Default.ContentCut) {
+            UrbanTextField(
+                title, { title = it }, "Título", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Title, placeholder = "Ej. Fade con diseño",
+                error = form.error("title", titleError), onBlur = { form.touch("title") },
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences
+            )
+            UrbanTextField(
+                description, { description = it }, "Descripción (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Técnica, productos o lo que quieras contar",
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 3
+            )
+        }
+        UrbanFormSection("Fotos y video", icon = Icons.Default.AddPhotoAlternate) {
+            UrbanOutlineButton(
+                text = if (media.isEmpty()) "Elegir fotos o video (hasta 10)" else "${media.size} archivo(s) elegidos · cambiar",
+                onClick = pickMedia,
+                icon = Icons.Default.AddPhotoAlternate,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (media.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(media) { uri ->
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp))
+                        )
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !uploading && title.isNotBlank(),
-                onClick = { onUpload(title, description.takeIf { it.isNotBlank() }, media) }
-            ) { Text(if (uploading) "Subiendo…" else "Subir") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 }
