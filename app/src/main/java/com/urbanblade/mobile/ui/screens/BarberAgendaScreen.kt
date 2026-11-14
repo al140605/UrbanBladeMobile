@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.core.appointments.EXTEND_OPTIONS
 import com.urbanblade.mobile.core.appointments.RemainingTone
+import com.urbanblade.mobile.core.appointments.arrivalTime
+import com.urbanblade.mobile.core.appointments.canCheckIn
 import com.urbanblade.mobile.core.appointments.minutesLeft
 import com.urbanblade.mobile.core.appointments.remainingLabel
 import com.urbanblade.mobile.core.appointments.remainingTone
@@ -51,6 +53,7 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
     val ticket by vm.ticket.collectAsState()
     val notice by vm.notice.collectAsState()
     val forceExtend by vm.forceExtend.collectAsState()
+    val arrivals by vm.arrivals.collectAsState()
 
     var period by remember { mutableStateOf("day") }
     var estadoFilter by remember { mutableStateOf<String?>(null) }
@@ -159,7 +162,9 @@ fun BarberAgendaScreen(onBack: () -> Unit, vm: BarberAgendaViewModel = viewModel
                         nowMillis = nowMillis,
                         onExtend = { minutos -> appt.code?.let { vm.extend(it, minutos, period, estadoFilter, offset) } },
                         onTicket = { appt.code?.let { vm.openTicket(it) } },
-                        onChangeStatus = { estado -> change(appt, estado) }
+                        onChangeStatus = { estado -> change(appt, estado) },
+                        arrivedAt = appt.code?.let { arrivals[it] },
+                        onArrived = appt.code?.takeIf { canCheckIn(appt.estado, appt.fecha) }?.let { code -> { vm.checkIn(code) } }
                     )
                 }
             }
@@ -218,7 +223,10 @@ private fun AgendaCard(
     nowMillis: Long,
     onExtend: (Int) -> Unit,
     onTicket: () -> Unit,
-    onChangeStatus: (String) -> Unit
+    onChangeStatus: (String) -> Unit,
+    /** Hora ISO de llegada si ya se registró en esta sesión; [onArrived] es null cuando la cita no admite el check-in. */
+    arrivedAt: String? = null,
+    onArrived: (() -> Unit)? = null
 ) {
     val next = nextStatesFor(appt.estado)
     // Iniciar exige que sea hoy y que el pago esté resuelto (cobro verificado): el servidor lo decide y aquí se explica.
@@ -258,6 +266,18 @@ private fun AgendaCard(
             }
             val extra = appt.minutosExtra?.takeIf { it > 0 }?.let { " · +$it min agregados" } ?: ""
             Text(remainingLabel(left) + extra, style = MaterialTheme.typography.titleSmall, color = tone)
+        }
+        // «Llegó»: solo citas de hoy pendientes o confirmadas. Con la llegada registrada se muestra la hora en vez del botón.
+        val arrivalLabel = arrivalTime(arrivedAt)
+        if (arrivalLabel != null) {
+            Spacer(Modifier.height(8.dp))
+            Text("Llegó a las $arrivalLabel", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Success)
+        } else if (onArrived != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = onArrived, enabled = !updating, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.HowToReg, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("  Llegó")
+            }
         }
         if (startBlocked && !appt.motivoNoIniciar.isNullOrBlank()) {
             Spacer(Modifier.height(8.dp))
