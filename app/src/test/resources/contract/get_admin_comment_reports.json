@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "comment_id": "6710a1b2c3d4e5f607182950",
+      "comment": "Comentario de ejemplo",
+      "author": {
+        "id": "6710a1b2c3d4e5f607182951",
+        "name": "Carlos",
+        "comments_banned": false
+      },
+      "work": {
+        "id": "6710a1b2c3d4e5f607182952",
+        "title": "Degradado clásico"
+      },
+      "reports_count": 3,
+      "reasons": {
+        "spam": 1,
+        "ofensivo": 2
+      },
+      "first_reported_at": "2026-11-10T15:30:00-06:00"
+    }
+  ]
+}

@@ -54,7 +54,13 @@ class ApiContractFixturesTest {
         "get_orders_item_receipt_link.json" to OrderReceiptResponse::class.java,
         "get_barber_portfolio.json" to PortfolioResponse::class.java,
         "post_barber_works.json" to CreateWorkResponse::class.java,
-        "delete_barber_works_item.json" to MessageResponse::class.java
+        "delete_barber_works_item.json" to MessageResponse::class.java,
+        // Bloqueos y moderación del muro: no están en el OpenAPI; los fixtures se construyeron con la forma exacta de
+        // CommentModerationController::blocks()/unblock() y CommentReportAdminController::index()/resolve().
+        "get_social_blocks.json" to BlockedAuthorsResponse::class.java,
+        "delete_social_blocks_item.json" to MessageResponse::class.java,
+        "get_admin_comment_reports.json" to CommentReportsResponse::class.java,
+        "post_admin_comment_reports_item_resolve.json" to ResolveReportResponse::class.java
     )
 
     private fun fixture(name: String): String =

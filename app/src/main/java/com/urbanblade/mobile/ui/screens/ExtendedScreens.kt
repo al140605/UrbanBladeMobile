@@ -231,6 +231,7 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
         if (!com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)) {
             add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, "GENERAL"))
             add(ModuleItem("social", "Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups, "GENERAL"))
+            add(ModuleItem("blocked_authors", "Autores bloqueados", "Deshacer un bloqueo del muro", Icons.Default.Block, "GENERAL"))
         }
         add(ModuleItem("notifications", "Notificaciones", "Novedades de tu cuenta", Icons.Default.Notifications, "GENERAL"))
         add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, "GENERAL"))
@@ -265,6 +266,7 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
             add(ModuleItem("campaigns", "Campañas", "Marketing y alcance", Icons.Default.Campaign, "ADMINISTRACIÓN"))
             add(ModuleItem("raffles", "Sorteos", "Lealtad y promociones", Icons.Default.EmojiEvents, "ADMINISTRACIÓN"))
             add(ModuleItem("reviews", "Reseñas", "Opiniones de clientes", Icons.Default.Star, "ADMINISTRACIÓN"))
+            add(ModuleItem("moderation", "Moderación", "Comentarios reportados del muro", Icons.Default.Gavel, "ADMINISTRACIÓN"))
             add(ModuleItem("users", "Usuarios", "Roles y accesos", Icons.Default.ManageAccounts, "ADMINISTRACIÓN"))
             add(ModuleItem("settings", "Configuración", "Ajustes del negocio", Icons.Default.Settings, "ADMINISTRACIÓN"))
         }

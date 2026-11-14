@@ -174,6 +174,10 @@ interface UrbanBladeApi {
     @POST("social/work/{id}/save") suspend fun saveWork(@Path("id") id: String): SocialActionResponse
     @POST("social/comment/{id}/report") suspend fun reportComment(@Path("id") id: String, @Body body: ReportCommentRequest): SocialModerationResponse
     @POST("social/comment/{id}/block-author") suspend fun blockCommentAuthor(@Path("id") id: String): SocialModerationResponse
+    @GET("social/blocks") suspend fun blockedAuthors(): BlockedAuthorsResponse
+    @DELETE("social/blocks/{id}") suspend fun unblockAuthor(@Path("id") id: String): MessageResponse
+    @GET("admin/comment-reports") suspend fun commentReports(): CommentReportsResponse
+    @POST("admin/comment-reports/{id}/resolve") suspend fun resolveCommentReport(@Path("id") id: String, @Body body: ResolveReportRequest): ResolveReportResponse
     @POST("social/work/{id}/comment") suspend fun commentWork(@Path("id") id: String, @Body body: PostCommentRequest): PostCommentResponse
 
     @POST("chatbot/query") suspend fun chatbot(@Body body: JsonObject): JsonObject
