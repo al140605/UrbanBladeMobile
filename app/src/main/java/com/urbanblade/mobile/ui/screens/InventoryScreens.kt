@@ -1,5 +1,6 @@
 package com.urbanblade.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
@@ -149,6 +150,7 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             title = "Nuevo producto",
             initial = null,
             saving = saving,
+            error = error,
             onDismiss = { showCreate = false },
             onSubmit = { req, imageUri -> vm.createProduct(context, req, imageUri) { showCreate = false } }
         )
@@ -159,8 +161,10 @@ fun InventoryListScreen(user: AuthUser, onBack: () -> Unit, onHistory: () -> Uni
             title = "Editar producto",
             initial = product,
             saving = saving,
+            error = error,
             onDismiss = { showEdit = null },
-            onSubmit = { req, imageUri -> vm.updateProduct(context, product.id, req, imageUri) { showEdit = null } }
+            onSubmit = { req, imageUri -> vm.updateProduct(context, product.id, req, imageUri) { showEdit = null } },
+            onDelete = if (isAdmin) { { showEdit = null; vm.deleteProduct(product.id) } } else null
         )
     }
 
@@ -279,13 +283,50 @@ private fun MovementDialog(
     )
 }
 
+/** Errores por campo del formulario de producto, en el orden en que aparecen (vacío = todo bien). */
+internal fun validateProductForm(
+    nombre: String,
+    categoria: String,
+    precioCompra: String,
+    precioVenta: String,
+    stockActual: String,
+    stockMinimo: String
+): LinkedHashMap<String, String> {
+    val errors = LinkedHashMap<String, String>()
+    if (nombre.isBlank()) errors["nombre"] = "Escribe el nombre."
+    if (categoria.isBlank()) errors["categoria"] = "Escribe la categoría."
+    fun money(key: String, value: String) {
+        val n = value.toDoubleOrNull()
+        when {
+            n == null -> errors[key] = "Escribe un precio, por ejemplo 85.50."
+            n < 0 -> errors[key] = "No puede ser negativo."
+        }
+    }
+    fun count(key: String, value: String) {
+        if (value.toIntOrNull() == null) errors[key] = "Escribe una cantidad, por ejemplo 10."
+    }
+    money("precioCompra", precioCompra)
+    money("precioVenta", precioVenta)
+    count("stockActual", stockActual)
+    count("stockMinimo", stockMinimo)
+    return errors
+}
+
+private val PRODUCT_FIELD_LABEL = mapOf(
+    "nombre" to "Nombre", "categoria" to "Categoría", "precioCompra" to "Precio de compra",
+    "precioVenta" to "Precio de venta", "stockActual" to "Existencias", "stockMinimo" to "Aviso de stock bajo"
+)
+
+/** Formulario de producto, el mismo para crear (`initial` null) y para editar. */
 @Composable
 private fun ProductFormDialog(
     title: String,
     initial: InventoryProductRow?,
     saving: Boolean,
+    error: String?,
     onDismiss: () -> Unit,
-    onSubmit: (CreateProductRequest, android.net.Uri?) -> Unit
+    onSubmit: (CreateProductRequest, android.net.Uri?) -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     var nombre by remember { mutableStateOf(initial?.nombre.orEmpty()) }
     var categoria by remember { mutableStateOf(initial?.categoria.orEmpty()) }
@@ -297,64 +338,117 @@ private fun ProductFormDialog(
     var tipo by remember { mutableStateOf(initial?.tipo ?: "venta_cliente") }
     var imageUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val pickImage = rememberSingleImagePicker { imageUri = it }
+    val form = rememberUrbanFormState()
+    val errors = validateProductForm(nombre, categoria, precioCompra, precioVenta, stockActual, stockMinimo)
+    val editing = initial != null
 
-    val valid = nombre.isNotBlank() && categoria.isNotBlank() &&
-        precioCompra.toDoubleOrNull() != null && precioVenta.toDoubleOrNull() != null &&
-        stockActual.toIntOrNull() != null && stockMinimo.toIntOrNull() != null
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            UrbanFormScroll(
-                modifier = Modifier.heightIn(max = 480.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val previewModel = imageUri ?: initial?.imagenUrl
-                    if (previewModel != null) {
-                        AsyncImage(model = previewModel, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)))
-                    }
-                    UrbanOutlineButton(text = if (previewModel != null) "Cambiar foto" else "Agregar foto", onClick = pickImage, icon = Icons.Default.Image)
-                }
-                UrbanTextField(nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
-                UrbanTextField(categoria, { categoria = it }, "Categoría", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words)
-                UrbanTextField(descripcion, { descripcion = it }, "Descripción (opcional)", Modifier.fillMaxWidth(), capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences, imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 2)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    UrbanTextField(precioCompra, { precioCompra = it }, "Precio compra", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
-                    UrbanTextField(precioVenta, { precioVenta = it }, "Precio venta", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    UrbanTextField(stockActual, { stockActual = it.filter(Char::isDigit) }, "Stock actual", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
-                    UrbanTextField(stockMinimo, { stockMinimo = it.filter(Char::isDigit) }, "Stock mínimo", Modifier.weight(1f), keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TIPO_LABEL.forEach { (key, label) ->
-                        FilterChip(selected = tipo == key, onClick = { tipo = key }, label = { Text(label) })
-                    }
-                }
+    UrbanFormSheet(
+        eyebrow = "Inventario",
+        title = title,
+        primaryLabel = if (editing) "Guardar cambios" else "Crear producto",
+        onSubmit = {
+            onSubmit(
+                CreateProductRequest(
+                    nombre = nombre.trim(),
+                    categoria = categoria.trim(),
+                    descripcion = descripcion.trim().takeIf { it.isNotEmpty() },
+                    precioCompra = precioCompra.toDouble(),
+                    precioVenta = precioVenta.toDouble(),
+                    stockActual = stockActual.toInt(),
+                    stockMinimo = stockMinimo.toInt(),
+                    tipo = tipo
+                ),
+                imageUri
+            )
+        },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.keys.map { PRODUCT_FIELD_LABEL.getValue(it) }),
+        error = error
+    ) {
+        UrbanFormSection("Producto", icon = Icons.Default.Inventory2) {
+            ProductPhotoPicker(imageUri ?: initial?.imagenUrl, pickImage)
+            UrbanTextField(
+                nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Inventory2, placeholder = "Ej. Cera mate 100 g",
+                error = form.error("nombre", errors["nombre"]), onBlur = { form.touch("nombre") },
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words
+            )
+            UrbanTextField(
+                categoria, { categoria = it }, "Categoría", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Sell, placeholder = "Ej. Cabello, barba, afeitado",
+                error = form.error("categoria", errors["categoria"]), onBlur = { form.touch("categoria") },
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Words
+            )
+            UrbanFormChoice(
+                label = "Se usa para", options = TIPO_LABEL.keys.toList(), selected = tipo, onSelect = { tipo = it },
+                optionLabel = { TIPO_LABEL.getValue(it) }, icon = Icons.Default.Category
+            )
+            UrbanTextField(
+                descripcion, { descripcion = it }, "Descripción (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Qué es y para qué sirve",
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Default, minLines = 3
+            )
+        }
+        UrbanFormSection("Precios", icon = Icons.Default.Payments) {
+            UrbanFormRow {
+                UrbanTextField(
+                    precioCompra, { precioCompra = it }, "Compra", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.AttachMoney, placeholder = "0.00",
+                    error = form.error("precioCompra", errors["precioCompra"]), onBlur = { form.touch("precioCompra") },
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                )
+                UrbanTextField(
+                    precioVenta, { precioVenta = it }, "Venta", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.AttachMoney, placeholder = "0.00",
+                    error = form.error("precioVenta", errors["precioVenta"]), onBlur = { form.touch("precioVenta") },
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving && valid,
-                onClick = {
-                    onSubmit(
-                        CreateProductRequest(
-                            nombre = nombre,
-                            categoria = categoria,
-                            descripcion = descripcion.takeIf { it.isNotBlank() },
-                            precioCompra = precioCompra.toDouble(),
-                            precioVenta = precioVenta.toDouble(),
-                            stockActual = stockActual.toInt(),
-                            stockMinimo = stockMinimo.toInt(),
-                            tipo = tipo
-                        ),
-                        imageUri
-                    )
-                }
-            ) { Text(if (saving) "Guardando…" else "Guardar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+        UrbanFormSection("Existencias", icon = Icons.Default.Inventory) {
+            UrbanFormRow {
+                UrbanTextField(
+                    stockActual, { stockActual = it.filter(Char::isDigit) }, "Disponibles", Modifier.weight(1f),
+                    placeholder = "0", helper = "Piezas",
+                    error = form.error("stockActual", errors["stockActual"]), onBlur = { form.touch("stockActual") },
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                )
+                UrbanTextField(
+                    stockMinimo, { stockMinimo = it.filter(Char::isDigit) }, "Avisar desde", Modifier.weight(1f),
+                    placeholder = "0", helper = "Debajo de esto sale «stock bajo»",
+                    error = form.error("stockMinimo", errors["stockMinimo"]), onBlur = { form.touch("stockMinimo") },
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                )
+            }
+        }
+        if (editing && onDelete != null) UrbanFormDangerZone("producto", onDelete, enabled = !saving)
+    }
+}
+
+/** Miniatura con la foto actual y el botón para elegir otra; la foto es opcional. */
+@Composable
+private fun ProductPhotoPicker(model: Any?, onPick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(UrbanColors.Card).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)).background(UrbanColors.Background),
+            contentAlignment = Alignment.Center
+        ) {
+            if (model != null) {
+                AsyncImage(model = model, contentDescription = "Foto del producto", contentScale = androidx.compose.ui.layout.ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            } else {
+                Icon(Icons.Default.Image, null, tint = UrbanColors.Muted)
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Text(if (model != null) "Foto del producto" else "Sin foto todavía", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Ink)
+            Text("Opcional · JPG, PNG o WebP", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+        }
+        TextButton(onClick = onPick) { Text(if (model != null) "Cambiar" else "Agregar", color = UrbanColors.Gold) }
+    }
 }
