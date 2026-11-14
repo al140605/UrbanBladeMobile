@@ -37,7 +37,7 @@ class ModelNullSafetyTest {
     private val requiredByContract = setOf(
         "id", "token", "user", "barber", "email", "name", "nombre", "code",
         "estado", "fecha", "hora_inicio", "start_time", "end_time", "day_of_week",
-        "time", "label", "brand", "last4", "client_secret", "payment_intent_id"
+        "time", "label", "brand", "last4", "client_secret", "payment_intent_id", "comment_id"
     )
 
     /** Nombres de clase de `data/model`, leídos del jar o de la carpeta de clases compiladas, según cómo las entregue Gradle. */
