@@ -87,7 +87,7 @@ fun EngineerHomeScreen(
         verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanHomeHeader("INGENIERO", user.name, user.avatarUrl, loading || logsLoading) { systemVm.load(); logsVm.load(null, event = null) }
+            HomeHeader("INGENIERO", user, loading || logsLoading, onNavigate) { systemVm.load(); logsVm.load(null, event = null) }
         }
 
         if (error != null && status != null) item { UrbanStaleContentNotice(error.orEmpty()) { systemVm.load() } }

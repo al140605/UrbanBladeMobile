@@ -68,7 +68,7 @@ fun BarberHomeScreen(
         verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanHomeHeader("BARBERO", user.name, user.avatarUrl, busy) { vm.load("day", null, 0); dashboardVm.load() }
+            HomeHeader("BARBERO", user, busy, onNavigate) { vm.load("day", null, 0); dashboardVm.load() }
         }
 
         if (error != null && loadedOnce) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load("day", null, 0) } }

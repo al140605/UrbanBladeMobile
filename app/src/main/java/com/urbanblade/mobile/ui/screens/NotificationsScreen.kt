@@ -65,6 +65,10 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import com.urbanblade.mobile.ui.components.urbanFilterChipColors
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.core.push.routeForNotificationType
 import com.urbanblade.mobile.ui.components.UrbanErrorBanner
@@ -80,7 +84,19 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.NotificationsViewModel
 import java.time.ZonedDateTime
 
-private val FILTERS = listOf("Todas" to Icons.Default.Notifications, "No leídas" to Icons.Default.NotificationsActive)
+internal val NOTIFICATION_CATEGORIES = listOf("Citas", "Pagos", "Pedidos", "Sistema")
+
+/** Tipo de aviso para filtrar la bandeja; lo que no encaja en ninguno cae en «Otros» y no tiene filtro propio. */
+internal fun notificationCategory(type: String?): String {
+    val t = type?.lowercase().orEmpty()
+    return when {
+        t in setOf("appointment", "cita", "reminder", "service_ending", "service_overrun", "review_request") -> "Citas"
+        t in setOf("payment", "pago", "deposit", "transfer_receipt", "membership_invoice") -> "Pagos"
+        t.startsWith("order") || t == "pedido" -> "Pedidos"
+        t in setOf("inventory_low_stock", "daily_summary", "barber_performance_report", "barber_review_flagged", "report_resolved") -> "Sistema"
+        else -> "Otros"
+    }
+}
 
 /**
  * Bandeja de avisos al estilo de las redes sociales: «Nuevas» arriba y lo leído por antigüedad, filtro
@@ -94,9 +110,14 @@ fun NotificationsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, vm: N
     val error by vm.error.collectAsState()
     LaunchedEffect(Unit) { vm.load() }
     val view = remember(data) { parseNotifications(data) }
-    var filter by rememberSaveable { mutableIntStateOf(0) }
+    // «Sin leer» y el tipo (Citas, Pagos, Pedidos, Sistema) se combinan; sin ninguno se ve todo.
+    var unreadOnly by rememberSaveable { mutableStateOf(false) }
+    var category by rememberSaveable { mutableStateOf("") }
     val now = remember(data) { ZonedDateTime.now() }
-    val shown = remember(view, filter) { if (filter == 1) view.items.filter { !it.read } else view.items }
+    val shown = remember(view, unreadOnly, category) {
+        view.items.filter { (!unreadOnly || !it.read) && (category.isEmpty() || notificationCategory(it.type) == category) }
+    }
+    val categories = remember(view) { NOTIFICATION_CATEGORIES.filter { c -> view.items.any { notificationCategory(it.type) == c } } }
     val groups = remember(shown, now) { groupNotifications(shown, now) }
 
     UrbanModuleScreen(
@@ -111,15 +132,29 @@ fun NotificationsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, vm: N
         },
         onBack = onBack,
         onRefresh = { vm.load() },
-        refreshing = busy
+        refreshing = busy,
+        actions = {
+            // «Marcar todas como leídas» vive en la barra, junto a actualizar, en lugar de ocupar una fila.
+            if (view.unread > 0) IconButton(onClick = { if (!busy) vm.readAll() }) {
+                Icon(Icons.Default.DoneAll, "Marcar todas como leídas", tint = UrbanColors.GoldText)
+            }
+        }
     ) {
-        if (view.items.isNotEmpty()) item { UrbanPillTabs(FILTERS, filter) { filter = it } }
-        if (view.unread > 0) item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                UrbanTextButton(onClick = { if (!busy) vm.readAll() }) {
-                    Icon(Icons.Default.DoneAll, null, Modifier.size(18.dp), tint = UrbanColors.GoldText)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Marcar todas como leídas", color = UrbanColors.GoldText, fontWeight = FontWeight.SemiBold)
+        if (view.items.isNotEmpty()) item {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = unreadOnly,
+                    onClick = { unreadOnly = !unreadOnly },
+                    label = { Text(if (view.unread > 0) "Sin leer · ${view.unread}" else "Sin leer") },
+                    colors = urbanFilterChipColors()
+                )
+                categories.forEach { c ->
+                    FilterChip(
+                        selected = category == c,
+                        onClick = { category = if (category == c) "" else c },
+                        label = { Text(c) },
+                        colors = urbanFilterChipColors()
+                    )
                 }
             }
         }
@@ -137,7 +172,8 @@ fun NotificationsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, vm: N
                 UrbanMascotState(UrbanStateKind.EMPTY, "Sin notificaciones", "Aquí verás confirmaciones de citas, pagos y novedades.")
             }
             shown.isEmpty() && view.items.isNotEmpty() -> item {
-                UrbanMascotState(UrbanStateKind.EMPTY, "Estás al día", "No tienes avisos sin leer.")
+                if (unreadOnly && category.isEmpty()) UrbanMascotState(UrbanStateKind.EMPTY, "Estás al día", "No tienes avisos sin leer.")
+                else UrbanMascotState(UrbanStateKind.EMPTY, "Sin avisos con este filtro", "Quita un filtro para ver el resto.")
             }
             else -> groups.forEach { (group, rows) ->
                 item(key = "titulo-${group.name}") { UrbanSectionTitle(group.label) }

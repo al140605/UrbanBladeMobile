@@ -53,7 +53,7 @@ fun ReceptionHomeScreen(
         verticalArrangement = Arrangement.spacedBy(UrbanSpace.Md)
     ) {
         item {
-            UrbanHomeHeader("RECEPCIÓN", user.name, user.avatarUrl, loading) { vm.load() }
+            HomeHeader("RECEPCIÓN", user, loading, onNavigate) { vm.load() }
         }
 
         if (error != null && board != null) item { UrbanStaleContentNotice(error.orEmpty()) { vm.load() } }

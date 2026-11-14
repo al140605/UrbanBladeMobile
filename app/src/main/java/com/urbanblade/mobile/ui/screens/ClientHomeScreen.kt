@@ -159,7 +159,7 @@ fun ClientHomeScreen(
                             }
                         }
                         Spacer(Modifier.width(4.dp))
-                        UrbanAvatar(user.name, imageUrl = user.avatarUrl)
+                        com.urbanblade.mobile.ui.components.UrbanAccountAvatar(user.name, user.avatarUrl) { onNavigate("profile") }
                     }
                 }
             )
