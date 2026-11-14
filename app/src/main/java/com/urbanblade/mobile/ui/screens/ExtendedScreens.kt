@@ -251,6 +251,7 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
             add(ModuleItem("barber_agenda", "Mi agenda", "Tu día de trabajo", Icons.Default.Event, "BARBERO"))
             add(ModuleItem("barber_portfolio", "Portafolio", "Muestra tus trabajos", Icons.Default.PhotoLibrary, "BARBERO"))
             add(ModuleItem("barber_schedule", "Mi horario", "Disponibilidad semanal", Icons.Default.Schedule, "BARBERO"))
+            add(ModuleItem("barber_me", "Mi perfil", "Bio, especialidades y foto", Icons.Default.Face, "BARBERO"))
         }
         add(ModuleItem("analytics", "Analítica", "Actividad y rendimiento", Icons.Default.QueryStats, "ANÁLISIS"))
         if (admin || engineer) {

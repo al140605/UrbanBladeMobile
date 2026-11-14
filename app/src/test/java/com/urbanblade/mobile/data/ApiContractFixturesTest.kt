@@ -60,7 +60,10 @@ class ApiContractFixturesTest {
         "get_social_blocks.json" to BlockedAuthorsResponse::class.java,
         "delete_social_blocks_item.json" to MessageResponse::class.java,
         "get_admin_comment_reports.json" to CommentReportsResponse::class.java,
-        "post_admin_comment_reports_item_resolve.json" to ResolveReportResponse::class.java
+        "post_admin_comment_reports_item_resolve.json" to ResolveReportResponse::class.java,
+        // Perfil del barbero: forma exacta de ProfileController::showBarberProfile() y updateBarberProfile().
+        "get_barber_me.json" to BarberMeResponse::class.java,
+        "post_barber_profile.json" to BarberProfileUpdateResponse::class.java
     )
 
     private fun fixture(name: String): String =

@@ -187,7 +187,14 @@ interface UrbanBladeApi {
     @POST("chatbot/clear-history") suspend fun clearChatbot(): MessageResponse
 
     @GET("barber/agenda") suspend fun barberAgenda(@QueryMap query: Map<String, String> = emptyMap()): BarberAgendaResponse
-    @GET("barber/me") suspend fun barberMe(): JsonObject
+    @GET("barber/me") suspend fun barberMe(): BarberMeResponse
+    @Multipart
+    @POST("barber/profile")
+    suspend fun updateBarberProfile(
+        @Part("especialidades") especialidades: RequestBody,
+        @Part("descripcion") descripcion: RequestBody,
+        @Part foto: MultipartBody.Part?
+    ): BarberProfileUpdateResponse
     @GET("barber/portfolio") suspend fun barberPortfolio(): PortfolioResponse
     @Multipart
     @POST("barber/works")
