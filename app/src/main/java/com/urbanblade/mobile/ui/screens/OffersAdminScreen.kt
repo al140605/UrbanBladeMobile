@@ -44,6 +44,21 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Tag
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormRow
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.UrbanFormSwitch
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.MembershipPlanItem
 import com.urbanblade.mobile.data.model.MembershipPlanRequest
@@ -193,7 +208,20 @@ private fun OfferCard(title: String, subtitle: String, price: String, active: Bo
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Errores por campo del plan de membresía, en orden de aparición (vacío = todo bien). */
+internal fun validatePlanForm(nombre: String, precio: String, descuento: String): LinkedHashMap<String, String> {
+    val errors = LinkedHashMap<String, String>()
+    if (nombre.isBlank()) errors["nombre"] = "Escribe el nombre del plan."
+    val p = precio.replace(',', '.').toDoubleOrNull()
+    if (p == null || p < 1) errors["precio"] = "El precio mínimo es 1 peso."
+    val d = descuento.toIntOrNull()
+    if (d == null || d !in 1..100) errors["descuento"] = "Entre 1 y 100 %."
+    return errors
+}
+
+private val PLAN_FIELD_LABEL = mapOf("nombre" to "Nombre", "precio" to "Precio mensual", "descuento" to "Descuento")
+
+/** Formulario de plan de membresía: el mismo para crear (plan null) y para editar. */
 @Composable
 private fun PlanFormSheet(plan: MembershipPlanItem?, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (MembershipPlanRequest) -> Unit) {
     var nombre by remember { mutableStateOf(plan?.nombre.orEmpty()) }
@@ -201,56 +229,86 @@ private fun PlanFormSheet(plan: MembershipPlanItem?, saving: Boolean, error: Str
     var precio by remember { mutableStateOf(plan?.let { "%.0f".format(it.precioMensual) }.orEmpty()) }
     var descuento by remember { mutableStateOf(plan?.descuentoPct?.toString().orEmpty()) }
     var activo by remember { mutableStateOf(plan?.activo ?: true) }
-    var submitted by remember { mutableStateOf(false) }
-
+    val form = rememberUrbanFormState()
+    val errors = validatePlanForm(nombre, precio, descuento)
     val precioValue = precio.replace(',', '.').toDoubleOrNull()
-    val descuentoValue = descuento.toIntOrNull()
-    val nombreError = if (submitted && nombre.isBlank()) "Escribe el nombre del plan." else null
-    val precioError = if (submitted && (precioValue == null || precioValue < 1)) "El precio mínimo es $1." else null
-    val descuentoError = if (submitted && (descuentoValue == null || descuentoValue !in 1..100)) "Entre 1 y 100 %." else null
     val priceChanges = plan == null || (precioValue != null && kotlin.math.abs(precioValue - plan.precioMensual) > 0.004)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(if (plan == null) "Nuevo plan" else "Editar plan", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-            UrbanTextField(nombre, { nombre = it }, "Nombre", error = nombreError, capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth())
-            UrbanTextField(descripcion, { descripcion = it }, "Descripción (opcional)", capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    UrbanFormSheet(
+        eyebrow = "Membresías",
+        title = if (plan == null) "Nuevo plan" else "Editar plan",
+        primaryLabel = if (plan == null) "Crear plan" else "Guardar cambios",
+        onSubmit = {
+            onSave(MembershipPlanRequest(nombre.trim(), descripcion.trim().ifEmpty { null }, precio.replace(',', '.').toDouble(), descuento.toInt(), activo))
+        },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.keys.map { PLAN_FIELD_LABEL.getValue(it) }),
+        error = error
+    ) {
+        UrbanFormSection("Plan", icon = Icons.Default.CardMembership) {
+            UrbanTextField(
+                nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.CardMembership, placeholder = "Ej. Plan Barba y Corte",
+                error = form.error("nombre", errors["nombre"]), onBlur = { form.touch("nombre") },
+                capitalization = KeyboardCapitalization.Sentences
+            )
+            UrbanTextField(
+                descripcion, { descripcion = it }, "Descripción (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Qué incluye la membresía",
+                capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default, minLines = 3
+            )
+        }
+        UrbanFormSection("Cobro", icon = Icons.Default.Payments) {
+            UrbanFormRow {
                 UrbanTextField(
-                    precio, { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Precio mensual (MXN)",
-                    error = precioError, keyboardType = KeyboardType.Decimal, modifier = Modifier.weight(1f)
+                    precio, { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Precio mensual (MXN)", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.AttachMoney, placeholder = "0.00",
+                    error = form.error("precio", errors["precio"]), onBlur = { form.touch("precio") },
+                    keyboardType = KeyboardType.Decimal
                 )
                 UrbanTextField(
-                    descuento, { descuento = it.filter(Char::isDigit) }, "Descuento (%)",
-                    error = descuentoError, keyboardType = KeyboardType.Number, imeAction = ImeAction.Done, modifier = Modifier.weight(1f)
+                    descuento, { descuento = it.filter(Char::isDigit) }, "Descuento (%)", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.Percent, placeholder = "10",
+                    error = form.error("descuento", errors["descuento"]), onBlur = { form.touch("descuento") },
+                    keyboardType = KeyboardType.Number
                 )
             }
-            SwitchRow("Disponible para contratar", "Las membresías ya contratadas no se ven afectadas.", activo) { activo = it }
             if (priceChanges) {
                 Text(
                     "Al guardar un precio nuevo se crea un precio nuevo en Stripe; el anterior deja de usarse.",
                     style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted
                 )
             }
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = if (plan == null) "Crear plan" else "Guardar cambios",
-                onClick = {
-                    submitted = true
-                    if (nombre.isNotBlank() && precioValue != null && precioValue >= 1 && descuentoValue != null && descuentoValue in 1..100) {
-                        onSave(MembershipPlanRequest(nombre.trim(), descripcion.trim().ifEmpty { null }, precioValue, descuentoValue, activo))
-                    }
-                },
-                loading = saving, icon = Icons.Default.Save, modifier = Modifier.fillMaxWidth()
+        }
+        UrbanFormSection("Disponibilidad", icon = Icons.Default.PowerSettingsNew) {
+            UrbanFormSwitch(
+                "Disponible para contratar", "Las membresías ya contratadas no se ven afectadas.", activo, { activo = it },
+                icon = Icons.Default.PowerSettingsNew
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Errores por campo del paquete de usos, en orden de aparición (vacío = todo bien). */
+internal fun validatePackageForm(nombre: String, serviceId: String, usos: String, precio: String, vigencia: String): LinkedHashMap<String, String> {
+    val errors = LinkedHashMap<String, String>()
+    if (nombre.isBlank()) errors["nombre"] = "Escribe el nombre del paquete."
+    if (serviceId.isBlank()) errors["servicio"] = "Elige el servicio que incluye."
+    val u = usos.toIntOrNull()
+    if (u == null || u !in 2..100) errors["usos"] = "Entre 2 y 100 usos."
+    val p = precio.replace(',', '.').toDoubleOrNull()
+    if (p == null || p <= 0) errors["precio"] = "Escribe un precio válido."
+    val v = if (vigencia.isBlank()) null else vigencia.toIntOrNull()
+    if (vigencia.isNotBlank() && (v == null || v !in 1..730)) errors["vigencia"] = "Entre 1 y 730 días."
+    return errors
+}
+
+private val PACKAGE_FIELD_LABEL = mapOf(
+    "nombre" to "Nombre", "servicio" to "Servicio incluido", "usos" to "Usos", "precio" to "Precio", "vigencia" to "Vigencia"
+)
+
+/** Formulario de paquete de usos: el mismo para crear (pack null) y para editar. */
 @Composable
 private fun PackageFormSheet(
     pack: ServicePackageItem?, services: List<ServiceItem>, saving: Boolean, error: String?,
@@ -262,68 +320,71 @@ private fun PackageFormSheet(
     var precio by remember { mutableStateOf(pack?.let { "%.0f".format(it.precio) }.orEmpty()) }
     var vigencia by remember { mutableStateOf(pack?.vigenciaDias?.toString().orEmpty()) }
     var activo by remember { mutableStateOf(pack?.activo ?: true) }
-    var submitted by remember { mutableStateOf(false) }
+    val form = rememberUrbanFormState()
+    val errors = validatePackageForm(nombre, serviceId, usos, precio, vigencia)
 
-    val precioValue = precio.replace(',', '.').toDoubleOrNull()
-    val usosValue = usos.toIntOrNull()
-    val vigenciaValue = if (vigencia.isBlank()) null else vigencia.toIntOrNull()
-    val nombreError = if (submitted && nombre.isBlank()) "Escribe el nombre del paquete." else null
-    val serviceError = if (submitted && serviceId.isBlank()) "Elige el servicio que incluye." else null
-    val usosError = if (submitted && (usosValue == null || usosValue !in 2..100)) "Entre 2 y 100 usos." else null
-    val precioError = if (submitted && (precioValue == null || precioValue <= 0)) "Escribe un precio válido." else null
-    val vigenciaError = if (submitted && vigencia.isNotBlank() && (vigenciaValue == null || vigenciaValue !in 1..730)) "Entre 1 y 730 días." else null
-
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(if (pack == null) "Nuevo paquete" else "Editar paquete", style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
-            UrbanTextField(nombre, { nombre = it }, "Nombre", error = nombreError, capitalization = KeyboardCapitalization.Sentences, modifier = Modifier.fillMaxWidth())
-            Column {
-                UrbanFieldLabel("Servicio incluido")
-                Spacer(Modifier.height(8.dp))
-                if (services.isEmpty()) {
-                    Text("No se pudo cargar el catálogo de servicios.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                }
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    services.forEach { s ->
-                        FilterChip(selected = serviceId == s.id, onClick = { serviceId = s.id }, label = { Text(s.nombre) })
-                    }
-                }
-                serviceError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Danger) }
+    UrbanFormSheet(
+        eyebrow = "Paquetes",
+        title = if (pack == null) "Nuevo paquete" else "Editar paquete",
+        primaryLabel = if (pack == null) "Crear paquete" else "Guardar cambios",
+        onSubmit = {
+            onSave(
+                ServicePackageRequest(
+                    nombre.trim(), serviceId, usos.toInt(), precio.replace(',', '.').toDouble(),
+                    if (vigencia.isBlank()) null else vigencia.toInt(), activo
+                )
+            )
+        },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.keys.map { PACKAGE_FIELD_LABEL.getValue(it) }),
+        error = error
+    ) {
+        UrbanFormSection("Paquete", icon = Icons.Default.Inventory2) {
+            UrbanTextField(
+                nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Inventory2, placeholder = "Ej. 5 cortes clásicos",
+                error = form.error("nombre", errors["nombre"]), onBlur = { form.touch("nombre") },
+                capitalization = KeyboardCapitalization.Sentences
+            )
+            if (services.isEmpty()) {
+                Text("No se pudo cargar el catálogo de servicios.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+            } else {
+                UrbanFormChoice(
+                    label = "Servicio incluido", options = services.map { it.id }, selected = serviceId.takeIf { it.isNotBlank() },
+                    onSelect = { serviceId = it }, optionLabel = { id -> services.firstOrNull { it.id == id }?.nombre.orEmpty() },
+                    icon = Icons.Default.ContentCut
+                )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                UrbanTextField(usos, { usos = it.filter(Char::isDigit) }, "Usos", error = usosError, keyboardType = KeyboardType.Number, modifier = Modifier.weight(1f))
+        }
+        UrbanFormSection("Cobro y vigencia", icon = Icons.Default.Payments) {
+            UrbanFormRow {
                 UrbanTextField(
-                    precio, { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Precio (MXN)",
-                    error = precioError, keyboardType = KeyboardType.Decimal, modifier = Modifier.weight(1f)
+                    usos, { usos = it.filter(Char::isDigit) }, "Usos", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.Tag, placeholder = "5",
+                    error = form.error("usos", errors["usos"]), onBlur = { form.touch("usos") },
+                    keyboardType = KeyboardType.Number
+                )
+                UrbanTextField(
+                    precio, { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Precio (MXN)", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.AttachMoney, placeholder = "0.00",
+                    error = form.error("precio", errors["precio"]), onBlur = { form.touch("precio") },
+                    keyboardType = KeyboardType.Decimal
                 )
             }
             UrbanTextField(
-                vigencia, { vigencia = it.filter(Char::isDigit) }, "Vigencia en días (opcional)",
-                error = vigenciaError, keyboardType = KeyboardType.Number, imeAction = ImeAction.Done,
-                helper = "Vacío = sin vencimiento.", modifier = Modifier.fillMaxWidth()
+                vigencia, { vigencia = it.filter(Char::isDigit) }, "Vigencia en días (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.CalendarMonth, placeholder = "90",
+                helper = "Vacío = sin vencimiento.",
+                error = form.error("vigencia", errors["vigencia"]), onBlur = { form.touch("vigencia") },
+                keyboardType = KeyboardType.Number
             )
-            SwitchRow("Disponible para venta", "Los paquetes ya vendidos siguen siendo válidos.", activo) { activo = it }
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = if (pack == null) "Crear paquete" else "Guardar cambios",
-                onClick = {
-                    submitted = true
-                    val vigenciaOk = vigencia.isBlank() || (vigenciaValue != null && vigenciaValue in 1..730)
-                    if (nombre.isNotBlank() && serviceId.isNotBlank() && usosValue != null && usosValue in 2..100 &&
-                        precioValue != null && precioValue > 0 && vigenciaOk
-                    ) {
-                        onSave(ServicePackageRequest(nombre.trim(), serviceId, usosValue, precioValue, vigenciaValue, activo))
-                    }
-                },
-                loading = saving, icon = Icons.Default.Save, modifier = Modifier.fillMaxWidth()
+        }
+        UrbanFormSection("Disponibilidad", icon = Icons.Default.PowerSettingsNew) {
+            UrbanFormSwitch(
+                "Disponible para venta", "Los paquetes ya vendidos siguen siendo válidos.", activo, { activo = it },
+                icon = Icons.Default.PowerSettingsNew
             )
         }
     }
 }
-
-@Composable
-private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) =
-    UrbanSwitchRow(title, subtitle, checked = checked, onCheckedChange = onChange)

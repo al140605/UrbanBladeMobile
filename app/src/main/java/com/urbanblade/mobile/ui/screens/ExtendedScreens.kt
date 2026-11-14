@@ -12,9 +12,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -242,7 +245,6 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
         if (staff) {
             add(ModuleItem("clients", "Clientes", "Atención y gestión", Icons.Default.People, "OPERACIÓN"))
             add(ModuleItem("inventory", "Inventario", "Stock y movimientos", Icons.Default.Inventory2, "OPERACIÓN"))
-            add(ModuleItem("inventory_movements", "Movimientos de inventario", "Entradas y salidas de stock", Icons.Default.SwapVert, "OPERACIÓN"))
             add(ModuleItem("waitlist_staff", "Lista de espera", "Clientes esperando un horario", Icons.Default.HourglassTop, "OPERACIÓN"))
             add(ModuleItem("gift_cards", "Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard, "OPERACIÓN"))
             add(ModuleItem("cash", "Corte de caja", "Resumen de turno", Icons.Default.PointOfSale, "OPERACIÓN"))
@@ -274,6 +276,12 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
         if (engineer || admin) add(ModuleItem("system", "Estado del sistema", "Servicios y salud", Icons.Default.Dns, "SISTEMA"))
     }
 
+    val grouped = modules.groupBy { it.section }
+    // Arranca abierta solo la sección propia del rol (Operación, Barbero…); «General» queda plegada.
+    val startSection = grouped.keys.firstOrNull { it != "GENERAL" } ?: grouped.keys.firstOrNull()
+    val open = remember { mutableStateListOf<String>() }
+    LaunchedEffect(startSection) { if (startSection != null && open.isEmpty()) open.add(startSection) }
+
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
@@ -292,9 +300,30 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
                 user.roles.take(3).forEach { UrbanRolePill(it) }
             }
         }
-        modules.groupBy { it.section }.forEach { (section, group) ->
-            item { UrbanSectionTitle(section.replaceFirstChar { it.uppercase() }) }
+        grouped.forEach { (section, group) ->
+            val isOpen = section in open
             item {
+                // Sección plegable: así «Más» cabe en una pantalla y no hay que desplazarse por 30 módulos.
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { if (isOpen) open.remove(section) else open.add(section) }
+                        .padding(vertical = 8.dp)
+                        .semantics { heading() },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(section.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
+                    Text("  ·  ${group.size}", style = MaterialTheme.typography.titleSmall, color = UrbanColors.Muted)
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        if (isOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (isOpen) "Contraer ${section.lowercase()}" else "Mostrar ${section.lowercase()}",
+                        tint = UrbanColors.Muted
+                    )
+                }
+            }
+            if (isOpen) item {
                 UrbanRowGroup(group) { module ->
                     UrbanActionRow(
                         title = module.title,

@@ -49,6 +49,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Sell
+import com.urbanblade.mobile.ui.components.UrbanFormChoice
+import com.urbanblade.mobile.ui.components.UrbanFormDangerZone
+import com.urbanblade.mobile.ui.components.UrbanFormRow
+import com.urbanblade.mobile.ui.components.UrbanFormSection
+import com.urbanblade.mobile.ui.components.UrbanFormSheet
+import com.urbanblade.mobile.ui.components.UrbanFormSwitch
+import com.urbanblade.mobile.ui.components.formBlockerText
+import com.urbanblade.mobile.ui.components.rememberUrbanFormState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.ServiceAdminItem
 import com.urbanblade.mobile.data.model.ServiceUpsertRequest
@@ -159,29 +172,10 @@ fun ServicesAdminScreen(onBack: () -> Unit, vm: ServicesAdminViewModel = viewMod
             error = state.error,
             onDismiss = { creating = false; editing = null },
             onSave = { body -> vm.save(editing?.slug, body) { creating = false; editing = null } },
-            onDelete = editing?.let { current -> { confirmDelete = current } }
+            onDelete = editing?.let { current -> { vm.delete(current); editing = null } }
         )
     }
 
-    confirmDelete?.let { service ->
-        AlertDialog(
-            onDismissRequest = { confirmDelete = null },
-            containerColor = UrbanColors.Card,
-            title = { Text("Eliminar servicio") },
-            text = {
-                Text(
-                    "¿Eliminar \"${service.nombre}\" del catálogo? Si solo quieres dejar de ofrecerlo, desactívalo: así conserva su historial.",
-                    color = UrbanColors.Muted
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.delete(service); confirmDelete = null; editing = null }) {
-                    Text("Sí, eliminar", color = UrbanColors.Danger)
-                }
-            },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Volver") } }
-        )
-    }
 }
 
 @Composable
@@ -217,7 +211,21 @@ private fun ServiceAdminCard(service: ServiceAdminItem, onOpen: () -> Unit, onTo
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Errores por campo del formulario de servicio, en orden de aparición (vacío = todo bien). */
+internal fun validateServiceForm(nombre: String, categoria: String, precio: String, duracion: String): LinkedHashMap<String, String> {
+    val errors = LinkedHashMap<String, String>()
+    if (nombre.isBlank()) errors["nombre"] = "Escribe el nombre del servicio."
+    if (categoria.isBlank()) errors["categoria"] = "Elige o escribe una categoría."
+    val p = precio.replace(',', '.').toDoubleOrNull()
+    if (p == null || p < 0) errors["precio"] = "Escribe un precio válido, por ejemplo 180."
+    val d = duracion.toIntOrNull()
+    if (d == null || d !in 5..600) errors["duracion"] = "Entre 5 y 600 minutos."
+    return errors
+}
+
+private val SERVICE_FIELD_LABEL = mapOf("nombre" to "Nombre", "categoria" to "Categoría", "precio" to "Precio", "duracion" to "Duración")
+
+/** Formulario de servicio: el mismo para crear (service null) y para editar. */
 @Composable
 private fun ServiceFormSheet(
     service: ServiceAdminItem?,
@@ -234,90 +242,70 @@ private fun ServiceFormSheet(
     var duracion by remember { mutableStateOf(service?.duracionMin?.toString().orEmpty()) }
     var descripcion by remember { mutableStateOf(service?.descripcion.orEmpty()) }
     var activo by remember { mutableStateOf(service?.activo ?: true) }
-    var submitted by remember { mutableStateOf(false) }
+    val form = rememberUrbanFormState()
+    val errors = validateServiceForm(nombre, categoria, precio, duracion)
 
-    val precioValue = precio.replace(',', '.').toDoubleOrNull()
-    val duracionValue = duracion.toIntOrNull()
-    val nombreError = if (submitted && nombre.isBlank()) "Escribe el nombre del servicio." else null
-    val categoriaError = if (submitted && categoria.isBlank()) "Elige o escribe una categoría." else null
-    val precioError = if (submitted && (precioValue == null || precioValue < 0)) "Escribe un precio válido." else null
-    val duracionError = if (submitted && (duracionValue == null || duracionValue !in 5..600)) "Entre 5 y 600 minutos." else null
-
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = UrbanColors.Surface) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                if (service == null) "Nuevo servicio" else "Editar servicio",
-                style = MaterialTheme.typography.titleLarge,
-                color = UrbanColors.Ink
+    UrbanFormSheet(
+        eyebrow = "Servicios",
+        title = if (service == null) "Nuevo servicio" else "Editar servicio",
+        primaryLabel = if (service == null) "Crear servicio" else "Guardar cambios",
+        onSubmit = {
+            onSave(
+                ServiceUpsertRequest(
+                    nombre.trim(), categoria.trim(), precio.replace(',', '.').toDouble(), duracion.toInt(),
+                    descripcion.trim().ifEmpty { null }, activo
+                )
+            )
+        },
+        onDismiss = onDismiss,
+        saving = saving,
+        blocker = formBlockerText(errors.keys.map { SERVICE_FIELD_LABEL.getValue(it) }),
+        error = error
+    ) {
+        UrbanFormSection("Servicio", icon = Icons.Default.ContentCut) {
+            UrbanTextField(
+                nombre, { nombre = it }, "Nombre", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.ContentCut, placeholder = "Ej. Corte clásico",
+                error = form.error("nombre", errors["nombre"]), onBlur = { form.touch("nombre") },
+                capitalization = KeyboardCapitalization.Sentences
             )
             UrbanTextField(
-                value = nombre, onValueChange = { nombre = it }, label = "Nombre",
-                error = nombreError, capitalization = KeyboardCapitalization.Sentences,
-                modifier = Modifier.fillMaxWidth()
-            )
-            UrbanTextField(
-                value = categoria, onValueChange = { categoria = it }, label = "Categoría",
-                error = categoriaError, capitalization = KeyboardCapitalization.Sentences,
-                modifier = Modifier.fillMaxWidth()
+                categoria, { categoria = it }, "Categoría", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Sell, placeholder = "Ej. Corte, barba, combo",
+                error = form.error("categoria", errors["categoria"]), onBlur = { form.touch("categoria") },
+                capitalization = KeyboardCapitalization.Sentences
             )
             if (categories.isNotEmpty()) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.forEach { name ->
-                        FilterChip(selected = categoria == name, onClick = { categoria = name }, label = { Text(name) })
-                    }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                UrbanTextField(
-                    value = precio, onValueChange = { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                    label = "Precio (MXN)", error = precioError, keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f)
-                )
-                UrbanTextField(
-                    value = duracion, onValueChange = { duracion = it.filter(Char::isDigit) },
-                    label = "Duración (min)", error = duracionError, keyboardType = KeyboardType.Number,
-                    modifier = Modifier.weight(1f)
-                )
+                UrbanFormChoice(label = "Categorías existentes", options = categories, selected = categoria.takeIf { it in categories }, onSelect = { categoria = it }, optionLabel = { it })
             }
             UrbanTextField(
-                value = descripcion, onValueChange = { descripcion = it }, label = "Descripción (opcional)",
-                capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done,
-                modifier = Modifier.fillMaxWidth()
+                descripcion, { descripcion = it }, "Descripción (opcional)", Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Notes, placeholder = "Lo que incluye el servicio",
+                capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default, minLines = 3
             )
-            UrbanSwitchRow("Disponible para reservar", "Si lo apagas, los clientes ya no lo ven.", checked = activo, onCheckedChange = { activo = it })
-            error?.let { UrbanErrorBanner(it) }
-            UrbanPrimaryButton(
-                text = if (service == null) "Crear servicio" else "Guardar cambios",
-                onClick = {
-                    submitted = true
-                    if (nombre.isNotBlank() && categoria.isNotBlank() && precioValue != null && precioValue >= 0 &&
-                        duracionValue != null && duracionValue in 5..600
-                    ) {
-                        onSave(
-                            ServiceUpsertRequest(
-                                nombre.trim(), categoria.trim(), precioValue, duracionValue,
-                                descripcion.trim().ifEmpty { null }, activo
-                            )
-                        )
-                    }
-                },
-                loading = saving,
-                icon = Icons.Default.Save,
-                modifier = Modifier.fillMaxWidth()
-            )
-            onDelete?.let {
-                UrbanTextButton(onClick = it, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.DeleteOutline, null, Modifier.size(18.dp), tint = UrbanColors.Danger)
-                    Text("  Eliminar servicio", color = UrbanColors.Danger)
-                }
+        }
+        UrbanFormSection("Precio y duración", icon = Icons.Default.Schedule) {
+            UrbanFormRow {
+                UrbanTextField(
+                    precio, { precio = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, "Precio (MXN)", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.AttachMoney, placeholder = "0.00",
+                    error = form.error("precio", errors["precio"]), onBlur = { form.touch("precio") },
+                    keyboardType = KeyboardType.Decimal
+                )
+                UrbanTextField(
+                    duracion, { duracion = it.filter(Char::isDigit) }, "Duración (min)", Modifier.weight(1f),
+                    leadingIcon = Icons.Default.Schedule, placeholder = "30",
+                    error = form.error("duracion", errors["duracion"]), onBlur = { form.touch("duracion") },
+                    keyboardType = KeyboardType.Number
+                )
             }
         }
+        UrbanFormSection("Disponibilidad", icon = Icons.Default.PowerSettingsNew) {
+            UrbanFormSwitch(
+                "Disponible para reservar", "Si lo apagas, los clientes ya no lo ven.", activo, { activo = it },
+                icon = Icons.Default.PowerSettingsNew
+            )
+        }
+        onDelete?.let { UrbanFormDangerZone("servicio", it, enabled = !saving, note = "Si solo quieres dejar de ofrecerlo, desactívalo: así conserva su historial.") }
     }
 }
