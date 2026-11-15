@@ -36,7 +36,7 @@ private val ESTADOS = listOf("pendiente", "confirmada", "en_proceso", "completad
 // Próximos estados razonables desde el estado actual -- no se ofrecen todos
 // los 6 siempre (ej. no tiene sentido regresar una cita completada a
 // pendiente desde la agenda). El primero es la acción principal.
-private fun nextStatesFor(estado: String): List<String> = when (estado) {
+internal fun nextStatesFor(estado: String): List<String> = when (estado) {
     "pendiente" -> listOf("confirmada", "cancelada")
     "confirmada" -> listOf("en_proceso", "cancelada", "no_asistio")
     "en_proceso" -> listOf("completada", "cancelada")
