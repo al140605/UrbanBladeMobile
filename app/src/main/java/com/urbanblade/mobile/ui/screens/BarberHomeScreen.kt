@@ -28,6 +28,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.HowToReg
+import com.urbanblade.mobile.core.appointments.canCheckIn
+import com.urbanblade.mobile.ui.components.UrbanActionRow
+import com.urbanblade.mobile.ui.components.UrbanHeroCard
+import com.urbanblade.mobile.ui.components.UrbanHeroLabel
+import com.urbanblade.mobile.ui.components.UrbanOutlineButton
+import com.urbanblade.mobile.ui.components.UrbanPrimaryButton
+import com.urbanblade.mobile.ui.components.UrbanRowGroup
+import com.urbanblade.mobile.ui.components.UrbanStatStrip
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.data.model.AuthUser
 import com.urbanblade.mobile.ui.components.*
@@ -79,29 +88,78 @@ fun BarberHomeScreen(
             }
             !loadedOnce -> item { UrbanSkeletonList(1) }
             else -> {
+                // Tres números del día en una franja, antes de la cita de ahora.
                 item {
-                    val focus = day.inProcess ?: day.next
-                    UrbanHeroSummary(
-                        label = if (day.inProcess != null) "Atendiendo ahora" else "Tu siguiente cita",
-                        headline = if (focus != null) UrbanFormat.time(focus.horaInicio) else "Sin citas pendientes hoy",
-                        large = false,
-                        onClick = { onNavigate("barber_agenda") },
-                        belowHeadline = {
-                            if (focus != null) {
-                                Text(
-                                    listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = UrbanColors.Ink
-                                )
-                            } else {
-                                Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                            }
-                        },
-                        stats = listOf(
-                            UrbanHeroStatSpec("Por atender", day.remaining.toString(), Icons.Default.Event),
-                            UrbanHeroStatSpec("Terminadas", day.done.toString(), Icons.Default.CheckCircle, UrbanColors.Success)
+                    UrbanStatStrip(
+                        listOf(
+                            Triple("Citas hoy", agenda.stats.totalPeriod.toString(), UrbanColors.Ink),
+                            Triple("Terminadas", day.done.toString(), UrbanColors.Success),
+                            Triple("Tus ingresos", UrbanFormat.moneyShort(agenda.stats.incomeTotal), UrbanColors.Ink)
                         )
                     )
+                }
+                item {
+                    val focus = day.inProcess ?: day.next
+                    UrbanHeroCard {
+                        UrbanHeroLabel(if (day.inProcess != null) "Atendiendo ahora" else "Tu siguiente cita")
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            if (focus != null) UrbanFormat.time(focus.horaInicio) else "Sin citas pendientes hoy",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = UrbanColors.Ink
+                        )
+                        if (focus != null) {
+                            Text(
+                                listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = UrbanColors.Ink
+                            )
+                            // La acción de ahora a un toque, sin abrir la agenda: Llegó y el siguiente paso de la cita.
+                            val code = focus.code
+                            val nextState = nextStatesFor(focus.estado).firstOrNull()
+                            val canArrive = code != null && canCheckIn(focus.estado, focus.fecha)
+                            val blocked = focus.estado == "confirmada" && focus.puedeIniciar == false
+                            if (code != null && (canArrive || (nextState != null && !isDestructiveStatus(nextState)))) {
+                                Spacer(Modifier.height(12.dp))
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (canArrive) {
+                                        UrbanOutlineButton("Llegó", { vm.checkIn(code) }, Modifier.weight(1f), Icons.Default.HowToReg)
+                                    }
+                                    if (nextState != null && !isDestructiveStatus(nextState)) {
+                                        UrbanPrimaryButton(
+                                            text = if (focus.estado == "pendiente") "Aprobar" else statusActionLabel(nextState),
+                                            onClick = { vm.updateStatus(code, nextState, "day", null, 0) },
+                                            enabled = !blocked,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                            if (focus.estado == "confirmada" && focus.puedeIniciar == false && !focus.motivoNoIniciar.isNullOrBlank()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(focus.motivoNoIniciar, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Warning)
+                            }
+                        } else {
+                            Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                        }
+                    }
+                }
+                // Lo que sigue hoy, sin entrar a la agenda.
+                val upcoming = agenda.data
+                    .filter { (it.estado == "pendiente" || it.estado == "confirmada") && it.id != (day.inProcess ?: day.next)?.id }
+                    .sortedBy { it.horaInicio }
+                    .take(3)
+                if (upcoming.isNotEmpty()) {
+                    item { UrbanSectionTitle("Tu día", "Lo que sigue.", "Ver agenda") { onNavigate("appointments") } }
+                    item {
+                        UrbanRowGroup(upcoming) { appt ->
+                            UrbanActionRow(
+                                title = UrbanFormat.time(appt.horaInicio) + " · " + (appt.client?.user?.name ?: "Cliente"),
+                                subtitle = (appt.service?.nombre ?: "Cita") + " · " + statusLabel(appt.estado),
+                                icon = Icons.Default.Schedule
+                            ) { onNavigate("appointments") }
+                        }
+                    }
                 }
                 if (day.toConfirm > 0) {
                     item { UrbanSectionTitle("Requiere tu atención", "Tus clientes esperan respuesta.") }
@@ -111,23 +169,24 @@ fun BarberHomeScreen(
                             UrbanFormat.count(day.toConfirm, "cita por confirmar", "citas por confirmar"),
                             "Confírmalas para que el cliente reciba su aviso.",
                             UrbanColors.Warning,
-                            onClick = { onNavigate("barber_agenda") }
+                            onClick = { onNavigate("appointments") }
                         )
                     }
                 }
             }
         }
 
-        item { UrbanSectionTitle("Tu trabajo", "Agenda, portafolio y horario.") }
+        // La agenda y Mi perfil ya están en la barra inferior; aquí, el resto de lo que usa el barbero.
+        item { UrbanSectionTitle("Tu trabajo", "Portafolio, horario y comunidad.") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
-                    Triple("Mi agenda", "Confirma e inicia tus citas", Icons.Default.CalendarMonth),
                     Triple("Portafolio", "Muestra tus mejores cortes", Icons.Default.PhotoLibrary),
                     Triple("Mi horario", "Días y horas que atiendes", Icons.Default.Schedule),
                     Triple("Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups),
+                    Triple("Catálogo", "Servicios y barberos", Icons.Default.ContentCut),
                 ),
-                routes = listOf("barber_agenda", "barber_portfolio", "barber_schedule", "social"),
+                routes = listOf("barber_portfolio", "barber_schedule", "social", "catalog"),
                 onNavigate = onNavigate
             )
         }
