@@ -631,7 +631,9 @@ data class BarberScheduleDay(
     @SerializedName("day_of_week") val dayOfWeek: String,
     @SerializedName("start_time") val startTime: String,
     @SerializedName("end_time") val endTime: String,
-    @SerializedName("is_active") val isActive: Boolean = true
+    // Al guardar, el servidor devuelve los registros tal como los almacena (campo `is_working`); al consultar, ya
+    // normalizados (`is_active`). Se aceptan los dos: antes, tras guardar, todos los días quedaban en descanso.
+    @SerializedName(value = "is_active", alternate = ["is_working"]) val isActive: Boolean = true
 )
 data class BarberScheduleResponse(val schedules: List<BarberScheduleDay> = emptyList())
 data class UpdateBarberScheduleRequest(val schedules: List<BarberScheduleDay>)

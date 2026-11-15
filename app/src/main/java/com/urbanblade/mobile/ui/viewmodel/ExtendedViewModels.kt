@@ -135,7 +135,9 @@ class BarberScheduleViewModel : ViewModel() {
     fun save(schedules: List<BarberScheduleDay>) = viewModelScope.launch {
         _saving.value = true; _error.value = null; _message.value = null
         try {
-            _schedules.value = repo.updateBarberSchedule(schedules)
+            repo.updateBarberSchedule(schedules)
+            // Lo que se muestra es lo que quedó guardado: se vuelve a consultar en lugar de fiarse de la respuesta de PUT.
+            _schedules.value = repo.barberSchedule()
             _message.value = "Horario actualizado."
         } catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudo guardar tu horario.") }
         finally { _saving.value = false }
