@@ -489,7 +489,7 @@ private fun BookingHeader(step: BookingStep, summary: String?) {
         UrbanPageHeader(
             title = step.title,
             subtitle = step.hint,
-            eyebrow = "Reserva · paso ${step.ordinal + 1} de ${BookingStep.entries.size}",
+            eyebrow = "Reserva",
             compact = true
         )
         Spacer(Modifier.height(12.dp))

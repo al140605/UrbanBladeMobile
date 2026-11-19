@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -133,7 +134,7 @@ fun ClientHomeScreen(
     val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }
     val failed = error != null && !loadedOnce
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
-    val toPay = response.data.count { it.isChargeable && !it.hasPayment && it.code != null }
+    val toPay = response.data.count { it.isPayable() }
     val lastVisit = response.data
         .filter { it.estado == "completada" && it.service?.id != null }
         .maxByOrNull { it.fecha.take(10) + it.horaInicio }
@@ -177,7 +178,7 @@ fun ClientHomeScreen(
                 UrbanMascotState(UrbanStateKind.ERROR, "No pudimos cargar tus citas", error, "Reintentar") { vm.load() }
             }
             next != null -> {
-                item { NextAppointmentCard(next, onClick = onAppointments) }
+                item { NextAppointmentCard(next, onClick = onAppointments, onPay = if (next.isPayable()) onAppointments else null) }
                 item {
                     UrbanPrimaryButton(text = "Reservar cita", onClick = onBook, icon = Icons.Default.ContentCut, modifier = Modifier.fillMaxWidth())
                 }
@@ -252,12 +253,29 @@ fun ClientHomeScreen(
     }
 }
 
+/** «Hoy», «Mañana» o «En N días» (hasta 6) para la próxima cita; null si ya pasó, está lejos o no se entiende la fecha. */
+internal fun relativeDay(fecha: String, today: java.time.LocalDate = java.time.LocalDate.now()): String? {
+    val date = runCatching { java.time.LocalDate.parse(fecha.take(10)) }.getOrNull() ?: return null
+    return when (val days = java.time.temporal.ChronoUnit.DAYS.between(today, date)) {
+        0L -> "Hoy"
+        1L -> "Mañana"
+        in 2L..6L -> "En $days días"
+        else -> null
+    }
+}
+
 @Composable
-private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
+private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit, onPay: (() -> Unit)? = null) {
     UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
         UrbanHeroLabel("Tu próxima visita")
         Spacer(Modifier.height(8.dp))
-        UrbanStatusPill(next.estado)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            relativeDay(next.fecha)?.let {
+                com.urbanblade.mobile.ui.components.UrbanTonePill(label = it, icon = Icons.Default.CalendarMonth, tone = UrbanColors.Gold, textColor = UrbanColors.GoldText)
+            }
+            UrbanStatusPill(next.estado)
+            UrbanPaymentPill(next.paymentStatus)
+        }
         Spacer(Modifier.height(8.dp))
         Text("${UrbanFormat.dateShort(next.fecha)} · ${UrbanFormat.time(next.horaInicio)}",
             style = MaterialTheme.typography.titleLarge, color = UrbanColors.Ink)
@@ -273,6 +291,10 @@ private fun NextAppointmentCard(next: AppointmentRow, onClick: () -> Unit) {
             compact = true
         )
         Spacer(Modifier.height(16.dp))
+        if (onPay != null) {
+            UrbanPrimaryButton(text = "Pagar cita", onClick = onPay, icon = Icons.Default.Payments, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+        }
         UrbanOutlineButton("Ver mi cita", onClick, modifier = Modifier.fillMaxWidth(), icon = Icons.Default.CalendarMonth)
     }
 }

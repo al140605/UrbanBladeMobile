@@ -212,6 +212,8 @@ internal fun Exception.toFriendlyMessage(fallback: String): String {
             // español; los errores de validación genéricos de Laravel vienen en inglés y se siguen resumiendo.
             // Si solo hay el resumen genérico, se nombran los campos rechazados («Revisa: Correo, Teléfono.»).
             422 -> validationMessage(errorBodyText())
+            // 409: el acceso con Google no se pudo completar (cuenta ya vinculada a otro método); el servidor lo explica.
+            409 -> serverMessage()?.takeIf { it.isNotBlank() } ?: fallback
             429 -> "Demasiados intentos. Intenta de nuevo más tarde."
             503 -> "UrbanBlade está en mantenimiento."
             else -> fallback

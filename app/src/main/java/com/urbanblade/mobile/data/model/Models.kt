@@ -222,6 +222,9 @@ data class AppointmentRow(
     @SerializedName("precio_cobrado") val precioCobrado: Double? = null,
     @SerializedName("has_payment") val hasPayment: Boolean = false,
     @SerializedName("is_chargeable") val isChargeable: Boolean = false,
+    /** sin_pago | pendiente_en_recepcion | transferencia_en_revision | pagado (null con un servidor anterior). */
+    @SerializedName("payment_status") val paymentStatus: String? = null,
+    @SerializedName("can_change_payment_method") val canChangePaymentMethod: Boolean? = null,
     @SerializedName("reminder_24h_sent") val reminder24hSent: Boolean = false,
     @SerializedName("reminder_2h_sent") val reminder2hSent: Boolean = false,
     /** Flujo V2 (solo citas confirmadas): si el pago ya está resuelto y si se puede iniciar el servicio, con el motivo. */

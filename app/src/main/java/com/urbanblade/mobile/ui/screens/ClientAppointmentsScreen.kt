@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Refresh
@@ -318,12 +319,16 @@ fun ClientAppointmentsScreen(
 }
 
 /** Qué sigue en cada estado, en lenguaje claro (el cliente no ve los botones de la agenda del barbero). */
-internal fun clientStateHint(estado: String, paymentResolved: Boolean? = null): String? = when (estado) {
+internal fun clientStateHint(estado: String, paymentResolved: Boolean? = null, paymentStatus: String? = null, amount: Double? = null): String? = when (estado) {
     "pendiente" -> "Esperando que tu barbero apruebe la cita; te avisaremos en cuanto la confirme."
-    "confirmada" -> when (paymentResolved) {
-        true -> "Cita aprobada y pago resuelto. Te esperamos a la hora de tu cita."
-        false -> "Cita aprobada. Resuelve el pago antes del servicio; consulta las opciones aquí o en recepción."
-        null -> "Cita aprobada. Consulta el estado de tu pago en tus comprobantes o en recepción."
+    "confirmada" -> when {
+        paymentResolved == true || paymentStatus == "pagado" -> "Cita aprobada y pago resuelto. Te esperamos a la hora de tu cita."
+        paymentStatus == "transferencia_en_revision" ->
+            "Cita aprobada. Tu transferencia está en revisión; te avisaremos cuando recepción la verifique."
+        paymentStatus == "pendiente_en_recepcion" ->
+            "Cita aprobada. ${amount?.let { "Pagas ${UrbanFormat.money(it)}" } ?: "Pagas el importe"} al llegar a recepción, o toca «Pagar cita» para hacerlo ahora con tarjeta o transferencia."
+        paymentResolved == false -> "Cita aprobada. Resuelve el pago antes del servicio: en recepción o con «Pagar cita»."
+        else -> "Cita aprobada. Consulta el estado de tu pago en tus comprobantes o en recepción."
     }
     "en_proceso" -> "Tu servicio está en curso."
     "no_asistio" -> "No registramos tu asistencia. Si hay un cargo pendiente, págalo en la barbería para volver a reservar."
@@ -331,7 +336,43 @@ internal fun clientStateHint(estado: String, paymentResolved: Boolean? = null): 
 }
 
 private fun AppointmentRow.isManageable() = estado in listOf("pendiente", "confirmada") && code != null
-private fun AppointmentRow.isPayable() = isChargeable && !hasPayment && code != null
+/**
+ * «Pagar cita»: cobrable, sin pago vigente y con código. Con un servidor que ya manda payment_status
+ * (reservar en efectivo no deja pago) manda ese estado; con uno anterior, la regla de siempre.
+ */
+internal fun AppointmentRow.isPayable(): Boolean {
+    if (code == null || !isChargeable) return false
+    return when (paymentStatus) {
+        null -> !hasPayment
+        "pendiente_en_recepcion" -> !hasPayment
+        else -> false
+    }
+}
+
+/** Etiqueta en español del estado del pago (null si el servidor no lo manda). */
+internal fun paymentStatusLabel(status: String?): String? = when (status) {
+    "pagado" -> "Pagado"
+    "pendiente_en_recepcion" -> "Pago en recepción"
+    "transferencia_en_revision" -> "Transferencia en revisión"
+    "sin_pago" -> "Sin pago"
+    else -> null
+}
+
+private fun AppointmentRow.hintAmount(): Double? = precioCobrado ?: service?.precio
+
+/** Etiqueta del estado del pago junto al estado de la cita: se entiende de un vistazo qué falta. */
+@Composable
+internal fun UrbanPaymentPill(status: String?) {
+    val label = paymentStatusLabel(status) ?: return
+    // «Sin pago» en una cita aún pendiente no aporta: la cita todavía no es cobrable.
+    if (status == "sin_pago") return
+    val (icon, tone) = when (status) {
+        "pagado" -> Icons.Default.CheckCircle to UrbanColors.Success
+        "transferencia_en_revision" -> Icons.Default.HourglassTop to UrbanColors.Info
+        else -> Icons.Default.Payments to UrbanColors.Warning
+    }
+    com.urbanblade.mobile.ui.components.UrbanTonePill(label = label, icon = icon, tone = tone)
+}
 
 /** Próxima visita: fecha, identidad y pago separados, con las acciones existentes a la vista. */
 @Composable
@@ -346,6 +387,7 @@ private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, o
         ) {
             UrbanHeroLabel(if (completeList) "Tu próxima cita" else "Una de tus próximas citas")
             UrbanStatusPill(appt.estado)
+            UrbanPaymentPill(appt.paymentStatus)
         }
         Spacer(Modifier.height(8.dp))
         Text("${UrbanFormat.dateShort(appt.fecha)} · ${UrbanFormat.time(appt.horaInicio)}",
@@ -361,7 +403,7 @@ private fun NextClientAppointment(appt: AppointmentRow, completeList: Boolean, o
             amountLabel = if (appt.precioCobrado != null) "Importe de la cita" else "Precio del servicio",
             compact = true
         )
-        clientStateHint(appt.estado, appt.pagoResuelto)?.let {
+        clientStateHint(appt.estado, appt.pagoResuelto, appt.paymentStatus, appt.hintAmount())?.let {
             Spacer(Modifier.height(10.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
@@ -396,7 +438,7 @@ private fun ClientAppointmentRow(
                 Text(UrbanFormat.date(appt.fecha), style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
             }
         }
-        clientStateHint(appt.estado, appt.pagoResuelto)?.let {
+        clientStateHint(appt.estado, appt.pagoResuelto, appt.paymentStatus, appt.hintAmount())?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }

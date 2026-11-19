@@ -115,7 +115,7 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                         UrbanAttentionRow(
                             Icons.Default.EmojiEvents,
                             "Ganaste el sorteo${raffle.mes?.let { " de $it" } ?: ""}: ${raffle.premio}",
-                            raffle.venceEn?.let { "Reclámalo en recepción antes del $it." } ?: "Reclámalo en recepción.",
+                            raffle.venceEn?.let { "Reclámalo en recepción antes del ${UrbanFormat.dateLong(it)}." } ?: "Reclámalo en recepción.",
                             UrbanColors.Success
                         )
                     }
@@ -126,8 +126,8 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                 item {
                     UrbanAttentionRow(
                         Icons.Default.Redeem,
-                        "Aún no tienes paquetes ni tarjetas regalo",
-                        "Consulta los paquetes y tarjetas regalo en Descubre más.",
+                        "Sin paquetes ni tarjetas regalo todavía",
+                        "Pregunta en recepción: se suman aquí en cuanto los registren.",
                         UrbanColors.Gold
                     )
                 }
@@ -549,7 +549,7 @@ private fun PackageCard(item: MyPackage) {
             Column(Modifier.weight(1f)) {
                 Text(item.nombre ?: item.service?.nombre ?: "Paquete", style = MaterialTheme.typography.titleMedium)
                 Text("${item.usosRestantes} de ${item.usosTotales} usos restantes", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
-                item.expiraEn?.let { Text("Vence: $it", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
+                item.expiraEn?.let { Text("Vence: ${UrbanFormat.dateLong(it)}", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted) }
             }
             UrbanStatusPill(item.estado ?: "activo")
         }
