@@ -4,15 +4,35 @@ import com.urbanblade.mobile.data.model.BarberItem
 import com.urbanblade.mobile.data.model.BarberUser
 import com.urbanblade.mobile.data.model.ServiceItem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ClientVisualsTest {
 
     @Test fun `la cita confirmada muestra el estado de pago validado por el servidor`() {
         assertEquals("Cita aprobada y pago resuelto. Te esperamos a la hora de tu cita.", clientStateHint("confirmada", true))
-        assertEquals("Cita aprobada. Resuelve el pago antes del servicio; consulta las opciones aquí o en recepción.", clientStateHint("confirmada", false))
+        assertEquals("Cita aprobada. Resuelve el pago antes del servicio: en recepción o con «Pagar cita».", clientStateHint("confirmada", false))
         assertEquals("Cita aprobada. Consulta el estado de tu pago en tus comprobantes o en recepción.", clientStateHint("confirmada"))
+    }
+
+    @Test fun `el efectivo dice cuanto se paga al llegar y no promete opciones inexistentes`() {
+        val hint = clientStateHint("confirmada", false, paymentStatus = "pendiente_en_recepcion", amount = 100.0)!!
+        assertTrue(hint, hint.contains("Pagas ") && hint.contains("al llegar a recepción"))
+        assertTrue(hint, hint.contains("«Pagar cita»"))
+        assertFalse(hint, hint.contains("opciones aquí"))
+    }
+
+    @Test fun `la transferencia en revision y el pago hecho se explican con claridad`() {
+        assertEquals(
+            "Cita aprobada. Tu transferencia está en revisión; te avisaremos cuando recepción la verifique.",
+            clientStateHint("confirmada", false, paymentStatus = "transferencia_en_revision")
+        )
+        assertEquals(
+            "Cita aprobada y pago resuelto. Te esperamos a la hora de tu cita.",
+            clientStateHint("confirmada", true, paymentStatus = "pagado")
+        )
     }
 
     @Test

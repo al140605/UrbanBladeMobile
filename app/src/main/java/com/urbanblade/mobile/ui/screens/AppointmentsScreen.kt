@@ -297,7 +297,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
 
             if (!staff || calendarMode) items(visible, key = { it.id }) { appt ->
                 val manageable = appt.estado in listOf("pendiente", "confirmada") && appt.code != null
-                val payable = isClient && appt.isChargeable && !appt.hasPayment && appt.code != null
+                val payable = isClient && appt.isPayable()
                 AppointmentCard(
                     appt = appt,
                     clientName = if (!isClient) appt.client?.user?.name else null,

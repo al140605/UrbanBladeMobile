@@ -67,7 +67,7 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text("Total estimado · ${UrbanFormat.count(cart.values.sum(), "artículo", "artículos")}", style = MaterialTheme.typography.labelMedium, color = UrbanColors.Muted)
-                        Text("${UrbanFormat.money(total)} MXN", style = MaterialTheme.typography.titleLarge, color = UrbanColors.GoldText)
+                        Text(UrbanFormat.money(total), style = MaterialTheme.typography.titleLarge, color = UrbanColors.GoldText)
                         Text("Paga y recoge en sucursal.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                         UrbanPrimaryButton(
                             text = "Crear pedido",
@@ -91,7 +91,7 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
                 UrbanPageHeader(
                     title = "Tienda",
                     subtitle = "Productos seleccionados para mantener tu estilo.",
-                    eyebrow = "UrbanBlade Shop",
+                    eyebrow = "Tienda UrbanBlade",
                     trailing = {
                         if (isClient || user.roles.any { it in listOf("administrador", "recepcionista") }) IconButton(onClick = onOrders) {
                             BadgedBox(badge = { if (cart.isNotEmpty()) Badge { Text(cart.values.sum().toString()) } }) {
