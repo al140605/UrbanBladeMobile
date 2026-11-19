@@ -111,10 +111,13 @@ fun BarberHomeScreen(
                         UrbanHeroLabel(if (day.inProcess != null) "Atendiendo ahora" else "Tu siguiente cita")
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            if (focus != null) UrbanFormat.time(focus.horaInicio) else "Sin citas pendientes hoy",
+                            if (focus != null) UrbanFormat.time(focus.horaInicio) else "Día libre por ahora",
                             style = MaterialTheme.typography.headlineMedium,
                             color = UrbanColors.Ink
                         )
+                        if (focus == null) {
+                            Text("Cuando entre una cita nueva, aparece aquí.", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
+                        }
                         if (focus != null) {
                             Text(
                                 listOfNotNull(focus.service?.nombre, focus.client?.user?.name).joinToString(" · ").ifBlank { "Cita" },
