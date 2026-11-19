@@ -27,3 +27,7 @@ app/build
 .env
 .env.*
 !.env.example
+
+# Volcados de la JVM (hs_err_pid*.log ya cae en *.log; se listan por claridad)
+hs_err_pid*
+replay_pid*
