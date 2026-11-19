@@ -64,7 +64,7 @@ fun ReviewsScreen(onBack: () -> Unit, vm: ReviewsViewModel = viewModel()) {
 
 
 
-        items(reviews.data) { review ->
+        items(reviews.data, key = { it.id }) { review ->
             UrbanCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(review.barber?.name ?: "Barbero", style = MaterialTheme.typography.titleMedium)

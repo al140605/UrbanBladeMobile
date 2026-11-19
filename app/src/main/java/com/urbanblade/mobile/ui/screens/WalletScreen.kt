@@ -91,12 +91,11 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
     LaunchedEffect(Unit) { vm.load() }
 
     // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
-    val nothingYet = data.packages.isEmpty() && data.giftCards.isEmpty()
 
     UrbanModuleScreen(
         eyebrow = "Cuenta",
         title = "Beneficios",
-        subtitle = "Puntos, membresía, paquetes y referidos en un solo lugar.",
+        subtitle = null,
         onBack = onBack
     ) {
     message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -122,24 +121,13 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                 }
             }
 
-            if (nothingYet) {
-                item {
-                    UrbanAttentionRow(
-                        Icons.Default.Redeem,
-                        "Sin paquetes ni tarjetas regalo todavía",
-                        "Pregunta en recepción: se suman aquí en cuanto los registren.",
-                        UrbanColors.Gold
-                    )
-                }
-            } else {
-                if (data.packages.isNotEmpty()) {
-                    item { UrbanSectionTitle("Mis paquetes", null) }
-                    items(data.packages, key = { it.id }) { PackageCard(it) }
-                }
-                if (data.giftCards.isNotEmpty()) {
-                    item { UrbanSectionTitle("Mis tarjetas regalo", null) }
-                    items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
-                }
+            if (data.packages.isNotEmpty()) {
+                item { UrbanSectionTitle("Mis paquetes", null) }
+                items(data.packages, key = { it.id }) { PackageCard(it) }
+            }
+            if (data.giftCards.isNotEmpty()) {
+                item { UrbanSectionTitle("Mis tarjetas regalo", null) }
+                items(data.giftCards, key = { it.code }) { GiftCardRow(it) }
             }
 
             val membership = data.membership
@@ -163,18 +151,18 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                 }
             }
 
-            item { UrbanSectionTitle("Descubre más", "Planes y opciones para tu próxima visita.") }
+            item { UrbanSectionTitle("Descubre más") }
             item { BenefitShop(onRefresh = { vm.load() }) }
             data.loyalty?.let { loyalty ->
                 if (loyalty.levels.size > 1) {
-                    item { UrbanSectionTitle("Tu camino", "Más visitas, más descuento en cada servicio.") }
+                    item { UrbanSectionTitle("Tu camino") }
                     item { LevelLadder(loyalty) }
                 }
-                item { UrbanSectionTitle("Tus puntos", "Cómo se ganan y en qué los usas.") }
+                item { UrbanSectionTitle("Tus puntos") }
                 item { PointsCard(loyalty, onBook) }
             }
             data.referrals?.let { referrals ->
-                item { UrbanSectionTitle("Invita y gana", "Comparte tu código y suma puntos por cada referido") }
+                item { UrbanSectionTitle("Invita y gana") }
                 item {
                     ReferralCard(
                         referrals,
@@ -203,7 +191,6 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
             }
         }
     }
-    item { Spacer(Modifier.height(8.dp)) }
     }
 
     checkoutPlan?.let { plan ->

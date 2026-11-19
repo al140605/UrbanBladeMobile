@@ -90,13 +90,11 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
             item {
                 UrbanPageHeader(
                     title = "Tienda",
-                    subtitle = "Productos seleccionados para mantener tu estilo.",
                     eyebrow = "Tienda UrbanBlade",
                     trailing = {
                         if (isClient || user.roles.any { it in listOf("administrador", "recepcionista") }) IconButton(onClick = onOrders) {
-                            BadgedBox(badge = { if (cart.isNotEmpty()) Badge { Text(cart.values.sum().toString()) } }) {
-                                Icon(Icons.Default.ReceiptLong, if (isClient) "Mis pedidos" else "Pedidos", tint = UrbanColors.Gold)
-                            }
+                            // Sin insignia: era el conteo del carrito sobre el ícono de pedidos, y la barra de abajo ya lo muestra.
+                            Icon(Icons.Default.ReceiptLong, if (isClient) "Mis pedidos" else "Pedidos", tint = UrbanColors.Gold)
                         }
                     }
                 )
@@ -122,7 +120,7 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
             }
             message?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
             if (!isClient) item { UrbanInfoBanner("Consulta productos y precios. Los pedidos se crean desde una cuenta de cliente.", Icons.Default.Visibility) }
-            item { UrbanSectionTitle("Productos", if (busy) "Consultando catálogo…" else UrbanFormat.count(products.size, "resultado", "resultados")) }
+            item { UrbanSectionTitle("Productos", if (busy) null else UrbanFormat.count(products.size, "resultado", "resultados")) }
             items(products, key = { it.id }) { product ->
                 ProductCard(
                     item = product,
@@ -135,7 +133,6 @@ fun StoreScreen(user: AuthUser, onOrders: () -> Unit, vm: StoreViewModel = viewM
             if (products.isEmpty() && !busy && error == null) item {
                 UrbanMascotState(UrbanStateKind.EMPTY, "No encontramos productos", "Prueba con otra búsqueda.")
             }
-            item { Spacer(Modifier.height(if (cart.isNotEmpty()) 80.dp else 8.dp)) }
         }
     }
 }
@@ -149,6 +146,7 @@ private fun ProductCard(item: ProductItem, qty: Int, add: () -> Unit, remove: ()
                 AsyncImage(
                     model = item.imagen,
                     contentDescription = item.nombre,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                     modifier = Modifier.size(70.dp).clip(RoundedCornerShape(16.dp))
                 )
             } else {
@@ -248,7 +246,6 @@ fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
         item {
             UrbanPageHeader(
                 title = "Más herramientas",
-                subtitle = "Tu panel cambia según responsabilidades y permisos.",
                 eyebrow = "Módulos",
                 trailing = { UrbanAvatar(user.name, imageUrl = user.avatarUrl) }
             )

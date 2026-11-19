@@ -79,7 +79,7 @@ fun ReceptionHomeScreen(
                 item { com.urbanblade.mobile.ui.components.AiBriefingCard() }
 
                 val attention = board.pendingPayments > 0 || board.pendingOrders > 0 || board.lowStock > 0
-                item { UrbanSectionTitle("Requiere tu atención", if (attention) "Lo que conviene resolver primero." else null) }
+                item { UrbanSectionTitle("Requiere tu atención") }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         // pending_payments de barber = citas de hoy ya terminadas que no tienen cobro registrado.
@@ -109,7 +109,7 @@ fun ReceptionHomeScreen(
                 }
 
                 if (board.toConfirm.isNotEmpty()) {
-                    item { UrbanSectionTitle("Por confirmar hoy", "Citas pendientes que siguen en el día.", "Ver agenda") { onNavigate("appointments") } }
+                    item { UrbanSectionTitle("Por confirmar hoy", null, "Ver agenda") { onNavigate("appointments") } }
                     // Una sola tarjeta con todas las filas, con separador entre ellas (antes: una
                     // tarjeta con borde por cita, que es lo que la auditoría pidió reducir).
                     item {
@@ -125,18 +125,17 @@ fun ReceptionHomeScreen(
             item { UrbanDashboardChart("Citas por hora", "Cómo se reparte el día", flow) }
         }
 
-        item { UrbanSectionTitle("Acciones rápidas", "Lo esencial del mostrador.") }
+        item { UrbanSectionTitle("Acciones rápidas") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
-                    Triple("Citas", "Citas del día y de la semana", Icons.Default.CalendarMonth),
                     Triple("Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments),
                     Triple("Clientes", "Buscar y registrar", Icons.Default.People),
                     Triple("Lista de espera", "Clientes esperando horario", Icons.Default.HourglassTop),
                     Triple("Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard),
                     Triple("Corte de caja", "Cierre del turno", Icons.Default.PointOfSale),
                 ),
-                routes = listOf("appointments", "payments", "clients", "waitlist_staff", "gift_cards", "cash"),
+                routes = listOf("payments", "clients", "waitlist_staff", "gift_cards", "cash"),
                 onNavigate = onNavigate
             )
         }
