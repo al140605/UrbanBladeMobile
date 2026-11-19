@@ -13,7 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -45,15 +45,15 @@ fun BladebotBubble(onOpen: () -> Unit, modifier: Modifier = Modifier, hint: Stri
         showHint = false
     }
 
-    val pulse = if (reduceMotion) 1f else {
+    // El valor se lee dentro de graphicsLayer (fase de dibujo): el latido ya no recompone la burbuja en cada cuadro.
+    val pulse: State<Float>? = if (reduceMotion) null else {
         val transition = rememberInfiniteTransition(label = "bladebot")
-        val value by transition.animateFloat(
+        transition.animateFloat(
             initialValue = 1f,
             targetValue = 1.12f,
             animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "halo"
         )
-        value
     }
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -77,7 +77,7 @@ fun BladebotBubble(onOpen: () -> Unit, modifier: Modifier = Modifier, hint: Stri
             Box(
                 Modifier
                     .size(64.dp)
-                    .scale(pulse)
+                    .graphicsLayer { val p = pulse?.value ?: 1f; scaleX = p; scaleY = p }
                     .clip(CircleShape)
                     .background(UrbanColors.Gold.copy(alpha = 0.18f))
             )

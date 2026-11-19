@@ -119,7 +119,7 @@ fun ClientHomeScreen(
     }
     val loyalty by loyaltyVm.loyalty.collectAsState()
     val notifications by notificationsVm.data.collectAsState()
-    val unread = parseNotifications(notifications).unread
+    val unread = remember(notifications) { parseNotifications(notifications).unread }
 
     val firstName = user.name.substringBefore(' ')
     val greeting = remember {
@@ -134,10 +134,12 @@ fun ClientHomeScreen(
     val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }
     val failed = error != null && !loadedOnce
     // Citas ya aprobadas que todavía no se pagan: el cliente puede pagarlas desde Mis citas.
-    val toPay = response.data.count { it.isPayable() }
-    val lastVisit = response.data
-        .filter { it.estado == "completada" && it.service?.id != null }
-        .maxByOrNull { it.fecha.take(10) + it.horaInicio }
+    val toPay = remember(response.data) { response.data.count { it.isPayable() } }
+    val lastVisit = remember(response.data) {
+        response.data
+            .filter { it.estado == "completada" && it.service?.id != null }
+            .maxByOrNull { it.fecha.take(10) + it.horaInicio }
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -148,17 +150,12 @@ fun ClientHomeScreen(
             UrbanHeroCard {
             UrbanPageHeader(
                 title = firstName,
-                subtitle = "Tu estilo, siempre contigo.",
                 eyebrow = greeting.uppercase(),
                 trailing = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // El cliente no tiene la pestaña "Más": sus avisos se abren desde aquí.
                         UrbanRefreshButton(loading) { vm.load(); notificationsVm.load(); loyaltyVm.load() }
-                        IconButton(onClick = { onNavigate("notifications") }) {
-                            BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 9) "9+" else unread.toString()) } }) {
-                                Icon(Icons.Default.Notifications, "Notificaciones", tint = UrbanColors.Gold)
-                            }
-                        }
+                        com.urbanblade.mobile.ui.components.UrbanBellButton(unread) { onNavigate("notifications") }
                         Spacer(Modifier.width(4.dp))
                         com.urbanblade.mobile.ui.components.UrbanAccountAvatar(user.name, user.avatarUrl) { onNavigate("profile") }
                     }
@@ -187,7 +184,7 @@ fun ClientHomeScreen(
         }
 
         if (toPay > 0 || next?.estado == "pendiente") {
-            item { UrbanSectionTitle("Para ti", "Lo que conviene resolver.") }
+            item { UrbanSectionTitle("Para ti") }
             if (toPay > 0) item {
                 UrbanAttentionRow(
                     Icons.Default.Payments,
@@ -210,7 +207,7 @@ fun ClientHomeScreen(
 
         // Repetir la última visita es lo que más hace un cliente frecuente: servicio y barbero ya elegidos.
         lastVisit?.let { visit ->
-            item { UrbanSectionTitle("Vuelve a reservar", "Lo mismo de tu última visita.") }
+            item { UrbanSectionTitle("Vuelve a reservar") }
             item {
                 RebookCard(visit) {
                     val params = listOfNotNull(
@@ -236,20 +233,10 @@ fun ClientHomeScreen(
             }
         }
 
-        // Pagos y pedidos viven en Cuenta; aquí solo lo que se descubre.
-        item { UrbanSectionTitle("Inspírate", "Trabajos del equipo y productos para tu cuidado.") }
+        // Pagos y pedidos viven en Cuenta; el Muro ya es una pestaña de la barra inferior, así que aquí solo la Tienda.
         item {
-            UrbanModuleGrid(
-                tiles = listOf(
-                    Triple("Muro de Inspiración", "Cortes del equipo", Icons.Default.Groups),
-                    Triple("Tienda", "Productos UrbanBlade", Icons.Default.Storefront),
-                ),
-                routes = listOf("social", "store"),
-                onNavigate = { route -> if (route == "store") onStore() else onNavigate(route) }
-            )
+            UrbanAttentionRow(Icons.Default.Storefront, "Tienda", "Productos UrbanBlade para tu cuidado", UrbanColors.Gold, onClick = onStore)
         }
-        // Bladebot se abre desde la fila compartida de navegación.
-        item { Spacer(Modifier.height(4.dp)) }
     }
 }
 

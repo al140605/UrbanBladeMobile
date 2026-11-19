@@ -307,7 +307,7 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
         }
 
 
-        items(shown) { raffle ->
+        items(shown, key = { it.id }) { raffle ->
             UrbanCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {

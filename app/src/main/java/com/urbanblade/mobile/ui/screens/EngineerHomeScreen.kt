@@ -154,7 +154,7 @@ fun EngineerHomeScreen(
             )
         }
 
-        item { UrbanSectionTitle("Tus módulos", "Análisis del negocio y del servidor.") }
+        item { UrbanSectionTitle("Tus módulos") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
@@ -163,9 +163,9 @@ fun EngineerHomeScreen(
                     Triple("Métricas", "KPIs del negocio", Icons.Default.MonitorHeart),
                     Triple("Insights IA", "Tendencias y alertas", Icons.Default.AutoAwesome),
                     Triple("Analítica", "Operación y clientes", Icons.Default.QueryStats),
-                    Triple("Estado del sistema", "Servicios y tareas", Icons.Default.Dns),
+                    // «Estado del sistema» ya es la tarjeta de arriba (se toca para abrirlo).
                 ),
-                routes = listOf("reports", "logs", "admin_metrics", "insights", "analytics", "system"),
+                routes = listOf("reports", "logs", "admin_metrics", "insights", "analytics"),
                 onNavigate = onNavigate
             )
         }

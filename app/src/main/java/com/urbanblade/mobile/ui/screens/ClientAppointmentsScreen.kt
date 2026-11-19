@@ -126,22 +126,29 @@ fun ClientAppointmentsScreen(
         vm.loadDebt()
     }
 
-    val now = java.time.LocalDateTime.now()
-
-    val upcoming = response.data
-        .filter { isStillUpcoming(it, now) }
-        .sortedWith(
-            compareBy<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MAX }
-                .thenBy { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX }
-        )
-    val upcomingIds = upcoming.map { it.id }.toSet()
-    val toPay = response.data.filter { it.isPayable() && it.id !in upcomingIds }
-    val history = response.data
-        .filter { it.id !in upcomingIds }
-        .sortedWith(
-            compareByDescending<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN }
-                .thenByDescending { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MIN }
-        )
+    // Clasificar y ordenar parsea fechas: se calcula solo cuando cambia la lista, no en cada recomposición.
+    val now = remember(response.data) { java.time.LocalDateTime.now() }
+    val upcoming = remember(response.data, now) {
+        response.data
+            .filter { isStillUpcoming(it, now) }
+            .sortedWith(
+                compareBy<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MAX }
+                    .thenBy { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX }
+            )
+    }
+    val toPay = remember(response.data, upcoming) {
+        val upcomingIds = upcoming.map { it.id }.toSet()
+        response.data.filter { it.isPayable() && it.id !in upcomingIds }
+    }
+    val history = remember(response.data, upcoming) {
+        val upcomingIds = upcoming.map { it.id }.toSet()
+        response.data
+            .filter { it.id !in upcomingIds }
+            .sortedWith(
+                compareByDescending<AppointmentRow> { runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN }
+                    .thenByDescending { runCatching { java.time.LocalTime.parse(it.horaInicio.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MIN }
+            )
+    }
     val failed = error != null && response.data.isEmpty()
 
     fun rebook(appt: AppointmentRow) {
@@ -157,7 +164,6 @@ fun ClientAppointmentsScreen(
         item {
             UrbanPageHeader(
                 title = "Mis citas",
-                subtitle = "Lo que viene y lo que ya viviste.",
                 eyebrow = "Agenda"
             )
             Spacer(Modifier.height(12.dp))
@@ -182,7 +188,6 @@ fun ClientAppointmentsScreen(
             else -> {
                 error?.let { item { UrbanErrorBanner(it) } }
                 debtError?.let { item { UrbanInfoBanner(it) } }
-                if (loading) item { UrbanInfoBanner("Actualizando tus citas…") }
                 if (debt > 0) {
                     item {
                         UrbanAttentionRow(
@@ -227,7 +232,7 @@ fun ClientAppointmentsScreen(
                     }
 
                     if (toPay.isNotEmpty()) {
-                        item { UrbanSectionTitle("Por pagar", "Citas con un pago pendiente.") }
+                        item { UrbanSectionTitle("Por pagar") }
                         items(toPay, key = { "pay-${it.id}" }) { appt ->
                             ClientAppointmentRow(appt, onPay = { checkingOut = appt })
                         }
@@ -258,15 +263,6 @@ fun ClientAppointmentsScreen(
                             UrbanMascotState(UrbanStateKind.EMPTY, if (hasMore) "No hay historial en las páginas cargadas" else "Aún no hay historial", "Tus citas pasadas y canceladas aparecerán aquí.")
                         }
                     } else {
-                        val completed = history.count { it.estado == "completada" }
-                        item {
-                            UrbanAttentionRow(
-                                Icons.Default.CheckCircle,
-                                UrbanFormat.count(completed, "visita completada", "visitas completadas"),
-                                "Toca «Reservar de nuevo» para repetir un servicio.",
-                                UrbanColors.Success
-                            )
-                        }
                         items(history, key = { "hist-${it.id}" }) { appt ->
                             ClientAppointmentRow(
                                 appt,

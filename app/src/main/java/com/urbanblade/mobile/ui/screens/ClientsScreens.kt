@@ -269,7 +269,7 @@ fun ClientDetailScreen(user: AuthUser, clientId: String, onBack: () -> Unit, vm:
 
                 if (d.appointments.isNotEmpty()) {
                     item { UrbanSectionTitle("Historial de citas", "${d.appointments.size} citas") }
-                    items(d.appointments) { appt ->
+                    items(d.appointments, key = { it.id }) { appt ->
                         UrbanCard(Modifier.fillMaxWidth()) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {

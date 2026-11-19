@@ -204,8 +204,8 @@ fun BookingScreen(
     LaunchedEffect(barbers) {
         if (barberId.isBlank() && barbers.size == 1) barberId = barbers.first().id
     }
-    val cartLines = products.mapNotNull { p -> cart[p.id]?.takeIf { it > 0 }?.let { p to it } }
-    val productsTotal = cartLines.sumOf { (p, qty) -> p.precioVenta * qty }
+    val cartLines = remember(products, cart) { products.mapNotNull { p -> cart[p.id]?.takeIf { it > 0 }?.let { p to it } } }
+    val productsTotal = remember(cartLines) { cartLines.sumOf { (p, qty) -> p.precioVenta * qty } }
     val servicePrice = selectedService?.precio ?: 0.0
     val tip = if (step == BookingStep.PAY) pay.tipFor(servicePrice) else 0.0
     // "Reservar" queda donde estaba "Continuar": se activa un momento después de llegar a Pago para
@@ -238,10 +238,8 @@ fun BookingScreen(
         step != BookingStep.SERVICE && !validSlot -> "Elige un horario disponible para continuar."
         step == BookingStep.PAY && !acceptsNoShowFee -> "Revisa y acepta la política de inasistencia para reservar."
         step == BookingStep.PAY && !reserveArmed -> "Preparando la confirmación…"
-        step == BookingStep.SERVICE -> "Servicio elegido. Ahora selecciona tu horario."
-        step == BookingStep.SCHEDULE -> "Horario elegido. Los extras del siguiente paso son opcionales."
-        step == BookingStep.EXTRAS -> "Añade productos o una nota si lo necesitas; después revisa tu reserva."
-        else -> "Revisa tu cita y el método de pago antes de reservar."
+        // Sin bloqueo no hay nada que avisar: el subtítulo del paso y el botón ya dicen qué sigue.
+        else -> null
     }
     // El "atrás" del teléfono regresa un paso; desde el paso en que se entró sale de la reserva.
     androidx.activity.compose.BackHandler(enabled = !confirmed && step.ordinal > firstVisitedStep.ordinal) {
@@ -293,11 +291,12 @@ fun BookingScreen(
                             .fillMaxWidth()
                             .padding(horizontal = UrbanSpace.Gutter)
                     ) {
-                        Text(nextActionHint, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
+                        nextActionHint?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
+                        }
                         if (step == BookingStep.SCHEDULE && slotsLoading) {
                             LinearProgressIndicator(Modifier.fillMaxWidth())
-                            Text("Consultando horarios…", color = UrbanColors.Muted)
                         }
                         if (step == BookingStep.SCHEDULE) slotsError?.let {
                             UrbanErrorBanner(it)
@@ -668,7 +667,7 @@ private fun CalendarStep(
         UrbanFieldLabel("Día")
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(days) { day ->
+            items(days, key = { it.toString() }) { day ->
                 val selected = day == selectedDate
                 Surface(
                     onClick = { onDateChange(day.toString()) },
@@ -701,11 +700,13 @@ private fun CalendarStep(
         when {
             slots.isNotEmpty() -> {
                 // Agrupados por franja (como en la web): mañana < 12:00, tarde 12:00-17:59, noche desde 18:00.
-                val groups = listOf(
-                    Triple("Mañana", Icons.Default.WbSunny, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) < 12 }),
-                    Triple("Tarde", Icons.Default.WbTwilight, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) in 12..17 }),
-                    Triple("Noche", Icons.Default.NightsStay, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) >= 18 })
-                ).filter { it.third.isNotEmpty() }
+                val groups = remember(slots) {
+                    listOf(
+                        Triple("Mañana", Icons.Default.WbSunny, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) < 12 }),
+                        Triple("Tarde", Icons.Default.WbTwilight, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) in 12..17 }),
+                        Triple("Noche", Icons.Default.NightsStay, slots.filter { (it.time.take(2).toIntOrNull() ?: 0) >= 18 })
+                    ).filter { it.third.isNotEmpty() }
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     groups.forEach { (label, icon, group) ->
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

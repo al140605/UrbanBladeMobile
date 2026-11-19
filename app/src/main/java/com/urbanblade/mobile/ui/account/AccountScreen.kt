@@ -126,7 +126,7 @@ private fun ShortcutTile(item: AccountShortcut, modifier: Modifier, onClick: () 
     UrbanCard(modifier, onClick = onClick) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(item.icon, null, tint = UrbanColors.Gold)
-            Text(item.title, style = MaterialTheme.typography.labelLarge, color = UrbanColors.Ink, maxLines = 1)
+            Text(item.title, style = MaterialTheme.typography.labelMedium, color = UrbanColors.Ink, maxLines = 1, softWrap = false, textAlign = androidx.compose.ui.text.style.TextAlign.Center, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
 }

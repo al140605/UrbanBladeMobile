@@ -860,7 +860,7 @@ internal fun RescheduleSheet(appt: AppointmentRow, vm: AppointmentsViewModel, on
             val days = remember { (0..29).map { LocalDate.now().plusDays(it.toLong()) } }
             val selectedDate = remember(date) { runCatching { LocalDate.parse(date) }.getOrNull() }
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(days) { day ->
+                items(days, key = { it.toString() }) { day ->
                     val selected = day == selectedDate
                     Surface(
                         onClick = { date = day.toString() },

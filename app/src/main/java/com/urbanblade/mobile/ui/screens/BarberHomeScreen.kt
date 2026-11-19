@@ -70,6 +70,13 @@ fun BarberHomeScreen(
     val now = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
     val day = barberDay(agenda.data, now)
     val loadedOnce by vm.hasLoaded.collectAsState()
+    // Lo que sigue hoy: se calcula al cambiar la agenda, no en cada recomposición.
+    val upcoming = remember(agenda.data, day) {
+        agenda.data
+            .filter { (it.estado == "pendiente" || it.estado == "confirmada") && it.id != (day.inProcess ?: day.next)?.id }
+            .sortedBy { it.horaInicio }
+            .take(3)
+    }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -139,18 +146,12 @@ fun BarberHomeScreen(
                                 Spacer(Modifier.height(6.dp))
                                 Text(focus.motivoNoIniciar, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Warning)
                             }
-                        } else {
-                            Text("Revisa tu semana en la agenda.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                         }
                     }
                 }
                 // Lo que sigue hoy, sin entrar a la agenda.
-                val upcoming = agenda.data
-                    .filter { (it.estado == "pendiente" || it.estado == "confirmada") && it.id != (day.inProcess ?: day.next)?.id }
-                    .sortedBy { it.horaInicio }
-                    .take(3)
                 if (upcoming.isNotEmpty()) {
-                    item { UrbanSectionTitle("Tu día", "Lo que sigue.", "Ver agenda") { onNavigate("appointments") } }
+                    item { UrbanSectionTitle("Tu día", null, "Ver agenda") { onNavigate("appointments") } }
                     item {
                         UrbanRowGroup(upcoming) { appt ->
                             UrbanActionRow(
@@ -162,7 +163,7 @@ fun BarberHomeScreen(
                     }
                 }
                 if (day.toConfirm > 0) {
-                    item { UrbanSectionTitle("Requiere tu atención", "Tus clientes esperan respuesta.") }
+                    item { UrbanSectionTitle("Requiere tu atención") }
                     item {
                         UrbanAttentionRow(
                             Icons.Default.HourglassTop,
@@ -176,17 +177,15 @@ fun BarberHomeScreen(
             }
         }
 
-        // La agenda y Mi perfil ya están en la barra inferior; aquí, el resto de lo que usa el barbero.
-        item { UrbanSectionTitle("Tu trabajo", "Portafolio, horario y comunidad.") }
+        // La agenda y Mi perfil (perfil, horario y portafolio) ya están en la barra inferior; aquí, el resto.
+        item { UrbanSectionTitle("Tu trabajo") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
-                    Triple("Portafolio", "Muestra tus mejores cortes", Icons.Default.PhotoLibrary),
-                    Triple("Mi horario", "Días y horas que atiendes", Icons.Default.Schedule),
                     Triple("Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups),
                     Triple("Catálogo", "Servicios y barberos", Icons.Default.ContentCut),
                 ),
-                routes = listOf("barber_portfolio", "barber_schedule", "social", "catalog"),
+                routes = listOf("social", "catalog"),
                 onNavigate = onNavigate
             )
         }

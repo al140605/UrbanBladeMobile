@@ -138,7 +138,7 @@ fun AdminHomeScreen(
                 // Resumen del día con IA local: carga aparte, no frena el inicio.
                 item { com.urbanblade.mobile.ui.components.AiBriefingCard() }
 
-                item { UrbanSectionTitle("Requiere tu atención", "Lo que conviene revisar ahora.") }
+                item { UrbanSectionTitle("Requiere tu atención") }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if ((state.pendingPayments ?: 0) > 0) {
@@ -177,14 +177,14 @@ fun AdminHomeScreen(
             item { UrbanDashboardChart("Servicios más pedidos", "Citas por servicio", services, categories = true) }
         }
 
-        item { UrbanSectionTitle("Acciones rápidas", "Lo esencial, siempre a la mano.") }
+        item { UrbanSectionTitle("Acciones rápidas") }
         item {
             UrbanModuleGrid(
                 tiles = listOf(
-                    Triple("Agenda", "Ver y gestionar citas", Icons.Default.CalendarMonth),
+                    // La agenda ya es la pestaña «Citas» de la barra inferior.
                     Triple("Caja", "Cobros, ingresos y cierre", Icons.Default.PointOfSale)
                 ),
-                routes = listOf("appointments", "cash"),
+                routes = listOf("cash"),
                 onNavigate = onNavigate
             )
         }
@@ -239,7 +239,6 @@ private fun MonthKpis(kpis: JsonObject) {
             UrbanStatCard(
                 label = "Ingresos del mes",
                 value = UrbanFormat.moneyShort(it),
-                caption = "Este mes",
                 icon = Icons.Default.AccountBalanceWallet,
                 modifier = Modifier.weight(1f)
             )
@@ -248,7 +247,6 @@ private fun MonthKpis(kpis: JsonObject) {
             UrbanStatCard(
                 label = "Citas del mes",
                 value = it.toString(),
-                caption = "Este mes",
                 icon = Icons.Default.CalendarMonth,
                 modifier = Modifier.weight(1f)
             )
