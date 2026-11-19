@@ -122,13 +122,7 @@ fun ClientHomeScreen(
     val unread = remember(notifications) { parseNotifications(notifications).unread }
 
     val firstName = user.name.substringBefore(' ')
-    val greeting = remember {
-        when (LocalTime.now().hour) {
-            in 5..11 -> "Buenos días"
-            in 12..18 -> "Buenas tardes"
-            else -> "Buenas noches"
-        }
-    }
+    val greeting = remember { com.urbanblade.mobile.ui.components.greetingFor(LocalTime.now().hour) }
     val homeNotice by com.urbanblade.mobile.core.config.UrbanRemoteConfig.homeNotice.collectAsState()
     // Misma regla que en Mis citas: una cita de hoy que ya terminó no es «tu próxima visita».
     val next = response.next?.takeIf { isStillUpcoming(it, java.time.LocalDateTime.now()) }

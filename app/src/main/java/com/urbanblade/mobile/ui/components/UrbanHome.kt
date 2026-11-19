@@ -25,6 +25,14 @@ import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 import java.time.LocalDate
+import java.time.LocalTime
+
+/** Saludo según la hora local: mañana 5–11, tarde 12–18, noche el resto. */
+internal fun greetingFor(hour: Int): String = when (hour) {
+    in 5..11 -> "Buenos días"
+    in 12..18 -> "Buenas tardes"
+    else -> "Buenas noches"
+}
 
 /**
  * Encabezado único de los inicios del personal: etiqueta de rol, «Hola, nombre», fecha, actualizar y avatar.
@@ -43,7 +51,7 @@ fun UrbanHomeHeader(
 ) {
     UrbanPageHeader(
         title = "Hola, ${userName.substringBefore(' ')}",
-        subtitle = UrbanFormat.date(LocalDate.now().toString()),
+        subtitle = greetingFor(LocalTime.now().hour) + " · " + UrbanFormat.date(LocalDate.now().toString()),
         eyebrow = roleLabel,
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
