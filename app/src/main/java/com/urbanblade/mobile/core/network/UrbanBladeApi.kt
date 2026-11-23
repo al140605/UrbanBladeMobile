@@ -27,16 +27,13 @@ interface UrbanBladeApi {
     /** Elimina la cuenta propia: {"password": …} o, en sesión de Google, {"confirmacion": "ELIMINAR"}. */
     @HTTP(method = "DELETE", path = "profile", hasBody = true) suspend fun deleteAccount(@Body body: Map<String, String>): MessageResponse
     @POST("auth/logout") suspend fun logout(): MessageResponse?
-    @POST("auth/refresh-token") suspend fun refreshToken(): LoginResponse
 
     @GET("dashboard") suspend fun dashboard(): DashboardResponse
     @GET("analytics") suspend fun analytics(): AnalyticsResponse
 
-    @GET("barbershop") suspend fun barbershop(): JsonObject
     @GET("services") suspend fun services(): ApiList<ServiceItem>
     @GET("barbers") suspend fun barbers(): ApiList<BarberItem>
     @GET("products") suspend fun products(@Query("q") q: String? = null, @Query("categoria") categoria: String? = null): ApiList<ProductItem>
-    @GET("barbers/{barber}") suspend fun barberDetail(@Path("barber") barber: String): JsonObject
     @GET("barbers/{barber}") suspend fun barberProfile(@Path("barber") barber: String): BarberProfileResponse
     @POST("barbers/{barber}/review") suspend fun reviewBarber(@Path("barber") barber: String, @Body body: BarberReviewRequest): MessageResponse
 
@@ -223,16 +220,13 @@ interface UrbanBladeApi {
     suspend fun updateProduct(@Path("id") id: String, @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>, @Part imagen: MultipartBody.Part?): JsonObject
     @DELETE("inventory/products/{id}") suspend fun deleteProduct(@Path("id") id: String): MessageResponse
     @POST("inventory/movements") suspend fun registerMovement(@Body body: RegisterMovementRequest): JsonObject
-    @GET("inventory/low-stock") suspend fun lowStock(): JsonObject
     /** Silencia la alerta de stock bajo unos días (InventoryController::markProductOrdered); admin y recepción. */
     @POST("inventory/products/{id}/mark-ordered") suspend fun markProductOrdered(@Path("id") id: String): MessageResponse
-    @GET("inventory/movements") suspend fun inventoryMovements(): JsonObject
     @GET("inventory/movements") suspend fun inventoryMovementsPage(
         @Query("page") page: Int = 1,
         @Query("tipo") tipo: String? = null,
         @Query("q") q: String? = null
     ): InventoryMovementsResponse
-    @GET("cash-closes") suspend fun cashCloses(): JsonObject
     @GET("cash-closes/preview") suspend fun cashClosePreview(): CashClosePreviewResponse
     @POST("cash-closes") suspend fun registerCashClose(@Body body: RegisterCashCloseRequest): JsonObject
 
@@ -256,9 +250,6 @@ interface UrbanBladeApi {
     @POST("settings/maintenance") suspend fun toggleMaintenance(): MaintenanceToggleResponse
 
     @GET("admin/dashboard/stats") suspend fun adminStats(): JsonObject
-    @GET("admin/dashboard/appointments") suspend fun adminAppointments(): JsonObject
-    @GET("admin/dashboard/revenue") suspend fun adminRevenue(): JsonObject
-    @GET("admin/dashboard/alerts") suspend fun adminAlerts(): JsonObject
     @GET("admin/dashboard/metrics") suspend fun adminMetrics(): AdminMetricsResponse
     @GET("admin/predictions/insights") suspend fun predictionInsights(): InsightsResponse
     @GET("admin/system/status") suspend fun systemStatus(): SystemStatusResponse
@@ -267,11 +258,4 @@ interface UrbanBladeApi {
     @POST("admin/clients") suspend fun createClient(@Body body: CreateClientRequest): ClientMutationResponse
     @PUT("admin/clients/{id}") suspend fun updateClient(@Path("id") id: String, @Body body: UpdateClientRequest): ClientMutationResponse
     @DELETE("admin/clients/{id}") suspend fun deleteClient(@Path("id") id: String): MessageResponse
-    @GET("admin/inventory/summary") suspend fun adminInventorySummary(): JsonObject
-
-    @GET suspend fun genericGet(@Url url: String, @QueryMap query: Map<String, String> = emptyMap()): JsonObject
-    @POST suspend fun genericPost(@Url url: String, @Body body: JsonObject = JsonObject()): JsonObject
-    @PUT suspend fun genericPut(@Url url: String, @Body body: JsonObject): JsonObject
-    @PATCH suspend fun genericPatch(@Url url: String, @Body body: JsonObject): JsonObject
-    @DELETE suspend fun genericDelete(@Url url: String): JsonObject
 }

@@ -207,13 +207,14 @@ fun WaitlistStaffScreen(onBack: () -> Unit, vm: WaitlistStaffViewModel = viewMod
             item { UrbanSectionTitle("Entradas", UrbanFormat.count(state.items.size, "entrada", "entradas")) }
         }
         if (state.items.isNotEmpty()) {
-            item { UrbanRowGroup(items = state.items, row = { WaitlistCard(it) }) }
+            item { UrbanRowGroup(items = state.items, row = { StaffWaitlistRow(it) }) }
         }
     }
 }
 
+/** Entrada de la lista de espera vista por el personal (con cliente). La del cliente es `WaitlistCard`, en AppointmentCard.kt. */
 @Composable
-private fun WaitlistCard(entry: WaitlistEntry) {
+private fun StaffWaitlistRow(entry: WaitlistEntry) {
     val tone = when (entry.estado) {
         "activo" -> UrbanColors.Warning
         "notificado" -> UrbanColors.Info

@@ -37,10 +37,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
     val arrivals by vm.arrivals.collectAsState()
-    val waitlistEntries by vm.waitlistEntries.collectAsState()
     var confirmCancel by remember { mutableStateOf<AppointmentRow?>(null) }
-    var rescheduling by remember { mutableStateOf<AppointmentRow?>(null) }
-    var checkingOut by remember { mutableStateOf<AppointmentRow?>(null) }
     var charging by remember { mutableStateOf<AppointmentRow?>(null) }
     val notice by vm.notice.collectAsState()
     val hasMore by vm.hasMore.collectAsState()
@@ -52,25 +49,20 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
     var selectedDay by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
     val staff = user.roles.any { it in listOf("administrador", "recepcionista") }
     val canBook = com.urbanblade.mobile.core.access.UserExperience.canBook(user.roles)
-    val isClient = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
 
     // El personal ve las citas de todo el negocio: las estadísticas del servidor son las del propio
     // usuario (0 para un administrador), así que se calculan aquí sobre la lista.
     var staffFilter by remember { mutableStateOf("atencion") }
     val today = remember { LocalDate.now().toString() }
     val active = listOf("pendiente", "confirmada", "en_proceso")
-    val stats = if (!isClient) {
-        AppointmentStats(
-            total = response.data.size,
-            proximas = response.data.count { 
-                it.estado in active && (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= LocalDate.parse(today) 
-            },
-            completadas = response.data.count { it.estado == "completada" },
-            canceladas = response.data.count { it.estado == "cancelada" }
-        )
-    } else {
-        response.stats
-    }
+    val stats = AppointmentStats(
+        total = response.data.size,
+        proximas = response.data.count {
+            it.estado in active && (runCatching { LocalDate.parse(it.fecha.take(10)) }.getOrNull() ?: LocalDate.MIN) >= LocalDate.parse(today)
+        },
+        completadas = response.data.count { it.estado == "completada" },
+        canceladas = response.data.count { it.estado == "cancelada" }
+    )
     
     fun getLocalDate(d: String) = runCatching { LocalDate.parse(d.take(10)) }.getOrNull() ?: LocalDate.MAX
     fun getLocalTime(t: String) = runCatching { java.time.LocalTime.parse(t.take(5).padStart(5, '0')) }.getOrNull() ?: java.time.LocalTime.MAX
@@ -100,10 +92,7 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
         if (calendarMode) vm.loadMonth(shownMonth)
     }
 
-    LaunchedEffect(Unit) {
-        vm.load()
-        if (isClient) vm.loadWaitlist()
-    }
+    LaunchedEffect(Unit) { vm.load() }
 
     val listState = rememberLazyListState()
     Scaffold(
@@ -270,13 +259,10 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
 
             if (!staff || calendarMode) items(visible, key = { it.id }) { appt ->
                 val manageable = appt.estado in listOf("pendiente", "confirmada") && appt.code != null
-                val payable = isClient && appt.isPayable()
                 AppointmentCard(
                     appt = appt,
-                    clientName = if (!isClient) appt.client?.user?.name else null,
+                    clientName = appt.client?.user?.name,
                     onCancel = if (manageable) { { confirmCancel = appt } } else null,
-                    onReschedule = if (manageable && isClient) { { rescheduling = appt } } else null,
-                    onPay = if (payable) { { checkingOut = appt } } else null,
                     onStatus = if (staff && appt.code != null && appt.estado in listOf("pendiente", "confirmada", "en_proceso")) {
                         { estado -> vm.changeStatus(appt, estado) }
                     } else null,
@@ -296,34 +282,12 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
                 }
             }
 
-            if (isClient && waitlistEntries.isNotEmpty()) {
-                item { UrbanSectionTitle("Mi lista de espera", "Te avisamos si se libera un horario") }
-                items(waitlistEntries, key = { it.id }) { entry ->
-                    WaitlistCard(entry, onLeave = { vm.leaveWaitlist(entry.id) })
-                }
-            }
             item { Spacer(Modifier.height(72.dp)) }
         }
     }
 
-    rescheduling?.let { appt ->
-        RescheduleSheet(
-            appt = appt,
-            vm = vm,
-            onDismiss = { rescheduling = null }
-        )
-    }
-
     charging?.let { appt ->
         ChargeSheet(appt = appt, vm = vm, onDismiss = { charging = null })
-    }
-
-    checkingOut?.let { appt ->
-        CheckoutSheet(
-            appt = appt,
-            vm = vm,
-            onDismiss = { checkingOut = null }
-        )
     }
 
     confirmCancel?.let { appt ->

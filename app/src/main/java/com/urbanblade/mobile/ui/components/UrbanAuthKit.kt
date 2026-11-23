@@ -7,16 +7,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -48,19 +45,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -72,52 +64,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.urbanblade.mobile.ui.theme.UrbanColors
-import com.urbanblade.mobile.R
 import kotlinx.coroutines.delay
 
 /**
  * Piezas compartidas por bienvenida, acceso, registro y recuperación. Todo sale de UrbanColors,
  * así que respeta los cuatro temas (incluido el claro).
  */
-
-/**
- * Fondo editorial compartido por bienvenida y autenticación. La fotografía es un asset local
- * (nunca depende de red) y las capas oscuras mantienen el contraste de textos y formularios.
- */
-@Composable
-fun AuthBackdrop(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    Box(modifier.fillMaxSize().background(UrbanColors.Background)) {
-        Image(
-            painter = painterResource(R.drawable.auth_barbershop_background),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        if (UrbanColors.current.isLight) {
-            // La tinta oscura de Libreta necesita el mismo papel claro también en acceso.
-            Box(Modifier.fillMaxSize().background(UrbanColors.Background))
-        } else Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color(0xB808090B),
-                        0.42f to Color(0x8508090B),
-                        0.74f to Color(0xB808090B),
-                        1f to Color(0xF208090B)
-                    )
-                )
-                .drawBehind {
-                    drawRect(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xA8000000), Color.Transparent, Color(0x38000000))
-                        )
-                    )
-                }
-        )
-        content()
-    }
-}
 
 /** Entrada breve con espacio estable; el tween respeta la escala de animación del sistema. */
 @Composable

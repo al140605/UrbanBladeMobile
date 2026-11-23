@@ -21,3 +21,13 @@ internal fun NavController.openDestination(
         }
     }
 }
+
+/**
+ * Ruta que se abre de verdad dentro de la sesión. Para el barbero que no administra ni atiende recepción, su
+ * agenda es la pestaña «Agenda» (`appointments`): `barber_agenda`, que siguen mandando los push, los correos
+ * (`urbanblade://open?route=…`) y la bandeja, se redirige ahí para no abrir la misma pantalla dos veces.
+ * Para quien además administra o atiende recepción, `barber_agenda` sigue siendo su agenda personal, distinta
+ * de la del negocio, y no se toca.
+ */
+internal fun canonicalRoute(route: String, barberOnly: Boolean): String =
+    if (barberOnly && route == "barber_agenda") "appointments" else route
