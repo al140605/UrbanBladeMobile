@@ -57,6 +57,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         payloads = {
             "auth/me": {"user": USER}, "profile": {"user": USER},
+            # Ficha pública: la app lee data.features para saber qué módulos mostrar (todos encendidos en la auditoría).
+            "barbershop": {"data": {"nombre": "UrbanBlade QA", "features": {
+                "packages": True, "gift_cards": True, "referrals": True, "raffles": True, "social": True, "campaigns": True}}},
             "services": {"data": SERVICES},
             "barbers": {"data": [{"id": "qa-barber", "slug": "barbero-prueba", "user": {"name": "Barbero de prueba"}, "es_favorito": STATE["favorite"] == "qa-barber"}]},
             "availability/slots": {"slots": [{"time": "12:00", "label": "12:00", "end_time": "12:30", "end_label": "12:30"}]},
@@ -77,7 +80,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/_qa/control":
             STATE.update({k: v for k, v in data.items() if k in STATE})
             roles = data.get("roles")
-            if isinstance(roles, list) and roles and all(role in ("cliente", "administrador", "recepcionista", "barbero", "ingeniero") for role in roles):
+            if isinstance(roles, list) and roles and all(role in ("cliente", "administrador", "recepcionista", "barbero") for role in roles):
                 USER["roles"] = roles
             return self.respond({"ok": True})
         if STATE["status"] != 200: return self.respond({"message": "Respuesta de prueba."}, STATE["status"])

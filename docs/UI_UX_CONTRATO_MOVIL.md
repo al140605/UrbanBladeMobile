@@ -5,8 +5,8 @@
 ## Navegación y acceso
 
 - Sin sesión: Bienvenida → Acceso/Registro/Recuperación. La bienvenida permite consultar servicios. Elegir servicio/barbero pide acceso y preserva la elección durante el recorrido, sin prometer guardar un borrador tras cerrar el proceso.
-- Cliente exclusivo: Inicio / Reservar / Mis citas / Cuenta. Personal y cuentas con varios roles usan navegación de operación; ingeniero exclusivo conserva destinos de solo lectura.
-- La experiencia se resuelve en `core/access/UserExperience`: administrador → recepción → barbero → ingeniero → cliente. Web y API siguen la misma prioridad, sin depender del orden de `roles`. Elegir experiencia no concede permisos; Laravel sigue validando cada acción.
+- Cliente exclusivo: Inicio / Reservar / Mis citas / Cuenta. Personal y cuentas con varios roles usan navegación de operación.
+- La experiencia se resuelve en `core/access/UserExperience`: administrador → recepción → barbero → cliente. Web y API siguen la misma prioridad, sin depender del orden de `roles`. Elegir experiencia no concede permisos; Laravel sigue validando cada acción.
 - Beneficios, pedidos y facturas son secundarios de Cuenta; tienda y muro, de Inicio. Laravel valida permisos.
 - Atrás superior, inferior y sistema de reserva regresan un paso; desde el paso de entrada salen. En registro, contraseña vuelve a datos antes de salir.
 - Los datos no sensibles del formulario sobreviven a recreación; las contraseñas permanecen en memoria y se vuelven a escribir. Los mensajes de Google aparecen en el paso visible. La acción principal tiene pie con `imePadding`.

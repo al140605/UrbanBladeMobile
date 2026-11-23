@@ -94,6 +94,36 @@ class OffersAdminViewModelTest {
     }
 
     @Test
+    fun `con paquetes apagados la consulta no pide paquetes ni servicios`() = runTest(dispatcher) {
+        whenever(repo.adminMembershipPlans()).thenReturn(listOf(plan))
+        val vm = OffersAdminViewModel(repo) { com.urbanblade.mobile.data.model.ModuleFeatures() }
+
+        vm.load()
+        advanceUntilIdle()
+
+        org.mockito.kotlin.verify(repo, org.mockito.kotlin.never()).servicePackages()
+        org.mockito.kotlin.verify(repo, org.mockito.kotlin.never()).services()
+        assertEquals(listOf(plan), vm.state.value.plans)
+        assertTrue(vm.state.value.packages.isEmpty())
+        assertTrue(vm.state.value.loaded)
+        assertEquals(null, vm.state.value.listError)
+    }
+
+    @Test
+    fun `con paquetes encendidos la consulta trae planes y paquetes`() = runTest(dispatcher) {
+        whenever(repo.adminMembershipPlans()).thenReturn(listOf(plan))
+        whenever(repo.servicePackages()).thenReturn(listOf(pack))
+        whenever(repo.services()).thenReturn(emptyList())
+        val vm = OffersAdminViewModel(repo) { com.urbanblade.mobile.data.model.ModuleFeatures(packages = true) }
+
+        vm.load()
+        advanceUntilIdle()
+
+        assertEquals(listOf(pack), vm.state.value.packages)
+        assertTrue(vm.state.value.loaded)
+    }
+
+    @Test
     fun `un paquete guardado bien cierra la hoja y avisa`() = runTest(dispatcher) {
         val vm = OffersAdminViewModel(repo)
         var closed = false

@@ -7,6 +7,9 @@ import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface UrbanBladeApi {
+    /** Ficha pública de la barbería (sin sesión). La app solo lee `data.features`: qué módulos sirve el backend. */
+    @GET("barbershop") suspend fun barbershop(): BarbershopPublicResponse
+
     @PUT("profile/favorite-barber")
     suspend fun favoriteBarber(@Body body: FavoriteBarberRequest): FavoriteBarberResponse
 

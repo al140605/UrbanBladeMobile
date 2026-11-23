@@ -7,6 +7,7 @@ import com.stripe.android.model.ConfirmPaymentIntentParams
 import com.stripe.android.payments.paymentlauncher.PaymentResult
 import com.stripe.android.payments.paymentlauncher.rememberPaymentLauncher
 import com.urbanblade.mobile.BuildConfig
+import com.urbanblade.mobile.core.config.ModuleFeaturesStore
 import com.urbanblade.mobile.core.payment.rememberStripeReady
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,13 +39,15 @@ import com.urbanblade.mobile.ui.theme.UrbanSpace
 import com.urbanblade.mobile.ui.components.UrbanTextButton
 
 /**
- * Beneficios del cliente: puntos/nivel, membresía, paquetes, gift cards y referidos (endpoints
- * de autoservicio de barber). La membresía se contrata aquí con tarjeta (Stripe confirma el
+ * Beneficios del cliente: puntos/nivel, membresía y, mientras el backend los tenga encendidos
+ * ([ModuleFeaturesStore]), paquetes, gift cards, referidos y el premio del sorteo (endpoints
+ * de autoservicio de barber). Con esos módulos apagados quedan solo membresía, puntos y tarjeta de miembro. La membresía se contrata aquí con tarjeta (Stripe confirma el
  * primer cobro y el webhook la activa); BenefitShop ofrece paquetes, tarjetas regalo y tarjeta PDF.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = viewModel()) {
+    val features by ModuleFeaturesStore.features.collectAsState()
     val data by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
     val busy by vm.busy.collectAsState()
@@ -88,7 +91,9 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
         }
     }
 
-    LaunchedEffect(Unit) { vm.load() }
+    // Se carga al entrar y de nuevo si los interruptores cambian (la respuesta de barbershop puede llegar
+    // después): así aparecen o desaparecen paquetes, tarjetas y referidos sin pedir endpoints apagados.
+    LaunchedEffect(features) { vm.load() }
 
     // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
 
@@ -109,7 +114,8 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
             error?.let { item { UrbanErrorBanner(it) } }
             data.loyalty?.let { loyalty ->
                 item { LoyaltyCard(loyalty) }
-                loyalty.wonRaffle?.takeIf { !it.isExpired && it.premio != null }?.let { raffle ->
+                // El premio de un sorteo ya ganado solo se anuncia mientras el módulo de sorteos esté encendido.
+                loyalty.wonRaffle?.takeIf { features.raffles && !it.isExpired && it.premio != null }?.let { raffle ->
                     item {
                         UrbanAttentionRow(
                             Icons.Default.EmojiEvents,
@@ -151,8 +157,8 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                 }
             }
 
-            item { UrbanSectionTitle("Descubre más") }
-            item { BenefitShop(onRefresh = { vm.load() }) }
+            item { UrbanSectionTitle(if (features.packages || features.giftCards) "Descubre más" else "Tu tarjeta") }
+            item { BenefitShop(features = features, onRefresh = { vm.load() }) }
             data.loyalty?.let { loyalty ->
                 if (loyalty.levels.size > 1) {
                     item { UrbanSectionTitle("Tu camino") }

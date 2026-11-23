@@ -42,7 +42,6 @@ fun CatalogScreen(
     canBook: Boolean = true,
     onBook: (serviceId: String?, barberId: String?) -> Unit,
     onOpenStore: (() -> Unit)? = null,
-    onOpenInspiration: (() -> Unit)? = null,
     onLogin: (() -> Unit)? = null,
     /** Abre la ficha del barbero (portafolio y reseñas); sin él, tocarlo lleva a reservar. */
     onOpenBarber: ((slug: String) -> Unit)? = null,

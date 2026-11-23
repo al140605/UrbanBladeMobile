@@ -89,6 +89,8 @@ class AuthRepository(
 }
 
 class UrbanRepository(private val api: UrbanBladeApi) {
+    /** Interruptores de módulos del backend (`GET barbershop`); null si la respuesta no los trae. */
+    suspend fun moduleFeatures(): ModuleFeatures? = api.barbershop().data?.features
     suspend fun favoriteBarber(id: String?) = api.favoriteBarber(FavoriteBarberRequest(id))
     suspend fun membershipCard() = api.membershipCard()
     suspend fun buyPackage(id: String) = api.packageStripeIntent(PackagePurchaseRequest(id)).data

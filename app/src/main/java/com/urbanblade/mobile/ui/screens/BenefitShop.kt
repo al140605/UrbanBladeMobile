@@ -18,15 +18,23 @@ import com.urbanblade.mobile.core.media.MembershipCardFiles
 import com.urbanblade.mobile.core.payment.rememberStripeReady
 import com.urbanblade.mobile.core.payment.rememberUrbanPaymentSheet
 import com.urbanblade.mobile.core.config.UrbanRemoteConfig
+import com.urbanblade.mobile.data.model.ModuleFeatures
 import com.urbanblade.mobile.ui.components.*
 import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BenefitPurchaseViewModel
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 
+/** Si la hoja de compra [selected] ("packages" o "gift") puede seguir abierta con estos interruptores. */
+internal fun purchaseSheetAllowed(selected: String?, features: ModuleFeatures): Boolean = when (selected) {
+    "packages" -> features.packages
+    "gift" -> features.giftCards
+    else -> false
+}
+
 /** Acciones reales de autoservicio: la compra la confirma Laravel mediante el webhook de Stripe. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun BenefitShop(onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = viewModel()) {
+internal fun BenefitShop(features: ModuleFeatures, onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = viewModel()) {
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
     val message by vm.message.collectAsState()
@@ -54,14 +62,17 @@ internal fun BenefitShop(onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = v
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         UrbanOutlineButton("Mi tarjeta de miembro", { vm.downloadCard(context) },
             icon = Icons.Default.Download, enabled = !busy, modifier = Modifier.fillMaxWidth())
-        if (configured && cardEnabled) {
-            UrbanOutlineButton("Ver paquetes", { shop = "packages"; vm.loadCatalog() },
-                icon = Icons.Default.Inventory2, enabled = !busy, modifier = Modifier.fillMaxWidth())
-            UrbanOutlineButton("Comprar tarjeta regalo", { vm.clearError(); shop = "gift" },
-                icon = Icons.Default.Redeem, enabled = !busy, modifier = Modifier.fillMaxWidth())
-        } else {
-            UrbanInlineEmpty("Compras con tarjeta no disponibles", Icons.Default.Info,
-                subtitle = "Puedes comprar paquetes y tarjetas regalo en recepción.")
+        // Paquetes y tarjetas regalo son módulos del backend: apagados, no hay nada que ofrecer (ni «en recepción»).
+        if (features.packages || features.giftCards) {
+            if (configured && cardEnabled) {
+                if (features.packages) UrbanOutlineButton("Ver paquetes", { shop = "packages"; vm.loadCatalog() },
+                    icon = Icons.Default.Inventory2, enabled = !busy, modifier = Modifier.fillMaxWidth())
+                if (features.giftCards) UrbanOutlineButton("Comprar tarjeta regalo", { vm.clearError(); shop = "gift" },
+                    icon = Icons.Default.Redeem, enabled = !busy, modifier = Modifier.fillMaxWidth())
+            } else {
+                UrbanInlineEmpty("Compras con tarjeta no disponibles", Icons.Default.Info,
+                    subtitle = "Puedes comprar ${listOfNotNull("paquetes".takeIf { features.packages }, "tarjetas regalo".takeIf { features.giftCards }).joinToString(" y ")} en recepción.")
+            }
         }
         if (shop == null) error?.let { UrbanErrorBanner(it) }
         message?.let {
@@ -71,7 +82,9 @@ internal fun BenefitShop(onRefresh: () -> Unit, vm: BenefitPurchaseViewModel = v
         }
     }
 
-    shop?.let { selected ->
+    // Si el backend apaga el módulo con la hoja abierta, la hoja se cierra y no ofrece controles de compra.
+    LaunchedEffect(features, shop) { if (shop != null && !purchaseSheetAllowed(shop, features)) shop = null }
+    shop?.takeIf { purchaseSheetAllowed(it, features) }?.let { selected ->
         ModalBottomSheet(
             onDismissRequest = { if (!busy) shop = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),

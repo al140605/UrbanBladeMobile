@@ -106,7 +106,7 @@ data class UrbanHeroStatSpec(
  * Resumen destacado de un inicio sobre [UrbanHeroCard], en poco alto: etiqueta, cifra o titular (con una
  * tendencia opcional a su lado), un detalle opcional y datos secundarios que se apilan con poco ancho
  * o fuente grande. En tamaño normal conserva una sola fila, sin cajas
- * de icono ni nota al pie aparte. Sustituye las copias de Administración, Recepción, Ingeniería y Barbero.
+ * de icono ni nota al pie aparte. Sustituye las copias de Administración, Recepción y Barbero.
  */
 @Composable
 fun UrbanHeroSummary(

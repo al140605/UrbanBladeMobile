@@ -40,6 +40,7 @@ fun ReceptionHomeScreen(
     onNavigate: (String) -> Unit,
     vm: DashboardViewModel = viewModel()
 ) {
+    val features by com.urbanblade.mobile.core.config.ModuleFeaturesStore.features.collectAsState()
     val response by vm.data.collectAsState()
     val loading by vm.loading.collectAsState()
     val error by vm.error.collectAsState()
@@ -127,17 +128,15 @@ fun ReceptionHomeScreen(
 
         item { UrbanSectionTitle("Acciones rápidas") }
         item {
-            UrbanModuleGrid(
-                tiles = listOf(
-                    Triple("Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments),
-                    Triple("Clientes", "Buscar y registrar", Icons.Default.People),
-                    Triple("Lista de espera", "Clientes esperando horario", Icons.Default.HourglassTop),
-                    Triple("Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard),
-                    Triple("Corte de caja", "Cierre del turno", Icons.Default.PointOfSale),
-                ),
-                routes = listOf("payments", "clients", "waitlist_staff", "gift_cards", "cash"),
-                onNavigate = onNavigate
-            )
+            // «Tarjetas regalo» solo existe con ese módulo encendido en el backend.
+            val tiles = buildList {
+                add(Triple("Cobros y pagos", "Historial y comprobantes", Icons.Default.Payments) to "payments")
+                add(Triple("Clientes", "Buscar y registrar", Icons.Default.People) to "clients")
+                add(Triple("Lista de espera", "Clientes esperando horario", Icons.Default.HourglassTop) to "waitlist_staff")
+                if (features.giftCards) add(Triple("Tarjetas regalo", "Vender y consultar saldo", Icons.Default.CardGiftcard) to "gift_cards")
+                add(Triple("Corte de caja", "Cierre del turno", Icons.Default.PointOfSale) to "cash")
+            }
+            UrbanModuleGrid(tiles = tiles.map { it.first }, routes = tiles.map { it.second }, onNavigate = onNavigate)
         }
     }
 }
