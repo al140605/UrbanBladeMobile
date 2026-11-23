@@ -210,7 +210,8 @@ private fun TodayPulseCard(kpis: JsonObject, occupancyRate: Int?) {
         belowHeadline = {
             Text(
                 buildString {
-                    append("vs. mes pasado · semana: ")
+                    // «vs. mes pasado» explica la píldora de variación: sin ella, la frase quedaba suelta.
+                    append(if (growth != null) "vs. mes pasado · semana: " else "Semana: ")
                     append(incomeWeek?.let { UrbanFormat.moneyShort(it) } ?: "—")
                     if (appointmentsWeek != null) append(" · ${UrbanFormat.count(appointmentsWeek, "cita", "citas")}")
                 },

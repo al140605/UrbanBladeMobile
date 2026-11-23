@@ -148,13 +148,23 @@ fun AppointmentsScreen(user: AuthUser, onBook: () -> Unit, vm: AppointmentsViewM
             if (!loading && !failed && response.data.isEmpty()) {
                 item {
                     UrbanPremiumCard(Modifier.fillMaxWidth()) {
-                        UrbanEmptyState(
-                            title = "Tu agenda está libre",
-                            subtitle = "Cuando tengas una cita aparecerá aquí.",
-                            icon = Icons.Default.EventAvailable,
-                            actionLabel = if (canBook) "Reservar ahora" else null,
-                            onAction = if (canBook) onBook else null
-                        )
+                        // Recepción y administración ven la agenda del negocio (no «tu agenda») y ya tienen el botón
+                        // flotante «Nueva cita»: el estado vacío no repite la acción.
+                        if (staff) {
+                            UrbanEmptyState(
+                                title = "Todavía no hay citas registradas",
+                                subtitle = "Las reservas de los clientes y las que crees con «Nueva cita» aparecerán aquí.",
+                                icon = Icons.Default.EventAvailable
+                            )
+                        } else {
+                            UrbanEmptyState(
+                                title = "Tu agenda está libre",
+                                subtitle = "Cuando tengas una cita aparecerá aquí.",
+                                icon = Icons.Default.EventAvailable,
+                                actionLabel = if (canBook) "Reservar ahora" else null,
+                                onAction = if (canBook) onBook else null
+                            )
+                        }
                     }
                 }
             }

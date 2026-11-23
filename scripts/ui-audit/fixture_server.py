@@ -2,7 +2,7 @@
 
 python scripts/ui-audit/fixture_server.py
 Build: -PUI_AUDIT=true -PDEBUG_API_BASE_URL=http://10.0.2.2:18765/api/v1/
-Control local: POST /_qa/control con {"status": 503}.
+Control local: POST /_qa/control con {"status": 503}, {"roles": ["barbero"]} o {"features": {"social": false}}.
 """
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,7 +11,10 @@ from urllib.parse import urlparse
 USER = {"id": "qa-client", "name": "Cliente de prueba", "email": "cliente@example.test",
         "roles": ["cliente"], "profile_complete": True, "client_id": "qa-client-profile",
         "created_at": "2026-01-01", "email_verified_at": "2026-01-01"}
-STATE = {"favorite": None, "status": 200, "slots_status": 200}
+FEATURE_KEYS = ("packages", "gift_cards", "referrals", "raffles", "social", "campaigns")
+# features: interruptores de módulos de /barbershop. Encendidos por defecto para revisar todas las pantallas;
+# POST /_qa/control {"features": {"social": false, ...}} reproduce staging, donde los seis vienen apagados.
+STATE = {"favorite": None, "status": 200, "slots_status": 200, "features": {key: True for key in FEATURE_KEYS}}
 SERVICES = [{"id": "qa-service", "nombre": "Corte de prueba", "precio": 100,
              "duracion_min": 30, "descripcion": "Servicio sintético para revisar la interfaz."}]
 
@@ -57,13 +60,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         payloads = {
             "auth/me": {"user": USER}, "profile": {"user": USER},
-            # Ficha pública: la app lee data.features para saber qué módulos mostrar (todos encendidos en la auditoría).
-            "barbershop": {"data": {"nombre": "UrbanBlade QA", "features": {
-                "packages": True, "gift_cards": True, "referrals": True, "raffles": True, "social": True, "campaigns": True}}},
+            # Ficha pública: la app lee data.features para saber qué módulos mostrar (ver STATE["features"]).
+            "barbershop": {"data": {"nombre": "UrbanBlade QA", "features": dict(STATE["features"])}},
             "services": {"data": SERVICES},
             "barbers": {"data": [{"id": "qa-barber", "slug": "barbero-prueba", "user": {"name": "Barbero de prueba"}, "es_favorito": STATE["favorite"] == "qa-barber"}]},
             "availability/slots": {"slots": [{"time": "12:00", "label": "12:00", "end_time": "12:30", "end_label": "12:30"}]},
-            "dashboard": {"role": "cliente", "data": {"loyalty": {"puntos": 0, "nivel": "bronce", "nivel_label": "Bronce"}}},
+            # Misma forma que DashboardController::clientPayload (niveles de LoyaltyService: nuevo=Caballero, regular,
+            # vip, leyenda). Antes mandaba «bronce» sin siguiente nivel y la app decía «Estás en el nivel más alto».
+            "dashboard": {"role": "cliente", "data": {"loyalty": {
+                "puntos": 0, "nivel": "nuevo", "nivelLabel": "Caballero", "discountPct": 0,
+                "nextNivel": "regular", "nextNivelLabel": "Regular", "citasFaltan": 5, "progressPct": 0}}},
             "memberships/mine": {"data": None}, "memberships/plans": {"data": []},
             "packages": {"data": []}, "packages/catalog": {"data": [{"id": "qa-pack", "nombre": "Paquete de prueba", "cantidad_usos": 3, "precio": 250, "vigencia_dias": 90}]},
             "gift-cards/mine": {"data": []}, "referrals/mine": {"data": {"code": "QA-REFERIDO", "referidos": []}},
@@ -78,7 +84,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path.removeprefix("/api/v1/")
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
         if self.path == "/_qa/control":
-            STATE.update({k: v for k, v in data.items() if k in STATE})
+            STATE.update({k: v for k, v in data.items() if k in STATE and k != "features"})
+            features = data.get("features")
+            if isinstance(features, dict):
+                STATE["features"].update({k: v for k, v in features.items() if k in FEATURE_KEYS and isinstance(v, bool)})
             roles = data.get("roles")
             if isinstance(roles, list) and roles and all(role in ("cliente", "administrador", "recepcionista", "barbero") for role in roles):
                 USER["roles"] = roles

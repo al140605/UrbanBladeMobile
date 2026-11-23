@@ -243,7 +243,7 @@ class InsightsViewModel : ViewModel() {
     fun load() = viewModelScope.launch {
         _busy.value = true; _error.value = null
         try { _data.value = repo.predictionInsights() }
-        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron generar los insights.") }
+        catch (e: Exception) { _error.value = e.toFriendlyMessage("No se pudieron generar los hallazgos.") }
         finally { _busy.value = false }
     }
 }
