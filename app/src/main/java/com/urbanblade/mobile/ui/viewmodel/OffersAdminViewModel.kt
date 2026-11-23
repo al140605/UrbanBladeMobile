@@ -2,9 +2,11 @@ package com.urbanblade.mobile.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.urbanblade.mobile.core.config.ModuleFeaturesStore
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.MembershipPlanItem
 import com.urbanblade.mobile.data.model.MembershipPlanRequest
+import com.urbanblade.mobile.data.model.ModuleFeatures
 import com.urbanblade.mobile.data.model.ServiceItem
 import com.urbanblade.mobile.data.model.ServicePackageItem
 import com.urbanblade.mobile.data.model.ServicePackageRequest
@@ -34,9 +36,13 @@ data class OffersAdminState(
     val notice: String? = null
 )
 
-/** Membresías mensuales y paquetes prepagados del administrador. Eliminar solo desactiva. */
+/**
+ * Membresías mensuales y paquetes prepagados del administrador. Eliminar solo desactiva. Los paquetes solo se
+ * consultan si el backend los tiene encendidos ([features]); apagados, sus rutas no existen (404).
+ */
 class OffersAdminViewModel @JvmOverloads constructor(
-    private val repo: UrbanRepository = AppContainer.urbanRepository
+    private val repo: UrbanRepository = AppContainer.urbanRepository,
+    private val features: () -> ModuleFeatures = { ModuleFeaturesStore.current }
 ) : ViewModel() {
     private val _state = MutableStateFlow(OffersAdminState())
     val state: StateFlow<OffersAdminState> = _state.asStateFlow()
@@ -51,10 +57,11 @@ class OffersAdminViewModel @JvmOverloads constructor(
             try {
                 val plans = repo.adminMembershipPlans()
                 coroutineContext.ensureActive()
-                val packages = repo.servicePackages()
+                val packagesOn = features().packages
+                val packages = if (packagesOn) repo.servicePackages() else emptyList()
                 coroutineContext.ensureActive()
-                // El selector de servicios es secundario: si falla, la lista se muestra igual.
-                val services = runCatching { repo.services() }.getOrDefault(_state.value.services)
+                // El selector de servicios (solo para paquetes) es secundario: si falla, la lista se muestra igual.
+                val services = if (packagesOn) runCatching { repo.services() }.getOrDefault(_state.value.services) else _state.value.services
                 coroutineContext.ensureActive()
                 _state.value = _state.value.copy(plans = plans, packages = packages, services = services, loaded = true, loading = false)
             } catch (e: CancellationException) {

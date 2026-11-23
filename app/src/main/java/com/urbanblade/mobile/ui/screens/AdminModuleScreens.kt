@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,25 @@ import com.urbanblade.mobile.ui.components.UrbanTonePill
 
 
 private fun metricsMoney(value: Double) = UrbanFormat.moneyShort(value)
+
+internal fun healthTone(level: HealthLevel): Color = when (level) {
+    HealthLevel.OK -> UrbanColors.Success
+    HealthLevel.WARNING -> UrbanColors.Warning
+    HealthLevel.DOWN -> UrbanColors.Danger
+}
+
+internal fun healthIcon(level: HealthLevel) = when (level) {
+    HealthLevel.OK -> Icons.Default.CheckCircle
+    HealthLevel.WARNING -> Icons.Default.Warning
+    HealthLevel.DOWN -> Icons.Default.Error
+}
+
+internal fun serviceTone(status: String?): Color = when {
+    status.equals("up", ignoreCase = true) -> UrbanColors.Success
+    status.equals(SERVICE_NOT_USED, ignoreCase = true) -> UrbanColors.Muted
+    status.equals("down", ignoreCase = true) -> UrbanColors.Danger
+    else -> UrbanColors.Warning
+}
 
 @Composable
 fun AdminMetricsScreen(onBack: () -> Unit, vm: AdminMetricsViewModel = viewModel()) {

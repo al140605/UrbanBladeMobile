@@ -87,11 +87,16 @@ private enum class OffersTab(val label: String) { Membresias("Membresías"), Paq
 
 private fun money(value: Double) = UrbanFormat.moneyShort(value)
 
-/** Membresías mensuales y paquetes prepagados: crear, editar y activar o desactivar. */
+/**
+ * Membresías mensuales y paquetes prepagados: crear, editar y activar o desactivar. La parte de paquetes
+ * (pestaña y formulario) solo existe mientras el backend tenga ese módulo encendido.
+ */
 @Composable
 fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()) {
+    val features by com.urbanblade.mobile.core.config.ModuleFeaturesStore.features.collectAsState()
     val state by vm.state.collectAsState()
-    var tab by remember { mutableStateOf(OffersTab.Membresias) }
+    var selectedTab by remember { mutableStateOf(OffersTab.Membresias) }
+    val tab = if (features.packages) selectedTab else OffersTab.Membresias
     var editingPlan by remember { mutableStateOf<MembershipPlanItem?>(null) }
     var creatingPlan by remember { mutableStateOf(false) }
     var editingPackage by remember { mutableStateOf<ServicePackageItem?>(null) }
@@ -102,8 +107,8 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
 
     UrbanModuleScreen(
         eyebrow = "ADMINISTRACIÓN",
-        title = "Membresías y paquetes",
-        subtitle = "Planes mensuales con descuento y usos pagados por adelantado.",
+        title = if (features.packages) "Membresías y paquetes" else "Membresías",
+        subtitle = if (features.packages) "Planes mensuales con descuento y usos pagados por adelantado." else "Planes mensuales con descuento.",
         onBack = onBack,
         onRefresh = { vm.load() },
         refreshing = state.loading || state.saving,
@@ -120,11 +125,11 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
             state.listError
         )
     ) {
-        item {
+        if (features.packages) item {
             UrbanPillTabs(
                 listOf(OffersTab.Membresias.label to Icons.Default.CardMembership, OffersTab.Paquetes.label to Icons.Default.Inventory2),
                 tab.ordinal
-            ) { tab = OffersTab.entries[it] }
+            ) { selectedTab = OffersTab.entries[it] }
         }
         if (state.saving) item { LinearProgressIndicator(Modifier.fillMaxWidth(), color = UrbanColors.Gold) }
         state.notice?.let { item { UrbanInfoBanner(it, Icons.Default.CheckCircle) } }
@@ -176,7 +181,7 @@ fun OffersAdminScreen(onBack: () -> Unit, vm: OffersAdminViewModel = viewModel()
             onSave = { body -> vm.savePlan(editingPlan?.id, body) { creatingPlan = false; editingPlan = null } }
         )
     }
-    if (creatingPackage || editingPackage != null) {
+    if (features.packages && (creatingPackage || editingPackage != null)) {
         PackageFormSheet(
             pack = editingPackage, services = state.services, saving = state.saving, error = state.error,
             onDismiss = { creatingPackage = false; editingPackage = null },

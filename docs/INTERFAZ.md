@@ -10,7 +10,7 @@ Los componentes compartidos viven en `ui/components/`. Usar sus tokens y estados
 
 ## Navegación por experiencia
 
-`core/access/UserExperience.kt` resuelve el rol principal en este orden: administrador, recepción, barbero, ingeniero y cliente. El orden de la lista recibida no define la prioridad. Esta selección adapta la interfaz y no concede permisos del backend.
+`core/access/UserExperience.kt` resuelve el rol principal en este orden: administrador, recepción, barbero y cliente (el rol ingeniero se retiró el 23-nov-2026; una cuenta que solo lo conserve ve una pantalla para cerrar sesión). El orden de la lista recibida no define la prioridad. Esta selección adapta la interfaz y no concede permisos del backend.
 
 El cliente tiene Inicio, Reservar, Mis citas y Cuenta; las experiencias operativas utilizan sus destinos por rol. Consultar el [contrato de experiencia](UI_UX_CONTRATO_MOVIL.md) para acceso, retorno, reservas, errores y persistencia de formularios.
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -18,6 +21,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.urbanblade.mobile.core.booking.PendingBooking
+import com.urbanblade.mobile.core.config.ModuleFeaturesStore
+import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.core.push.PushRegistrationEffect
 import kotlinx.coroutines.launch
 import com.urbanblade.mobile.data.model.AuthUser
@@ -51,6 +56,12 @@ private fun NavController.openBooking(route: String) = navigate(route) {
 @Composable
 fun UrbanBladeRoot(authViewModel: AuthViewModel = viewModel()) {
     val authState by authViewModel.state.collectAsState()
+    // Qué módulos sirve el backend (GET barbershop, público): al arrancar y cada vez que la app vuelve a primer
+    // plano; hasta que llegue la respuesta todo módulo opcional se trata como apagado.
+    val featuresScope = rememberCoroutineScope()
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        featuresScope.launch { ModuleFeaturesStore.refresh { AppContainer.urbanRepository.moduleFeatures() } }
+    }
     when (val state = authState) {
         AuthState.Loading -> UrbanBladeBackground {
             Column(
@@ -138,24 +149,38 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val scope = rememberCoroutineScope()
     val backStack by nav.currentBackStackEntryAsState()
     val current = backStack?.destination?.route
+    val logout: () -> Unit = {
+        // Antes de cerrar sesión el cel olvida su token de push: la siguiente cuenta
+        // que entre en este equipo no hereda los avisos de esta.
+        scope.launch {
+            com.urbanblade.mobile.core.push.PushNotifications.forgetDeviceToken(context)
+            authViewModel.logout()
+        }
+    }
+    // Cuenta vieja sin ningún rol vigente (p. ej. solo «ingeniero», rol ya retirado): sin menú ni módulos,
+    // solo se explica y se ofrece cerrar sesión.
+    if (!com.urbanblade.mobile.core.access.UserExperience.hasKnownRole(user.roles)) {
+        UnknownRoleScreen(onLogout = logout)
+        return
+    }
+    val features by ModuleFeaturesStore.features.collectAsState()
     val clientOnly = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
-    val engineerOnly = com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)
     // El barbero que no administra ni atiende recepción: su barra es Inicio, Agenda, Mi perfil y Cuenta.
-    val barberOnly = "barbero" in user.roles && user.roles.none { it == "administrador" || it == "recepcionista" || it == "ingeniero" }
+    val barberOnly = "barbero" in user.roles && user.roles.none { it == "administrador" || it == "recepcionista" }
 
     // Nav por rol. Cliente: cinco pestañas con un solo verbo para
     // reservar; Beneficios, pagos y pedidos viven en Cuenta y en el Inicio, ya no en la barra.
     // Cada pestaña se llama igual que el título de su pantalla.
     val items = if (clientOnly) {
-        listOf(
-            UrbanBottomDestination("home", "Inicio", Icons.Default.Home),
-            UrbanBottomDestination("catalog", "Reservar", Icons.Default.ContentCut),
-            UrbanBottomDestination("appointments", "Mis citas", Icons.Default.CalendarMonth),
+        buildList {
+            add(UrbanBottomDestination("home", "Inicio", Icons.Default.Home))
+            add(UrbanBottomDestination("catalog", "Reservar", Icons.Default.ContentCut))
+            add(UrbanBottomDestination("appointments", "Mis citas", Icons.Default.CalendarMonth))
             // El muro es sobre todo del cliente (ve trabajos y reserva con el barbero): va en la barra; el
-            // personal lo sigue encontrando en «Más».
-            UrbanBottomDestination("social", "Muro", Icons.Default.PhotoLibrary),
-            UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person)
-        )
+            // personal lo sigue encontrando en «Más». Con el módulo apagado la barra queda con cuatro pestañas.
+            if (features.social) add(UrbanBottomDestination("social", "Muro", Icons.Default.PhotoLibrary))
+            add(UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person))
+        }
     } else if (barberOnly) {
         // Agenda y Mi perfil (perfil, horario y portafolio) reemplazan a Citas y Más: lo demás que tenía Más ya
         // está en la campana, en Cuenta y en el Inicio.
@@ -168,15 +193,16 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     } else {
         buildList {
             add(UrbanBottomDestination("home", "Inicio", Icons.Default.Home))
-            if (!engineerOnly) add(UrbanBottomDestination("appointments", "Citas", Icons.Default.CalendarMonth))
+            add(UrbanBottomDestination("appointments", "Citas", Icons.Default.CalendarMonth))
             add(UrbanBottomDestination("more", "Más", Icons.Default.GridView))
             add(UrbanBottomDestination("profile", "Cuenta", Icons.Default.Person))
         }
     }
     val rootRoutes = items.map { it.route }
     // Atajos, avisos y enlaces llegan con rutas «de fuera»: pasan por canonicalRoute (barber_agenda → Agenda del barbero).
+    // Una ruta de un módulo apagado no se abre: lleva al Inicio (ver ModuleFeatures.allowsRoute).
     fun openRoute(route: String, singleTop: Boolean = false) =
-        nav.openDestination(canonicalRoute(route, barberOnly), rootRoutes, singleTop)
+        nav.openDestination(allowedRoute(canonicalRoute(route, barberOnly), features), rootRoutes, singleTop)
 
     // Selección hecha como invitado en el catálogo: se
     // consume UNA sola vez, al montar la sesión autenticada, y redirige
@@ -192,7 +218,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     // sesión, espera aquí a que exista la navegación autenticada.
     val pushRoute by com.urbanblade.mobile.core.push.PushDeepLink.pending.collectAsState()
     LaunchedEffect(pushRoute) {
-        val route = canonicalRoute(pushRoute ?: return@LaunchedEffect, barberOnly)
+        val route = allowedRoute(canonicalRoute(pushRoute ?: return@LaunchedEffect, barberOnly), features)
         com.urbanblade.mobile.core.push.PushDeepLink.consume()
         // Se vacía la pila hasta Inicio: «atrás» desde el aviso regresa a Inicio, no a otro aviso abierto antes.
         if (route != "home") nav.navigate(route) {
@@ -300,7 +326,6 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         canBook = com.urbanblade.mobile.core.access.UserExperience.canBook(user.roles),
                         onBook = { serviceId, barberId -> nav.openBooking(bookingRoute(serviceId, barberId)) },
                         onOpenStore = { nav.navigate("store") },
-                        onOpenInspiration = { nav.openDestination("social", rootRoutes) },
                         onOpenBarber = { slug -> nav.navigate("barber_profile/$slug") }
                     )
                 }
@@ -321,10 +346,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("store") { StoreScreen(user = user, onOrders = { nav.navigate("orders") }, onBack = { nav.popBackStack() }) }
                 // Las pantallas sueltas de «Más» viven ahora como pestañas de un grupo (ver Hubs.kt); las rutas
                 // de siempre se conservan para avisos y atajos, y abren el grupo en su pestaña.
-                composable("orders") { CashHub(user, "pedidos") { nav.popBackStack() } }
-                composable("payments") { CashHub(user, "pagos") { nav.popBackStack() } }
-                composable("cash") { CashHub(user, "corte") { nav.popBackStack() } }
-                composable("gift_cards") { CashHub(user, "regalo") { nav.popBackStack() } }
+                composable("orders") { CashHub(user, features, "pedidos") { nav.popBackStack() } }
+                composable("payments") { CashHub(user, features, "pagos") { nav.popBackStack() } }
+                composable("cash") { CashHub(user, features, "corte") { nav.popBackStack() } }
+                composable("gift_cards") {
+                    FeatureGate(features.giftCards, onBlocked = { nav.goHome(rootRoutes) }) { CashHub(user, features, "regalo") { nav.popBackStack() } }
+                }
                 composable("notifications") {
                     NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> openRoute(route, singleTop = true) })
                 }
@@ -332,18 +359,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_reservar")
                     nav.openBooking(bookingRoute(serviceId, null))
                 }) }
-                composable("more") { MoreScreen(user = user, onNavigate = { openRoute(it) }) }
+                composable("more") { MoreScreen(user = user, features = features, onNavigate = { openRoute(it) }) }
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
                         user = user,
-                        onLogout = {
-                            // Antes de cerrar sesión el cel olvida su token de push: la siguiente cuenta
-                            // que entre en este equipo no hereda los avisos de esta.
-                            scope.launch {
-                                com.urbanblade.mobile.core.push.PushNotifications.forgetDeviceToken(context)
-                                authViewModel.logout()
-                            }
-                        },
+                        features = features,
+                        onLogout = logout,
                         onNavigate = { openRoute(it) },
                         onUserChanged = { authViewModel.refreshUser() }
                     )
@@ -355,13 +376,15 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("insights") { AnalysisHub(user, "insights") { nav.popBackStack() } }
                 composable("logs") { AnalysisHub(user, "bitacora") { nav.popBackStack() } }
                 composable("social") {
-                    SocialFeedScreen(
-                        // Para el cliente es una pestaña de la barra: sin flecha de volver.
-                        onBack = if (clientOnly) null else ({ nav.popBackStack() }),
-                        onOpenBarber = { slug -> nav.navigate("barber_profile/${android.net.Uri.encode(slug)}") },
-                        // Solo el cliente reserva desde el muro; el personal lo ve como galería.
-                        onBookBarber = if (clientOnly) { barberId -> nav.openBooking(bookingRoute(null, barberId)) } else null
-                    )
+                    FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) {
+                        SocialFeedScreen(
+                            // Para el cliente es una pestaña de la barra: sin flecha de volver.
+                            onBack = if (clientOnly) null else ({ nav.popBackStack() }),
+                            onOpenBarber = { slug -> nav.navigate("barber_profile/${android.net.Uri.encode(slug)}") },
+                            // Solo el cliente reserva desde el muro; el personal lo ve como galería.
+                            onBookBarber = if (clientOnly) { barberId -> nav.openBooking(bookingRoute(null, barberId)) } else null
+                        )
+                    }
                 }
                 composable("clients") {
                     ClientsHub(user, "clientes", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
@@ -384,12 +407,20 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("barbers_admin") { TeamHub(user.id, "barberos") { nav.popBackStack() } }
                 composable("services_admin") { TeamHub(user.id, "servicios") { nav.popBackStack() } }
                 composable("users") { TeamHub(user.id, "usuarios") { nav.popBackStack() } }
-                composable("campaigns") { MarketingHub("campanas") { nav.popBackStack() } }
-                composable("raffles") { MarketingHub("sorteos") { nav.popBackStack() } }
-                composable("offers_admin") { MarketingHub("membresias") { nav.popBackStack() } }
-                composable("reviews") { CommunityHub(user, "resenas") { nav.popBackStack() } }
-                composable("moderation") { CommunityHub(user, "moderacion") { nav.popBackStack() } }
-                composable("blocked_authors") { CommunityHub(user, "bloqueados") { nav.popBackStack() } }
+                composable("campaigns") {
+                    FeatureGate(features.campaigns, onBlocked = { nav.goHome(rootRoutes) }) { MarketingHub(features, "campanas") { nav.popBackStack() } }
+                }
+                composable("raffles") {
+                    FeatureGate(features.raffles, onBlocked = { nav.goHome(rootRoutes) }) { MarketingHub(features, "sorteos") { nav.popBackStack() } }
+                }
+                composable("offers_admin") { MarketingHub(features, "membresias") { nav.popBackStack() } }
+                composable("reviews") { CommunityHub(user, features, "resenas") { nav.popBackStack() } }
+                composable("moderation") {
+                    FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) { CommunityHub(user, features, "moderacion") { nav.popBackStack() } }
+                }
+                composable("blocked_authors") {
+                    FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) { CommunityHub(user, features, "bloqueados") { nav.popBackStack() } }
+                }
                 composable("settings") { SettingsHub(user, "config") { nav.popBackStack() } }
                 composable("system") { SettingsHub(user, "sistema") { nav.popBackStack() } }
                 // Agenda personal del barbero que además administra o atiende recepción («Mi agenda» en Más). Para el
@@ -400,6 +431,35 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("barber_schedule") { MyProfileHub("horario", if (barberOnly) null else ({ nav.popBackStack() })) }
                 composable("barber_portfolio") { MyProfileHub("portafolio", if (barberOnly) null else ({ nav.popBackStack() })) }
             }
+        }
+    }
+}
+
+/**
+ * Contenido de una ruta de un módulo opcional. Si el interruptor está apagado no se compone nada y se avisa para
+ * que la navegación regrese al Inicio (el módulo pudo apagarse con la pantalla ya abierta).
+ */
+@Composable
+private fun FeatureGate(enabled: Boolean, onBlocked: () -> Unit, content: @Composable () -> Unit) {
+    if (enabled) content() else LaunchedEffect(Unit) { onBlocked() }
+}
+
+/** Vuelve al Inicio, que siempre existe, sin dejar la pantalla apagada en la pila. */
+private fun NavController.goHome(rootRoutes: List<String>) = openDestination("home", rootRoutes)
+
+/** Pantalla de una cuenta sin rol vigente (p. ej. la que solo tenía el rol «ingeniero», ya retirado). */
+@Composable
+private fun UnknownRoleScreen(onLogout: () -> Unit) {
+    UrbanBladeBackground {
+        Box(Modifier.fillMaxSize().systemBarsPadding().padding(18.dp), contentAlignment = Alignment.Center) {
+            com.urbanblade.mobile.ui.components.UrbanMascotState(
+                com.urbanblade.mobile.ui.components.UrbanStateKind.ERROR,
+                "Tu cuenta no tiene un rol activo",
+                "Este rol ya no existe en UrbanBlade. Pide a un administrador que te asigne uno nuevo o entra con otra cuenta.",
+                "Cerrar sesión",
+                Icons.AutoMirrored.Filled.Logout,
+                onLogout
+            )
         }
     }
 }

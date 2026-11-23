@@ -88,7 +88,9 @@ fun CashCloseScreen(onBack: () -> Unit, vm: CashCloseViewModel = viewModel()) {
                         if (index < byMethod.lastIndex) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = UrbanColors.Line)
                     }
                     Text(
-                        "${preview.pagos} pagos · ${preview.pedidos} pedidos · ${preview.paquetes} paquetes",
+                        "${preview.pagos} pagos · ${preview.pedidos} pedidos" +
+                            // Los paquetes solo se mencionan si el módulo está encendido o el turno tuvo alguno.
+                            if (com.urbanblade.mobile.core.config.ModuleFeaturesStore.current.packages || preview.paquetes > 0) " · ${preview.paquetes} paquetes" else "",
                         style = MaterialTheme.typography.bodySmall,
                         color = UrbanColors.Muted,
                         modifier = Modifier.padding(top = 10.dp)

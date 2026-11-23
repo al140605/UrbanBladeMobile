@@ -207,7 +207,7 @@ data class ReviewsResponse(
     val stats: ReviewStats = ReviewStats()
 )
 
-// ── Logs de auditoría (admin + ingeniero, solo lectura) ──────────────────
+// ── Logs de auditoría (administrador, solo lectura) ──────────────────
 data class LogCauser(val id: String? = null, val name: String? = null, val email: String? = null)
 data class LogRow(
     val id: String,
@@ -307,7 +307,7 @@ data class AnalyticsResponse(
     @SerializedName("spark_flow") val sparkFlow: List<SparkFlowStep> = emptyList()
 )
 
-// ── Reportes (reports, admin + ingeniero solo lectura) ───────────────────
+// ── Reportes (reports, administrador, solo lectura) ───────────────────
 data class ReportManifest(val types: List<String> = emptyList(), val formats: List<String> = emptyList())
 /** Gráfica que el servidor calcula para cada reporte (misma que lleva el PDF). */
 data class ReportChart(

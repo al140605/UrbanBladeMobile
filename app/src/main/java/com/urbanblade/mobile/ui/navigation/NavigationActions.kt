@@ -1,6 +1,7 @@
 package com.urbanblade.mobile.ui.navigation
 
 import androidx.navigation.NavController
+import com.urbanblade.mobile.data.model.ModuleFeatures
 import androidx.navigation.NavGraph.Companion.findStartDestination
 
 /** Los atajos hacia una pestaña usan la misma pila y restauración que la barra inferior. */
@@ -31,3 +32,10 @@ internal fun NavController.openDestination(
  */
 internal fun canonicalRoute(route: String, barberOnly: Boolean): String =
     if (barberOnly && route == "barber_agenda") "appointments" else route
+
+/**
+ * Ruta que de verdad se abre: la de un módulo apagado (atajo, aviso viejo, enlace `urbanblade://open?route=…`)
+ * se sustituye por el Inicio, que siempre existe, en vez de abrir una pantalla que el backend ya no sirve.
+ */
+internal fun allowedRoute(route: String, features: ModuleFeatures): String =
+    if (features.allowsRoute(route)) route else "home"

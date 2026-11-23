@@ -27,7 +27,6 @@ Capturas existentes de Android, conservadas sin edición: acceso del archivo de 
 | Barbero | Agenda personal, horario y portafolio |
 | Recepción | Agenda operativa, clientes, cobros, pedidos e inventario |
 | Administración | Operación, gestión, reportes y configuración |
-| Ingeniería | Consulta de reportes, métricas, logs y estado del sistema |
 
 Laravel conserva la autorización y las reglas de precios, stock y disponibilidad. La presencia de una pantalla no acredita la validación integral del flujo: consultar las [pruebas y sus límites](docs/PRUEBAS.md).
 

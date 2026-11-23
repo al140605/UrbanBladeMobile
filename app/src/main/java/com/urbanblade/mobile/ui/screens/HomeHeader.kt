@@ -10,7 +10,7 @@ import com.urbanblade.mobile.ui.components.UrbanHomeHeader
 import com.urbanblade.mobile.ui.viewmodel.NotificationsViewModel
 
 /**
- * Encabezado del Inicio de administración, recepción, barbero e ingeniero: saludo, actualizar, la campana
+ * Encabezado del Inicio de administración, recepción y barbero: saludo, actualizar, la campana
  * con los avisos sin leer y la foto, que abre Cuenta. El cliente usa los mismos componentes en su propio inicio.
  */
 @Composable

@@ -77,7 +77,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/_qa/control":
             STATE.update({k: v for k, v in data.items() if k in STATE})
             roles = data.get("roles")
-            if isinstance(roles, list) and roles and all(role in ("cliente", "administrador", "recepcionista", "barbero", "ingeniero") for role in roles):
+            if isinstance(roles, list) and roles and all(role in ("cliente", "administrador", "recepcionista", "barbero") for role in roles):
                 USER["roles"] = roles
             return self.respond({"ok": True})
         if STATE["status"] != 200: return self.respond({"message": "Respuesta de prueba."}, STATE["status"])

@@ -59,6 +59,7 @@ fun BarberHomeScreen(
     vm: BarberAgendaViewModel = viewModel(),
     dashboardVm: DashboardViewModel = viewModel()
 ) {
+    val features by com.urbanblade.mobile.core.config.ModuleFeaturesStore.features.collectAsState()
     val agenda by vm.agenda.collectAsState()
     val busy by vm.busy.collectAsState()
     val error by vm.error.collectAsState()
@@ -183,14 +184,12 @@ fun BarberHomeScreen(
         // La agenda y Mi perfil (perfil, horario y portafolio) ya están en la barra inferior; aquí, el resto.
         item { UrbanSectionTitle("Tu trabajo") }
         item {
-            UrbanModuleGrid(
-                tiles = listOf(
-                    Triple("Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups),
-                    Triple("Catálogo", "Servicios y barberos", Icons.Default.ContentCut),
-                ),
-                routes = listOf("social", "catalog"),
-                onNavigate = onNavigate
-            )
+            // El muro solo existe con ese módulo encendido en el backend.
+            val tiles = buildList {
+                if (features.social) add(Triple("Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups) to "social")
+                add(Triple("Catálogo", "Servicios y barberos", Icons.Default.ContentCut) to "catalog")
+            }
+            UrbanModuleGrid(tiles = tiles.map { it.first }, routes = tiles.map { it.second }, onNavigate = onNavigate)
         }
 
         dashboard?.data.chartSeries("performanceChart")?.let { week ->

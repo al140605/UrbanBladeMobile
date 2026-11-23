@@ -61,7 +61,7 @@ Qué cambia por rol (y nada más):
 
 - **Cliente**: la tarjeta muestra nivel y puntos (`dashboard.loyalty`) y su descuento
   activo; Datos incluye teléfono, cumpleaños y sexo; Ajustes incluye Bladebot.
-- **Personal** (admin, recepción, barbero, ingeniero): la tarjeta muestra "Miembro desde"
+- **Personal** (admin, recepción, barbero): la tarjeta muestra "Miembro desde"
   y si el correo está verificado; Datos es solo nombre y correo (el backend ignora los
   campos de cliente para ellos).
 
@@ -120,7 +120,7 @@ cuenta", no "Error 500"). En un 422 mostrar el `message` del servidor
 
 ## 6. Eyebrow por rol
 
-`Administrador`, `Recepción`, `Barbero`, `Ingeniero`, `Cliente` (usar
+`Administrador`, `Recepción`, `Barbero`, `Cliente` (usar
 `accountRoleLabel(user.roles)`; si alguien tiene varios roles gana el de más
 responsabilidad).
 
@@ -281,7 +281,7 @@ equivalencias:
 
 ## Sincronización de roles (12-oct-2026)
 
-Usar core/access/UserExperience para Inicio, Cuenta y navegación. Prioridad: administrador, recepcionista, barbero, ingeniero, cliente. No confundir experiencia visual con permisos del servidor. Más reutiliza UrbanRowGroup/UrbanRow. Bladebot se oculta en Cuenta, Reservar y Citas para no tapar acciones. Los avisos de pago usan pago_resuelto, nunca deducen deuda por estar confirmada la cita.
+Usar core/access/UserExperience para Inicio, Cuenta y navegación. Prioridad: administrador, recepcionista, barbero, cliente. No confundir experiencia visual con permisos del servidor. Más reutiliza UrbanRowGroup/UrbanRow. Bladebot se oculta en Cuenta, Reservar y Citas para no tapar acciones. Los avisos de pago usan pago_resuelto, nunca deducen deuda por estar confirmada la cita.
 
 ### Pulido de accesos y pestañas (12-oct-2026, TT32 / HT-12)
 
@@ -327,7 +327,7 @@ Validación visual en teléfono y apertura real de PDF pendientes de reconexión
 ### Hallazgos en dispositivo por rol (12-oct-2026, TT32 / HT-12)
 
 Cliente, recepción, barbero y administrador revisados en el teléfono con API
-publicada, sin cobros ni cambios de citas. Ingeniero pendiente de cuenta real.
+publicada, sin cobros ni cambios de citas.
 Citas cuenta filas cargadas para barbero y distingue el motivo de bloqueo
 `motivo_no_iniciar`: no atribuir `puede_iniciar=false` exclusivamente al pago.
 Bladebot ocupa una fila propia sobre la navegación, sin superponerse al contenido.
@@ -367,7 +367,7 @@ Comprobantes lee todas las páginas de compras y deduplica por ID antes del
 resumen. Fallos de pagos conservan los últimos datos y permiten reintento; no
 deben cancelar el ViewModel por una excepción de coroutine hija.
 
-Catálogo respeta UserExperience.canBook: barbero/ingeniero consultan servicios
+Catálogo respeta UserExperience.canBook: barbero consulta servicios
 y perfiles, sin acceso ni botón Reservar. Invitado conserva exploración y reserva
 con autenticación posterior; cliente y roles autorizados conservan su recorrido.
 
@@ -383,7 +383,7 @@ a fuente grande, y ofrece actualizar conservando información y mostrando fallos
 El teléfono queda disponible para la revisión del usuario, sin automatizarlo.
 
 Tienda explicita Crear pedido y pago/recogida en sucursal según el backend.
-Tiene Volver visible; barbero/ingeniero no ven el acceso de pedidos.
+Tiene Volver visible; el barbero no ve el acceso de pedidos.
 
 Notificaciones: conservar la lista ante errores, mostrar UrbanErrorBanner con Reintentar consulta y no afirmar Estás al día mientras carga o falla. Marcar como leídas bloquea envíos duplicados y vuelve a consultar el servidor.
 ### 13 de octubre — Kit de analítica renovado (TT32 / HT-12)

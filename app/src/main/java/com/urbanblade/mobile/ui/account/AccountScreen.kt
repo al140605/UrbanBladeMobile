@@ -58,7 +58,6 @@ import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.urbanblade.mobile.BuildConfig
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.AuthUser
+import com.urbanblade.mobile.data.model.ModuleFeatures
 import com.urbanblade.mobile.ui.components.UrbanAttentionRow
 import com.urbanblade.mobile.ui.components.UrbanActionRow
 import com.urbanblade.mobile.ui.components.UrbanRowGroup
@@ -91,7 +91,7 @@ import kotlinx.coroutines.launch
 /** Un acceso rápido de la cabecera de Cuenta: lo que cada rol usa a diario. */
 private data class AccountShortcut(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
-private fun shortcutsFor(roles: List<String>): List<AccountShortcut> = when {
+private fun shortcutsFor(roles: List<String>, features: ModuleFeatures): List<AccountShortcut> = when {
     "administrador" in roles -> listOf(
         AccountShortcut("admin_metrics", "Análisis", Icons.Default.QueryStats),
         AccountShortcut("users", "Usuarios", Icons.Default.ManageAccounts),
@@ -103,16 +103,12 @@ private fun shortcutsFor(roles: List<String>): List<AccountShortcut> = when {
         AccountShortcut("cash", "Corte", Icons.Default.Receipt),
         AccountShortcut("clients", "Clientes", Icons.Default.People)
     )
-    "ingeniero" in roles -> listOf(
-        AccountShortcut("system", "Estado", Icons.Default.Dns),
-        AccountShortcut("logs", "Bitácora", Icons.Default.Terminal)
-    )
     // Agenda y Mi perfil (perfil, horario y portafolio) ya están en la barra inferior del barbero; aquí, lo que no.
-    "barbero" in roles -> listOf(
-        AccountShortcut("social", "Muro", Icons.Default.PhotoLibrary),
-        AccountShortcut("catalog", "Catálogo", Icons.Default.ContentCut),
-        AccountShortcut("chatbot", "Bladebot", Icons.Default.SmartToy)
-    )
+    "barbero" in roles -> buildList {
+        if (features.social) add(AccountShortcut("social", "Muro", Icons.Default.PhotoLibrary))
+        add(AccountShortcut("catalog", "Catálogo", Icons.Default.ContentCut))
+        add(AccountShortcut("chatbot", "Bladebot", Icons.Default.SmartToy))
+    }
     else -> listOf(
         AccountShortcut("wallet", "Beneficios", Icons.Default.Stars),
         AccountShortcut("payments", "Facturas", Icons.Default.ReceiptLong),
@@ -139,6 +135,7 @@ private fun ShortcutTile(item: AccountShortcut, modifier: Modifier, onClick: () 
 @Composable
 fun AccountScreen(
     user: AuthUser,
+    features: ModuleFeatures,
     onLogout: () -> Unit,
     onNavigate: (String) -> Unit,
     onUserChanged: () -> Unit,
@@ -146,10 +143,12 @@ fun AccountScreen(
 ) {
     val state by vm.state.collectAsState()
     val isClient = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
-    // La prueba de push es una herramienta de soporte: solo administración e ingeniería la ven.
-    val canTestPush = user.roles.any { it == "administrador" || it == "ingeniero" }
-    // Cliente y barbero pueden bloquear autores en el muro pero no tienen «Más»: desbloquean desde aquí.
-    val canManageBlocks = com.urbanblade.mobile.core.access.UserExperience.primaryRole(user.roles) in listOf("cliente", "barbero")
+    // La prueba de push es una herramienta de soporte: solo la administración la ve.
+    val canTestPush = "administrador" in user.roles
+    // Cliente y barbero pueden bloquear autores en el muro pero no tienen «Más»: desbloquean desde aquí
+    // (solo mientras el muro esté encendido).
+    val canManageBlocks = features.social &&
+        com.urbanblade.mobile.core.access.UserExperience.primaryRole(user.roles) in listOf("cliente", "barbero")
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pickPhoto = rememberSingleImagePicker { uri -> vm.uploadAvatar(context, uri, onUserChanged) }
@@ -213,7 +212,7 @@ fun AccountScreen(
                 // Lo que este rol usa a diario, en una sola fila.
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        shortcutsFor(user.roles).forEach { shortcut ->
+                        shortcutsFor(user.roles, features).forEach { shortcut ->
                             ShortcutTile(shortcut, Modifier.weight(1f)) { onNavigate(shortcut.route) }
                         }
                     }

@@ -220,17 +220,16 @@ fun PaymentsScreen(user: AuthUser, onBack: () -> Unit) {
 }
 
 @Composable
-fun MoreScreen(user: AuthUser, onNavigate: (String) -> Unit) {
+fun MoreScreen(user: AuthUser, features: com.urbanblade.mobile.data.model.ModuleFeatures, onNavigate: (String) -> Unit) {
     val roles = user.roles.toSet()
     val barber = "barbero" in roles
     val admin = "administrador" in roles
-    val engineer = com.urbanblade.mobile.core.access.UserExperience.isEngineer(user.roles)
     // Cada grupo junta pantallas que antes eran módulos sueltos (ver Hubs.kt): menos puertas de entrada.
-    val hubs = hubEntries(user)
+    val hubs = hubEntries(user, features)
     val quick = buildList {
         if (barber) add(ModuleItem("barber_agenda", "Mi agenda", "Tu día de trabajo", Icons.Default.Event, ""))
-        if (!engineer) {
-            add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, ""))
+        add(ModuleItem("catalog", "Servicios y barberos", "Explora el catálogo", Icons.Default.ContentCut, ""))
+        if (features.social) {
             add(ModuleItem("social", "Muro de Inspiración", "Trabajos del equipo", Icons.Default.Groups, ""))
             if (!admin) add(ModuleItem("blocked_authors", "Autores bloqueados", "Deshacer un bloqueo del muro", Icons.Default.Block, ""))
         }

@@ -41,11 +41,6 @@ fun DashboardScreen(
         ReceptionHomeScreen(user, onNavigate)
         return
     }
-    // El ingeniero es de solo lectura: su inicio es la salud del servidor y sus módulos de análisis.
-    if (primaryRole == "ingeniero") {
-        EngineerHomeScreen(user, onNavigate)
-        return
-    }
     // El barbero ve "Mi día": su siguiente cita y lo que falta confirmar, no el tablero del negocio.
     if (primaryRole == "barbero") {
         BarberHomeScreen(user, onNavigate)

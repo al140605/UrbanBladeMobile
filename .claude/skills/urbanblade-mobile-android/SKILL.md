@@ -115,3 +115,15 @@ integradas al proyecto.
 5. Para el diseño (encabezado, tarjeta héroe, estados con mascotas, formularios, Mi
    cuenta) seguir `.claude/skills/urbanblade-mobile-ui-patrones/SKILL.md`: reutilizar
    sus piezas antes de crear componentes nuevos.
+
+## Interruptores de módulos (barber `config/features.php`)
+
+`GET barbershop` (público) devuelve `data.features` con `packages`, `gift_cards`, `referrals`, `raffles`, `social` y
+`campaigns`, todos apagados por defecto. Con un módulo apagado sus rutas del backend no existen (404). La app los
+guarda en `core/config/ModuleFeaturesStore` (modelo `ModuleFeatures`): se piden al arrancar y al volver a primer
+plano; sin respuesta, o si falla, todo se trata como apagado. Reglas:
+- Un módulo opcional nuevo se oculta con `features.<modulo>` (menús, pestañas, accesos, tarjetas del Inicio) y su ruta se
+  agrega a `ModuleFeatures.allowsRoute`; `UrbanBladeRoot` la bloquea en `openRoute`, en los push y con `FeatureGate`.
+- Los ViewModels no piden endpoints de módulos apagados (404): reciben `features: () -> ModuleFeatures`.
+- Membresía y puntos de lealtad no tienen interruptor. El rol `ingeniero` ya no existe: una cuenta que solo lo
+  conserve ve `UnknownRoleScreen` (cerrar sesión).

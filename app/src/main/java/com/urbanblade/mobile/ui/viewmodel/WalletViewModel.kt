@@ -2,6 +2,7 @@ package com.urbanblade.mobile.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.urbanblade.mobile.core.config.ModuleFeaturesStore
 import com.urbanblade.mobile.core.network.AppContainer
 import com.urbanblade.mobile.data.model.*
 import com.urbanblade.mobile.data.repository.UrbanRepository
@@ -37,9 +38,15 @@ data class WalletData(
 /** Primer cobro de la membresía por confirmar con Stripe: tarjeta guardada o la que escribió. */
 data class MembershipCheckout(val clientSecret: String, val savedCardId: String?)
 
-/** Beneficios y membresía. Conserva datos previos al fallar una fuente; compras en BenefitPurchaseViewModel. */
+/**
+ * Beneficios y membresía. Conserva datos previos al fallar una fuente; compras en BenefitPurchaseViewModel.
+ * Membresía, puntos y planes siempre se piden; paquetes, tarjetas regalo y referidos solo si [features] los trae
+ * encendidos (con el módulo apagado el backend responde 404): así no se pide lo que no existe ni se muestra un
+ * error por ello.
+ */
 class WalletViewModel @JvmOverloads constructor(
-    private val repo: UrbanRepository = AppContainer.urbanRepository
+    private val repo: UrbanRepository = AppContainer.urbanRepository,
+    private val features: () -> ModuleFeatures = { ModuleFeaturesStore.current }
 ) : ViewModel() {
     private val _data = MutableStateFlow(WalletData())
     val data = _data.asStateFlow()
@@ -56,6 +63,9 @@ class WalletViewModel @JvmOverloads constructor(
         if (_loading.value) return@launch
         _loading.value = true; _error.value = null
         val previous = _data.value
+        val enabled = features()
+        // Fuentes realmente consultadas: las de un módulo apagado no cuentan para el aviso de fallo parcial.
+        val sources = 4 + listOf(enabled.packages, enabled.giftCards, enabled.referrals).count { it }
         var failures = 0
         suspend fun <T> source(fallback: T, read: suspend () -> T): T = try { read() }
         catch (e: kotlinx.coroutines.CancellationException) { throw e }
@@ -68,13 +78,13 @@ class WalletViewModel @JvmOverloads constructor(
             _data.value = WalletData(
                 loyalty = source(previous.loyalty) { repo.clientLoyalty() },
                 membership = source(previous.membership) { repo.myMembership() },
-                packages = source(previous.packages) { repo.myPackages() },
-                giftCards = source(previous.giftCards) { repo.myGiftCards() },
-                referrals = source(previous.referrals) { repo.myReferrals() },
+                packages = if (enabled.packages) source(previous.packages) { repo.myPackages() } else emptyList(),
+                giftCards = if (enabled.giftCards) source(previous.giftCards) { repo.myGiftCards() } else emptyList(),
+                referrals = if (enabled.referrals) source(previous.referrals) { repo.myReferrals() } else null,
                 plans = source(previous.plans) { repo.membershipPlans().orEmpty() },
                 savedCards = source(previous.savedCards) { repo.savedCards().orEmpty() }
             )
-            if (failures > 0 && failures < 7) _error.value = "Algunos beneficios no se pudieron actualizar. Lo anterior se conserva; vuelve a intentar."
+            if (failures > 0 && failures < sources) _error.value = "Algunos beneficios no se pudieron actualizar. Lo anterior se conserva; vuelve a intentar."
         } finally { _loading.value = false }
     }
 
