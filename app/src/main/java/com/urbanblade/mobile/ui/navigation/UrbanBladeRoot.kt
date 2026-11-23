@@ -248,10 +248,17 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         },
         bottomBar = {
             if (current in rootRoutes) {
-                Column {
-                    // El acceso ocupa su propia fila: nunca se superpone a tarjetas o acciones.
-                    if (current !in listOf("profile", "catalog", "appointments") && bubbleEnabled) {
-                        Surface(color = UrbanColors.Surface) {
+                // Bladebot y la barra van en el mismo bloque redondeado: antes el acceso era una franja suelta encima
+                // de la barra y las esquinas redondeadas de esta quedaban a la vista entre las dos.
+                Surface(
+                    color = UrbanColors.Surface,
+                    shadowElevation = 18.dp,
+                    tonalElevation = 0.dp,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    Column {
+                        // El acceso ocupa su propia fila: nunca se superpone a tarjetas o acciones.
+                        if (current !in listOf("profile", "catalog", "appointments") && bubbleEnabled) {
                             TextButton(
                                 onClick = {
                                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_abierto", "origen" to current)
@@ -259,16 +266,12 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                 },
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                             ) {
+                                Icon(Icons.Default.SmartToy, null, tint = UrbanColors.GoldText, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("Abrir Bladebot", color = UrbanColors.GoldText)
                             }
+                            HorizontalDivider(color = UrbanColors.Line)
                         }
-                    }
-                    Surface(
-                        color = UrbanColors.Surface,
-                        shadowElevation = 18.dp,
-                        tonalElevation = 0.dp,
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                    ) {
                         UrbanBottomNavigation(
                             destinations = items,
                             selectedRoute = current,

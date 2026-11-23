@@ -184,7 +184,9 @@ fun AccountScreen(
                     val loyalty = state.loyalty
                     val discount = profile.client?.descuentoActivoPct ?: loyalty?.discountPct ?: 0.0
                     val stats = if (isClient) listOf(
-                        Triple("Nivel", loyalty?.nivelLabel ?: "Nuevo", Icons.Default.EmojiEvents),
+                        // «—» si el nivel no llegó: «Nuevo» no es un nivel del backend (el primero es «Caballero») y
+                        // podía mostrarse a un cliente V.I.P. cuando la carga fallaba.
+                        Triple("Nivel", loyalty?.nivelLabel ?: "—", Icons.Default.EmojiEvents),
                         Triple("Puntos", "${loyalty?.puntos ?: 0}", Icons.Default.Stars)
                     ) else listOfNotNull(
                         profile.createdAt?.let { Triple("Miembro desde", UrbanFormat.monthYear(it), Icons.Default.CalendarMonth) },

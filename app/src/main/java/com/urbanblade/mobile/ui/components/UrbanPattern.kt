@@ -314,7 +314,9 @@ fun UrbanMascotState(
 fun UrbanStatStrip(stats: List<Triple<String, String, Color>>, onClick: (() -> Unit)? = null) {
     UrbanCard(Modifier.fillMaxWidth(), onClick = onClick) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth < 320.dp || LocalDensity.current.fontScale >= 1.3f) {
+            // 280 dp de ancho interno, no 320: en un teléfono típico (384 dp) la tarjeta deja ~292 dp y las tres
+            // cifras salían siempre en columna, ocupando el triple de alto. Con fuente grande se siguen apilando.
+            if (maxWidth < 280.dp || LocalDensity.current.fontScale >= 1.3f) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     stats.forEach { (label, value, tone) ->
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -345,26 +347,49 @@ fun UrbanModuleTile(
     subtitle: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** A lo ancho y en una fila: para un mosaico que queda solo (ver [UrbanModuleGrid]). */
+    wide: Boolean = false
 ) {
     UrbanCard(modifier, onClick = onClick) {
-        Box(
-            Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                // Caja neutra e icono dorado (auditoría, P2-3: el dorado es énfasis, no relleno).
-                .background(UrbanColors.CardAlt),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+        if (wide) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ModuleTileIcon(icon)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
+                }
+                // Gris, como en UrbanRow: el chevrón solo dice "hay más".
+                Icon(Icons.Default.ChevronRight, null, tint = UrbanColors.Muted)
+            }
+        } else {
+            ModuleTileIcon(icon)
+            Spacer(Modifier.height(10.dp))
+            Text(title, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
         }
-        Spacer(Modifier.height(10.dp))
-        Text(title, style = MaterialTheme.typography.titleSmall, color = UrbanColors.Ink)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
     }
 }
 
-/** Lista de mosaicos en dos columnas. */
+@Composable
+private fun ModuleTileIcon(icon: ImageVector) {
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(12.dp))
+            // Caja neutra e icono dorado (auditoría, P2-3: el dorado es énfasis, no relleno).
+            .background(UrbanColors.CardAlt),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, null, tint = UrbanColors.Gold, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * Lista de mosaicos en dos columnas. Un mosaico que queda solo en su fila (p. ej. con módulos apagados solo queda
+ * «Caja» o «Catálogo») va a lo ancho y en una fila: antes dejaba media pantalla vacía a su lado.
+ */
 @Composable
 fun UrbanModuleGrid(tiles: List<Triple<String, String, ImageVector>>, routes: List<String>, onNavigate: (String) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -373,9 +398,11 @@ fun UrbanModuleGrid(tiles: List<Triple<String, String, ImageVector>>, routes: Li
             tiles.zip(routes).chunked(columns).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { (tile, route) ->
-                        UrbanModuleTile(tile.first, tile.second, tile.third, { onNavigate(route) }, Modifier.weight(1f))
+                        UrbanModuleTile(
+                            tile.first, tile.second, tile.third, { onNavigate(route) }, Modifier.weight(1f),
+                            wide = row.size == 1
+                        )
                     }
-                    if (columns == 2 && row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }

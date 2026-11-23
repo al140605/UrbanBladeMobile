@@ -473,3 +473,29 @@ Hecho sin teléfono (compila, lint y pruebas en verde); falta el recorrido físi
 - Validación en curso: pruebas de navegación, medición con el renderizador nativo de Robolectric,
   lint, APK `.audit` y recorrido físico con API sintética local. Esta evidencia no acredita integración
   con Laravel ni notificaciones FCM reales.
+
+## Pasada visual con los módulos apagados (23 de noviembre de 2026)
+
+Recorrido en el emulador (384 × 832 dp, como el teléfono de pruebas) con la API sintética de
+`scripts/ui-audit/fixture_server.py` y los seis módulos apagados, igual que staging. Roles: cliente, barbero,
+administración y recepción.
+
+- **Mosaico solitario.** Con módulos apagados, «Acciones rápidas» (administración) y «Tu trabajo» (barbero)
+  quedaban con una sola tarjeta a media pantalla. `UrbanModuleGrid` ahora dibuja un mosaico que queda solo en
+  su fila a lo ancho y en una fila, con chevrón, como las filas de lista.
+- **Cifras en columna.** `UrbanStatStrip` apilaba sus tres cifras con menos de 320 dp de ancho interno, y un
+  teléfono de 384 dp deja unos 292 dp: siempre salían en columna. El umbral baja a 280 dp; con fuente desde
+  130 % se siguen apilando.
+- **Bladebot y la barra inferior en un solo bloque.** El acceso era una franja suelta encima de la barra y se
+  veían las esquinas redondeadas de esta entre las dos. Ahora comparten la superficie redondeada, con icono y
+  una línea divisoria.
+- **Citas del personal sin datos.** Administración y recepción veían «Tu agenda está libre · Reservar ahora»
+  (texto del cliente) además del botón flotante «Nueva cita». Ahora: «Todavía no hay citas registradas».
+- **Textos.** «vs. mes pasado» solo aparece con la píldora de variación; «insights» pasa a «hallazgos»; el
+  grupo «Membresías» usa su propio icono cuando campañas y sorteos están apagados; el nivel de Cuenta muestra
+  «—» si no llegó (antes decía «Nuevo», que no es un nivel del backend).
+- **API sintética.** `/_qa/control` acepta `{"features": {...}}` para reproducir staging, y el nivel de lealtad
+  usa la forma real de `DashboardController` (antes mandaba «bronce» sin siguiente nivel y la app decía
+  «Estás en el nivel más alto»).
+
+Pendiente: repetir en el teléfono con fuente grande y TalkBack; revisar Libreta en las pantallas tocadas.

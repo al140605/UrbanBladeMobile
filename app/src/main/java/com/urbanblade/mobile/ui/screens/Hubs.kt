@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.CardMembership
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Inventory2
@@ -284,7 +285,7 @@ fun hubEntries(user: AuthUser, features: ModuleFeatures): List<HubEntry> {
     val admin = user.has("administrador")
     val staff = user.isStaff()
     return buildList {
-        if (admin) add(HubEntry("admin_metrics", "Análisis", "Métricas, reportes, insights", Icons.Default.QueryStats, 5))
+        if (admin) add(HubEntry("admin_metrics", "Análisis", "Métricas, reportes y hallazgos", Icons.Default.QueryStats, 5))
         else add(HubEntry("analytics", "Análisis", "Actividad y rendimiento", Icons.Default.QueryStats, 1))
         // El cliente no tiene «Más» (sus compras están en Cuenta): solo el personal ve Caja.
         if (staff) add(HubEntry("payments", "Caja", if (features.giftCards) "Cobros, pedidos, corte" else "Cobros, pedidos y corte", Icons.Default.PointOfSale, if (features.giftCards) 4 else 3))
@@ -297,7 +298,9 @@ fun hubEntries(user: AuthUser, features: ModuleFeatures): List<HubEntry> {
             val (marketingTitle, marketingSubtitle) = marketingCopy(features)
             val marketingTabs = 1 + (if (features.campaigns) 1 else 0) + (if (features.raffles) 1 else 0)
             val marketingRoute = if (features.campaigns) "campaigns" else if (features.raffles) "raffles" else "offers_admin"
-            add(HubEntry(marketingRoute, marketingTitle, marketingSubtitle.removeSuffix("."), Icons.Default.Campaign, marketingTabs))
+            // Con campañas y sorteos apagados el grupo es solo «Membresías»: el megáfono de marketing ya no le corresponde.
+            val marketingIcon = if (features.campaigns || features.raffles) Icons.Default.Campaign else Icons.Default.CardMembership
+            add(HubEntry(marketingRoute, marketingTitle, marketingSubtitle.removeSuffix("."), marketingIcon, marketingTabs))
             add(HubEntry("reviews", "Comunidad", if (features.social) "Reseñas y moderación" else "Reseñas de clientes", Icons.Default.Chat, if (features.social) 3 else 1))
         }
         if (admin) add(HubEntry("settings", "Ajustes", "Configuración y sistema", Icons.Default.Settings, 2))
