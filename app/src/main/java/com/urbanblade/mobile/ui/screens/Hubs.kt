@@ -34,8 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Campaign
-import androidx.compose.material.icons.filled.CardMembership
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
@@ -151,6 +149,12 @@ fun HubScreen(eyebrow: String, title: String, subtitle: String, tabs: List<HubTa
 private fun AuthUser.has(role: String) = roles.contains(role)
 private fun AuthUser.isStaff() = has("administrador") || has("recepcionista")
 
+/*
+ * Rediseño de navegación (nov-2026): los grupos de «Más» son los mismos que las secciones del menú web
+ * (Clientes, Caja, Inventario, Equipo y catálogo, Análisis y Sistema), en el mismo orden. Las reseñas pasaron a
+ * Clientes, las membresías a Equipo y catálogo y la bitácora a Sistema; Marketing solo existe si campañas o
+ * sorteos están encendidos.
+ */
 @Composable
 fun AnalysisHub(user: AuthUser, initial: String?, onBack: () -> Unit) {
     val power = user.has("administrador")
@@ -159,8 +163,7 @@ fun AnalysisHub(user: AuthUser, initial: String?, onBack: () -> Unit) {
         add(HubTab("actividad", "Actividad") { AnalyticsScreen(onBack = {}) })
         if (power) {
             add(HubTab("reportes", "Reportes") { ReportsScreen(onBack = {}) })
-            add(HubTab("insights", "Insights") { InsightsScreen(onBack = {}) })
-            add(HubTab("bitacora", "Bitácora") { LogsScreen(onBack = {}) })
+            add(HubTab("insights", "Hallazgos") { InsightsScreen(onBack = {}) })
         }
     }
     HubScreen("Análisis", "Análisis", "Cómo va el negocio, en un solo lugar.", tabs, initial, onBack)
@@ -181,13 +184,21 @@ fun CashHub(user: AuthUser, features: ModuleFeatures, initial: String?, onBack: 
     else HubScreen("Mi cuenta", "Mis compras", "Tus facturas y pedidos de la tienda.", tabs, initial, onBack)
 }
 
+/** Clientes: atención y lista de espera; para administración también las reseñas y, con el muro, su moderación. */
 @Composable
-fun ClientsHub(user: AuthUser, initial: String?, onBack: () -> Unit, onClientClick: (String) -> Unit) {
-    val tabs = listOf(
-        HubTab("clientes", "Clientes") { ClientsListScreen(user = user, onClientClick = onClientClick, onBack = {}) },
-        HubTab("espera", "Lista de espera") { WaitlistStaffScreen(onBack = {}) }
-    )
-    HubScreen("Operación", "Clientes", "Atención y clientes esperando un horario.", tabs, initial, onBack)
+fun ClientsHub(user: AuthUser, features: ModuleFeatures, initial: String?, onBack: () -> Unit, onClientClick: (String) -> Unit) {
+    val admin = user.has("administrador")
+    val tabs = buildList {
+        add(HubTab("clientes", "Clientes") { ClientsListScreen(user = user, onClientClick = onClientClick, onBack = {}) })
+        add(HubTab("espera", "Lista de espera") { WaitlistStaffScreen(onBack = {}) })
+        if (admin) add(HubTab("resenas", "Reseñas") { ReviewsScreen(onBack = {}) })
+        if (admin && features.social) {
+            add(HubTab("moderacion", "Moderación") { ModerationScreen(onBack = {}) })
+            add(HubTab("bloqueados", "Autores bloqueados") { BlockedAuthorsScreen(onBack = {}) })
+        }
+    }
+    val subtitle = if (admin) "Atención, lista de espera y reseñas." else "Atención y clientes esperando un horario."
+    HubScreen("Operación", "Clientes", subtitle, tabs, initial, onBack)
 }
 
 @Composable
@@ -199,37 +210,39 @@ fun InventoryHub(user: AuthUser, initial: String?, onBack: () -> Unit) {
     HubScreen("Operación", "Inventario", "Existencias y su historial.", tabs, initial, onBack)
 }
 
+/** Equipo y catálogo: quién trabaja, qué se ofrece (servicios y planes de membresía) y quién entra. */
 @Composable
-fun TeamHub(currentUserId: String?, initial: String?, onBack: () -> Unit) {
+fun TeamHub(currentUserId: String?, features: ModuleFeatures, initial: String?, onBack: () -> Unit) {
     val tabs = listOf(
         HubTab("barberos", "Barberos") { BarbersAdminScreen(onBack = {}) },
         HubTab("servicios", "Servicios") { ServicesAdminScreen(onBack = {}) },
+        HubTab("membresias", if (features.packages) "Membresías y paquetes" else "Membresías") { OffersAdminScreen(onBack = {}) },
         HubTab("usuarios", "Usuarios") { UsersScreen(onBack = {}, currentUserId = currentUserId) }
     )
     HubScreen("Administración", "Equipo y catálogo", "Quién trabaja, qué ofrece y quién entra.", tabs, initial, onBack)
 }
 
 /**
- * Marketing: las pestañas de campañas y sorteos solo existen con su módulo encendido; las membresías (y los
- * paquetes, si están encendidos) siempre. Con todo apagado queda una sola pestaña, sin barra de pestañas.
+ * Marketing: solo campañas y sorteos, cada uno con su módulo encendido (las membresías viven en Equipo y
+ * catálogo). Sin ninguno encendido no hay nada que mostrar: se regresa.
  */
 @Composable
 fun MarketingHub(features: ModuleFeatures, initial: String?, onBack: () -> Unit) {
     val tabs = buildList {
         if (features.campaigns) add(HubTab("campanas", "Campañas") { CampaignsScreen(onBack = {}) })
         if (features.raffles) add(HubTab("sorteos", "Sorteos") { RafflesScreen(onBack = {}) })
-        add(HubTab("membresias", if (features.packages) "Membresías y paquetes" else "Membresías") { OffersAdminScreen(onBack = {}) })
     }
-    val (title, subtitle) = marketingCopy(features)
-    HubScreen("Administración", title, subtitle, tabs, initial, onBack)
+    if (tabs.isEmpty()) {
+        androidx.compose.runtime.LaunchedEffect(Unit) { onBack() }
+        return
+    }
+    HubScreen("Administración", "Marketing", marketingSubtitle(features), tabs, initial, onBack)
 }
 
-private fun marketingCopy(features: ModuleFeatures): Pair<String, String> = when {
-    features.campaigns && features.raffles -> "Marketing" to "Campañas, sorteos y planes."
-    features.campaigns -> "Marketing" to "Campañas y planes."
-    features.raffles -> "Marketing" to "Sorteos y planes."
-    features.packages -> "Membresías" to "Planes de membresía y paquetes."
-    else -> "Membresías" to "Planes de membresía."
+private fun marketingSubtitle(features: ModuleFeatures): String = when {
+    features.campaigns && features.raffles -> "Campañas y sorteos."
+    features.campaigns -> "Campañas a clientes."
+    else -> "Sorteos del mes."
 }
 
 /**
@@ -255,13 +268,16 @@ fun CommunityHub(user: AuthUser, features: ModuleFeatures, initial: String?, onB
     )
 }
 
+/** Sistema (antes «Ajustes»): configuración del negocio, bitácora y salud del sistema, como en la web. */
 @Composable
 fun SettingsHub(user: AuthUser, initial: String?, onBack: () -> Unit) {
+    val admin = user.has("administrador")
     val tabs = buildList {
-        if (user.has("administrador")) add(HubTab("config", "Configuración") { SettingsScreen(onBack = {}) })
+        if (admin) add(HubTab("config", "Configuración") { SettingsScreen(onBack = {}) })
+        if (admin) add(HubTab("bitacora", "Bitácora") { LogsScreen(onBack = {}) })
         add(HubTab("sistema", "Estado del sistema") { SystemStatusScreen(onBack = {}) })
     }
-    HubScreen("Administración", "Ajustes", "Configuración del negocio y salud del sistema.", tabs, initial, onBack)
+    HubScreen("Administración", "Sistema", "Configuración, bitácora y salud del sistema.", tabs, initial, onBack)
 }
 
 @Composable
@@ -284,26 +300,26 @@ data class HubEntry(val route: String, val title: String, val subtitle: String, 
 fun hubEntries(user: AuthUser, features: ModuleFeatures): List<HubEntry> {
     val admin = user.has("administrador")
     val staff = user.isStaff()
+    // Mismo orden que las secciones del menú web: Clientes, Caja, Inventario, Equipo y catálogo, Análisis, Sistema.
     return buildList {
-        if (admin) add(HubEntry("admin_metrics", "Análisis", "Métricas, reportes y hallazgos", Icons.Default.QueryStats, 5))
-        else add(HubEntry("analytics", "Análisis", "Actividad y rendimiento", Icons.Default.QueryStats, 1))
-        // El cliente no tiene «Más» (sus compras están en Cuenta): solo el personal ve Caja.
-        if (staff) add(HubEntry("payments", "Caja", if (features.giftCards) "Cobros, pedidos, corte" else "Cobros, pedidos y corte", Icons.Default.PointOfSale, if (features.giftCards) 4 else 3))
         if (staff) {
-            add(HubEntry("clients", "Clientes", "Atención y lista de espera", Icons.Default.People, 2))
+            if (admin) {
+                add(HubEntry("clients", "Clientes", "Atención, lista de espera y reseñas", Icons.Default.People, if (features.social) 5 else 3))
+            } else {
+                add(HubEntry("clients", "Clientes", "Atención y lista de espera", Icons.Default.People, 2))
+            }
+            // El cliente no tiene «Más» (sus compras están en Cuenta): solo el personal ve Caja.
+            add(HubEntry("payments", "Caja", if (features.giftCards) "Cobros, pedidos, corte" else "Cobros, pedidos y corte", Icons.Default.PointOfSale, if (features.giftCards) 4 else 3))
             add(HubEntry("inventory", "Inventario", "Existencias y movimientos", Icons.Default.Inventory2, 2))
         }
-        if (admin) {
-            add(HubEntry("barbers_admin", "Equipo y catálogo", "Barberos, servicios, usuarios", Icons.Default.Badge, 3))
-            val (marketingTitle, marketingSubtitle) = marketingCopy(features)
-            val marketingTabs = 1 + (if (features.campaigns) 1 else 0) + (if (features.raffles) 1 else 0)
-            val marketingRoute = if (features.campaigns) "campaigns" else if (features.raffles) "raffles" else "offers_admin"
-            // Con campañas y sorteos apagados el grupo es solo «Membresías»: el megáfono de marketing ya no le corresponde.
-            val marketingIcon = if (features.campaigns || features.raffles) Icons.Default.Campaign else Icons.Default.CardMembership
-            add(HubEntry(marketingRoute, marketingTitle, marketingSubtitle.removeSuffix("."), marketingIcon, marketingTabs))
-            add(HubEntry("reviews", "Comunidad", if (features.social) "Reseñas y moderación" else "Reseñas de clientes", Icons.Default.Chat, if (features.social) 3 else 1))
+        if (admin) add(HubEntry("barbers_admin", "Equipo y catálogo", "Barberos, servicios, membresías", Icons.Default.Badge, 4))
+        if (admin) add(HubEntry("admin_metrics", "Análisis", "Métricas, reportes y hallazgos", Icons.Default.QueryStats, 4))
+        else add(HubEntry("analytics", "Análisis", "Actividad y rendimiento", Icons.Default.QueryStats, 1))
+        if (admin && (features.campaigns || features.raffles)) {
+            val marketingTabs = (if (features.campaigns) 1 else 0) + (if (features.raffles) 1 else 0)
+            add(HubEntry(if (features.campaigns) "campaigns" else "raffles", "Marketing", marketingSubtitle(features).removeSuffix("."), Icons.Default.Campaign, marketingTabs))
         }
-        if (admin) add(HubEntry("settings", "Ajustes", "Configuración y sistema", Icons.Default.Settings, 2))
+        if (admin) add(HubEntry("settings", "Sistema", "Configuración, bitácora y estado", Icons.Default.Settings, 3))
         if (user.has("barbero")) add(HubEntry("barber_me", "Mi perfil", "Perfil, horario, portafolio", Icons.Default.Face, 3))
     }
 }

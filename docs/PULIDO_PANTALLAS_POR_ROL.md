@@ -499,3 +499,23 @@ administración y recepción.
   «Estás en el nivel más alto»).
 
 Pendiente: repetir en el teléfono con fuente grande y TalkBack; revisar Libreta en las pantallas tocadas.
+
+## Rediseño de navegación: «Más» con los grupos de la web (23 de noviembre de 2026)
+
+Con los módulos apagados, «Más» del administrador tenía ocho grupos (Análisis, Caja, Clientes, Inventario,
+Equipo y catálogo, Membresías, Comunidad y Ajustes) en un orden distinto al menú web. Ahora son los mismos
+grupos y en el mismo orden que la web (frontend_Urbanblade#170):
+
+- **Clientes:** clientes y lista de espera; para administración también reseñas y, con el muro encendido,
+  moderación y autores bloqueados. Las rutas `reviews` y `moderation` abren este grupo para administración;
+  otros roles siguen en Comunidad.
+- **Caja** e **Inventario:** sin cambios.
+- **Equipo y catálogo:** barberos, servicios, membresías (antes su propio grupo) y usuarios. La ruta
+  `offers_admin` abre la pestaña de membresías.
+- **Análisis:** métricas, actividad, reportes y hallazgos (antes «Insights»).
+- **Marketing:** solo existe con campañas o sorteos encendidos.
+- **Sistema** (antes «Ajustes»): configuración, bitácora (antes en Análisis) y estado del sistema.
+- Inicio del administrador: «Acciones rápidas» va antes de las gráficas, con las mismas acciones que el panel
+  web: Cobrar, Clientes, Reportes y Corte de caja («Nueva cita» es el botón flotante de «Citas»).
+
+Prueba: `HubEntriesTest` comprueba el orden y las pestañas con los módulos apagados y encendidos.

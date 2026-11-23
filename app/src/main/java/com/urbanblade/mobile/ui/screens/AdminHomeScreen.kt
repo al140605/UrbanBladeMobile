@@ -169,24 +169,28 @@ fun AdminHomeScreen(
             }
         }
 
+        // Rediseño de navegación (nov-2026): el mismo orden que el panel web (lo de hoy, las acciones y luego las
+        // gráficas) y sus mismas acciones rápidas. «Nueva cita» es el botón flotante de la pestaña «Citas».
+        item { UrbanSectionTitle("Acciones rápidas") }
+        item {
+            UrbanModuleGrid(
+                tiles = listOf(
+                    Triple("Cobrar", "Cobros y comprobantes", Icons.Default.Payments),
+                    Triple("Clientes", "Buscar y registrar", Icons.Default.People),
+                    Triple("Reportes", "Ingresos y citas del periodo", Icons.Default.Assessment),
+                    Triple("Corte de caja", "Cierre del turno", Icons.Default.PointOfSale)
+                ),
+                routes = listOf("payments", "clients", "reports", "cash"),
+                onNavigate = onNavigate
+            )
+        }
+
         // Las mismas gráficas principales que el dashboard web (mismos datos de /dashboard).
         state.data.chartSeries("incomeChart")?.let { income ->
             item { UrbanDashboardChart("Ingresos por semana", "Últimas 8 semanas", income, format = UrbanFormat::moneyShort) }
         }
         state.data.chartSeries("servicesChart")?.let { services ->
             item { UrbanDashboardChart("Servicios más pedidos", "Citas por servicio", services, categories = true) }
-        }
-
-        item { UrbanSectionTitle("Acciones rápidas") }
-        item {
-            UrbanModuleGrid(
-                tiles = listOf(
-                    // La agenda ya es la pestaña «Citas» de la barra inferior.
-                    Triple("Caja", "Cobros, ingresos y cierre", Icons.Default.PointOfSale)
-                ),
-                routes = listOf("cash"),
-                onNavigate = onNavigate
-            )
         }
     }
 }
