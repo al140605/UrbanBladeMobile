@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -56,7 +57,6 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.ContentCut
@@ -107,9 +107,8 @@ private fun shortcutsFor(roles: List<String>): List<AccountShortcut> = when {
         AccountShortcut("system", "Estado", Icons.Default.Dns),
         AccountShortcut("logs", "Bitácora", Icons.Default.Terminal)
     )
-    // Perfil, horario, portafolio y agenda ya están en la barra inferior del barbero; aquí, lo que no.
+    // Agenda y Mi perfil (perfil, horario y portafolio) ya están en la barra inferior del barbero; aquí, lo que no.
     "barbero" in roles -> listOf(
-        AccountShortcut("barber_schedule", "Horario", Icons.Default.Schedule),
         AccountShortcut("social", "Muro", Icons.Default.PhotoLibrary),
         AccountShortcut("catalog", "Catálogo", Icons.Default.ContentCut),
         AccountShortcut("chatbot", "Bladebot", Icons.Default.SmartToy)
@@ -147,6 +146,10 @@ fun AccountScreen(
 ) {
     val state by vm.state.collectAsState()
     val isClient = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
+    // La prueba de push es una herramienta de soporte: solo administración e ingeniería la ven.
+    val canTestPush = user.roles.any { it == "administrador" || it == "ingeniero" }
+    // Cliente y barbero pueden bloquear autores en el muro pero no tienen «Más»: desbloquean desde aquí.
+    val canManageBlocks = com.urbanblade.mobile.core.access.UserExperience.primaryRole(user.roles) in listOf("cliente", "barbero")
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pickPhoto = rememberSingleImagePicker { uri -> vm.uploadAvatar(context, uri, onUserChanged) }
@@ -234,7 +237,11 @@ fun AccountScreen(
                                 "Tema " + UrbanColors.current.label + " · " + prefsSummary,
                                 Icons.Default.Tune
                             ) { vm.dismissNotice(); sheet = "prefs" }
-                            "legal" -> UrbanActionRow("Legal y privacidad", "Aviso de privacidad y términos", Icons.Default.PrivacyTip) { sheet = "legal" }
+                            "legal" -> UrbanActionRow(
+                                "Legal y privacidad",
+                                if (canManageBlocks) "Aviso de privacidad, términos y bloqueos" else "Aviso de privacidad y términos",
+                                Icons.Default.PrivacyTip
+                            ) { sheet = "legal" }
                             else -> UrbanActionRow("Cerrar sesión", "UrbanBlade " + BuildConfig.VERSION_NAME, Icons.AutoMirrored.Filled.Logout) { onLogout() }
                         }
                     }
@@ -298,7 +305,7 @@ fun AccountScreen(
                         val prefs = state.preferences
                         if (prefs != null) {
                             NotificationChannels(prefs, notice?.takeIf { it.section == AccountSection.NOTIFICATIONS }, vm::setPreference)
-                            PushTestButton()
+                            if (canTestPush) PushTestButton()
                         } else {
                             Text("No se pudieron cargar tus avisos.", style = MaterialTheme.typography.bodySmall, color = UrbanColors.Muted)
                             UrbanOutlineButton("Reintentar", onClick = { vm.load(isClient) }, modifier = Modifier.fillMaxWidth())
@@ -311,6 +318,15 @@ fun AccountScreen(
                                 openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.PRIVACY_URL)
                             } else UrbanActionRow("Términos y Condiciones", "Las reglas de uso de UrbanBlade.", Icons.Default.Description) {
                                 openLegal(com.urbanblade.mobile.ui.components.UrbanLegal.TERMS_URL)
+                            }
+                        }
+                        if (canManageBlocks) {
+                            Text("Muro", style = MaterialTheme.typography.titleMedium, color = UrbanColors.Ink)
+                            UrbanRowGroup(listOf("blocked")) {
+                                UrbanActionRow("Autores bloqueados", "Deshacer un bloqueo del muro", Icons.Default.Block) {
+                                    sheet = ""
+                                    onNavigate("blocked_authors")
+                                }
                             }
                         }
                         Text(

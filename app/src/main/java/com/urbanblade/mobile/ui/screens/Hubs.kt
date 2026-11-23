@@ -252,17 +252,16 @@ fun MyProfileHub(initial: String?, onBack: (() -> Unit)?) {
 /** Tarjeta de Más: [route] es la ruta de la primera pestaña del grupo. */
 data class HubEntry(val route: String, val title: String, val subtitle: String, val icon: ImageVector, val tabs: Int)
 
-/** Los grupos que ve cada rol en Más. Cada uno junta pantallas que antes eran módulos sueltos. */
+/** Los grupos que ve cada rol del personal en Más. Cada uno junta pantallas que antes eran módulos sueltos. */
 fun hubEntries(user: AuthUser): List<HubEntry> {
     val admin = user.has("administrador")
     val engineer = user.has("ingeniero")
     val staff = user.isStaff()
-    val client = !staff && !engineer && !user.has("barbero")
     return buildList {
         if (admin || engineer) add(HubEntry("admin_metrics", "Análisis", "Métricas, reportes, insights", Icons.Default.QueryStats, 5))
         else add(HubEntry("analytics", "Análisis", "Actividad y rendimiento", Icons.Default.QueryStats, 1))
+        // El cliente no tiene «Más» (sus compras están en Cuenta): solo el personal ve Caja.
         if (staff) add(HubEntry("payments", "Caja", "Cobros, pedidos, corte", Icons.Default.PointOfSale, 4))
-        else if (client) add(HubEntry("payments", "Mis compras", "Facturas y pedidos", Icons.Default.PointOfSale, 2))
         if (staff) {
             add(HubEntry("clients", "Clientes", "Atención y lista de espera", Icons.Default.People, 2))
             add(HubEntry("inventory", "Inventario", "Existencias y movimientos", Icons.Default.Inventory2, 2))

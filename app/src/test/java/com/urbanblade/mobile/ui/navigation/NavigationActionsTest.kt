@@ -161,4 +161,13 @@ class NavigationActionsTest {
 
         backTo("more")
     }
+
+    @Test
+    fun `la agenda del barbero solo abre su pestana Agenda`() {
+        // Push, correo y bandeja siguen mandando barber_agenda: para el barbero solo es su pestaña.
+        assertEquals("appointments", canonicalRoute("barber_agenda", barberOnly = true))
+        // Quien además administra o atiende recepción conserva su agenda personal.
+        assertEquals("barber_agenda", canonicalRoute("barber_agenda", barberOnly = false))
+        assertEquals("notifications", canonicalRoute("notifications", barberOnly = true))
+    }
 }

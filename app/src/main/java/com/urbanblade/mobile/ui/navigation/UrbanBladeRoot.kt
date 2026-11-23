@@ -174,6 +174,9 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         }
     }
     val rootRoutes = items.map { it.route }
+    // Atajos, avisos y enlaces llegan con rutas «de fuera»: pasan por canonicalRoute (barber_agenda → Agenda del barbero).
+    fun openRoute(route: String, singleTop: Boolean = false) =
+        nav.openDestination(canonicalRoute(route, barberOnly), rootRoutes, singleTop)
 
     // Selección hecha como invitado en el catálogo: se
     // consume UNA sola vez, al montar la sesión autenticada, y redirige
@@ -189,7 +192,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     // sesión, espera aquí a que exista la navegación autenticada.
     val pushRoute by com.urbanblade.mobile.core.push.PushDeepLink.pending.collectAsState()
     LaunchedEffect(pushRoute) {
-        val route = pushRoute ?: return@LaunchedEffect
+        val route = canonicalRoute(pushRoute ?: return@LaunchedEffect, barberOnly)
         com.urbanblade.mobile.core.push.PushDeepLink.consume()
         // Se vacía la pila hasta Inicio: «atrás» desde el aviso regresa a Inicio, no a otro aviso abierto antes.
         if (route != "home") nav.navigate(route) {
@@ -259,13 +262,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                         onWallet = { nav.navigate("wallet") },
                         onStore = { nav.navigate("store") },
                         onExplore = { nav.openDestination("catalog", rootRoutes) },
-                        onNavigate = { route -> nav.openDestination(route, rootRoutes) }
+                        onNavigate = { route -> openRoute(route) }
                     )
                 }
                 composable("appointments") {
                     // El cliente tiene su propia vista (Próximas / Historial); el personal, la agenda del negocio.
                     if (clientOnly) {
-                        ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { nav.openDestination(it, rootRoutes) })
+                        ClientAppointmentsScreen(onBook = { nav.openBooking("booking") }, onNavigate = { openRoute(it) })
                     } else if (barberOnly) {
                         // La agenda del barbero con sus acciones (llegó, iniciar, completar, +tiempo, ticket).
                         BarberAgendaScreen(onBack = null)
@@ -323,13 +326,13 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("cash") { CashHub(user, "corte") { nav.popBackStack() } }
                 composable("gift_cards") { CashHub(user, "regalo") { nav.popBackStack() } }
                 composable("notifications") {
-                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> nav.openDestination(route, rootRoutes, singleTop = true) })
+                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpen = { route -> openRoute(route, singleTop = true) })
                 }
                 composable("chatbot") { ChatbotScreen(onBack = { nav.popBackStack() }, onBook = { serviceId ->
                     com.urbanblade.mobile.core.analytics.UrbanAnalytics.log("bladebot_reservar")
                     nav.openBooking(bookingRoute(serviceId, null))
                 }) }
-                composable("more") { MoreScreen(user = user, onNavigate = { nav.openDestination(it, rootRoutes) }) }
+                composable("more") { MoreScreen(user = user, onNavigate = { openRoute(it) }) }
                 composable("profile") {
                     com.urbanblade.mobile.ui.account.AccountScreen(
                         user = user,
@@ -341,7 +344,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                                 authViewModel.logout()
                             }
                         },
-                        onNavigate = { nav.openDestination(it, rootRoutes) },
+                        onNavigate = { openRoute(it) },
                         onUserChanged = { authViewModel.refreshUser() }
                     )
                 }
@@ -389,6 +392,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("blocked_authors") { CommunityHub(user, "bloqueados") { nav.popBackStack() } }
                 composable("settings") { SettingsHub(user, "config") { nav.popBackStack() } }
                 composable("system") { SettingsHub(user, "sistema") { nav.popBackStack() } }
+                // Agenda personal del barbero que además administra o atiende recepción («Mi agenda» en Más). Para el
+                // barbero solo, esta ruta se redirige a su pestaña «Agenda» (ver canonicalRoute).
                 composable("barber_agenda") { BarberAgendaScreen(onBack = { nav.popBackStack() }) }
                 // Para el barbero es una pestaña de la barra: sin flecha de volver.
                 composable("barber_me") { MyProfileHub("perfil", if (barberOnly) null else ({ nav.popBackStack() })) }

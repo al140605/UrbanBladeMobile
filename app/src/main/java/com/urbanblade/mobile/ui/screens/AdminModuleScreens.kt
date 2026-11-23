@@ -321,5 +321,3 @@ fun RafflesScreen(onBack: () -> Unit, vm: RafflesViewModel = viewModel()) {
         }
     }
 }
-
-// ── Horario de barbero ──────────────────────────────────────────────────
