@@ -24,6 +24,13 @@ import com.urbanblade.mobile.ui.theme.UrbanColors
 import com.urbanblade.mobile.ui.viewmodel.BenefitPurchaseViewModel
 import com.urbanblade.mobile.ui.theme.UrbanSpace
 
+/** Si la hoja de compra [selected] ("packages" o "gift") puede seguir abierta con estos interruptores. */
+internal fun purchaseSheetAllowed(selected: String?, features: ModuleFeatures): Boolean = when (selected) {
+    "packages" -> features.packages
+    "gift" -> features.giftCards
+    else -> false
+}
+
 /** Acciones reales de autoservicio: la compra la confirma Laravel mediante el webhook de Stripe. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +82,9 @@ internal fun BenefitShop(features: ModuleFeatures, onRefresh: () -> Unit, vm: Be
         }
     }
 
-    shop?.let { selected ->
+    // Si el backend apaga el módulo con la hoja abierta, la hoja se cierra y no ofrece controles de compra.
+    LaunchedEffect(features, shop) { if (shop != null && !purchaseSheetAllowed(shop, features)) shop = null }
+    shop?.takeIf { purchaseSheetAllowed(it, features) }?.let { selected ->
         ModalBottomSheet(
             onDismissRequest = { if (!busy) shop = null },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),

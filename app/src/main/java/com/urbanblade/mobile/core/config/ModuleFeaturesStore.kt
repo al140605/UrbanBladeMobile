@@ -17,6 +17,15 @@ object ModuleFeaturesStore {
     private val _features = MutableStateFlow(ModuleFeatures())
     val features: StateFlow<ModuleFeatures> = _features.asStateFlow()
 
+    private val _resolved = MutableStateFlow(false)
+
+    /**
+     * Verdadero cuando la primera consulta a `GET barbershop` ya terminó (con éxito o con error). Antes de eso
+     * [features] está apagado solo por falta de respuesta, no porque el backend lo diga: quien necesite una
+     * respuesta firme (p. ej. abrir un enlace o push pendiente) debe esperar a que esto sea verdadero.
+     */
+    val resolved: StateFlow<Boolean> = _resolved.asStateFlow()
+
     /** Lectura puntual para ViewModels y lógica sin Compose. */
     val current: ModuleFeatures get() = _features.value
 
@@ -32,10 +41,12 @@ object ModuleFeaturesStore {
         } catch (e: Exception) {
             ModuleFeatures()
         }
+        _resolved.value = true
     }
 
     /** Apaga todo (al cerrar sesión no hace falta, pero las pruebas lo usan para partir de cero). */
     fun reset() {
         _features.value = ModuleFeatures()
+        _resolved.value = false
     }
 }

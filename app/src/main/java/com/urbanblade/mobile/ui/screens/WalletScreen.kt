@@ -91,7 +91,9 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
         }
     }
 
-    LaunchedEffect(Unit) { vm.load() }
+    // Se carga al entrar y de nuevo si los interruptores cambian (la respuesta de barbershop puede llegar
+    // después): así aparecen o desaparecen paquetes, tarjetas y referidos sin pedir endpoints apagados.
+    LaunchedEffect(features) { vm.load() }
 
     // Desde la propuesta A (25-sep) ya no es pestaña: se abre desde el Inicio o desde Cuenta, con volver.
 

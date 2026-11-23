@@ -57,6 +57,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         payloads = {
             "auth/me": {"user": USER}, "profile": {"user": USER},
+            # Ficha pública: la app lee data.features para saber qué módulos mostrar (todos encendidos en la auditoría).
+            "barbershop": {"data": {"nombre": "UrbanBlade QA", "features": {
+                "packages": True, "gift_cards": True, "referrals": True, "raffles": True, "social": True, "campaigns": True}}},
             "services": {"data": SERVICES},
             "barbers": {"data": [{"id": "qa-barber", "slug": "barbero-prueba", "user": {"name": "Barbero de prueba"}, "es_favorito": STATE["favorite"] == "qa-barber"}]},
             "availability/slots": {"slots": [{"time": "12:00", "label": "12:00", "end_time": "12:30", "end_label": "12:30"}]},

@@ -133,6 +133,25 @@ class WalletViewModelTest {
     }
 
     @Test
+    fun `si los interruptores llegan mientras carga se vuelve a cargar con ellos`() = runTest(dispatcher) {
+        whenever(repo.myGiftCards()).thenReturn(listOf(GiftCard(code = "GC1", saldo = 100.0)))
+        var features = ModuleFeatures()
+        val vm = WalletViewModel(repo) { features }
+        // Durante la primera carga llegan los interruptores y la pantalla pide otra carga.
+        var firstLoad = true
+        whenever(repo.myMembership()).thenAnswer {
+            if (firstLoad) { firstLoad = false; features = allOn; vm.load() }
+            null
+        }
+
+        vm.load()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("GC1", vm.data.value.giftCards.single().code)
+        assertTrue(!vm.loading.value)
+    }
+
+    @Test
     fun `cancelMembership exitoso muestra el mensaje y recarga`() = runTest(dispatcher) {
         whenever(repo.cancelMembership()).thenReturn(MessageResponse("Tu membresía se cancelará al finalizar el periodo actual."))
 

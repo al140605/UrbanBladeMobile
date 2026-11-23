@@ -164,6 +164,7 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
         return
     }
     val features by ModuleFeaturesStore.features.collectAsState()
+    val featuresResolved by ModuleFeaturesStore.resolved.collectAsState()
     val clientOnly = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
     // El barbero que no administra ni atiende recepción: su barra es Inicio, Agenda, Mi perfil y Cuenta.
     val barberOnly = "barbero" in user.roles && user.roles.none { it == "administrador" || it == "recepcionista" }
@@ -217,7 +218,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     // Notificación tocada (push): abre la pantalla indicada una sola vez. Si llegó antes de iniciar
     // sesión, espera aquí a que exista la navegación autenticada.
     val pushRoute by com.urbanblade.mobile.core.push.PushDeepLink.pending.collectAsState()
-    LaunchedEffect(pushRoute) {
+    // Si los interruptores aún no llegan (arranque en frío), el enlace espera: sin respuesta firme un módulo
+    // encendido se vería como apagado y el enlace caería al Inicio. Solo se retrasa el enlace, no la interfaz.
+    LaunchedEffect(pushRoute, featuresResolved) {
+        if (!featuresResolved) return@LaunchedEffect
         val route = allowedRoute(canonicalRoute(pushRoute ?: return@LaunchedEffect, barberOnly), features)
         com.urbanblade.mobile.core.push.PushDeepLink.consume()
         // Se vacía la pila hasta Inicio: «atrás» desde el aviso regresa a Inicio, no a otro aviso abierto antes.

@@ -95,6 +95,21 @@ class ModuleFeaturesTest {
         assertEquals(ModuleFeatures(), ModuleFeaturesStore.current)
     }
 
+    @Test fun `la tienda no esta resuelta hasta que termina la primera consulta`() = runTest {
+        assertFalse(ModuleFeaturesStore.resolved.value)
+        ModuleFeaturesStore.refresh { ModuleFeatures(social = true) }
+        assertTrue(ModuleFeaturesStore.resolved.value)
+    }
+
+    @Test fun `un fallo tambien deja la tienda resuelta, con todo apagado`() = runTest {
+        ModuleFeaturesStore.refresh { throw java.io.IOException("sin red") }
+        assertTrue(ModuleFeaturesStore.resolved.value)
+        assertEquals(ModuleFeatures(), ModuleFeaturesStore.current)
+        // Una consulta posterior no la vuelve a dejar sin resolver.
+        ModuleFeaturesStore.refresh { ModuleFeatures(social = true) }
+        assertTrue(ModuleFeaturesStore.resolved.value)
+    }
+
     @Test fun `una respuesta sin features apaga todo`() = runTest {
         ModuleFeaturesStore.refresh { ModuleFeatures(social = true) }
         ModuleFeaturesStore.refresh { null }

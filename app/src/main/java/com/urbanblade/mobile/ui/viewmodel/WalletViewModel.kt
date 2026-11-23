@@ -59,8 +59,11 @@ class WalletViewModel @JvmOverloads constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    fun load() = viewModelScope.launch {
-        if (_loading.value) return@launch
+    /** Hubo un pedido de carga mientras otra corría (p. ej. cambiaron los interruptores): se repite al terminar. */
+    private var reloadPending = false
+
+    fun load(): kotlinx.coroutines.Job = viewModelScope.launch {
+        if (_loading.value) { reloadPending = true; return@launch }
         _loading.value = true; _error.value = null
         val previous = _data.value
         val enabled = features()
@@ -85,7 +88,10 @@ class WalletViewModel @JvmOverloads constructor(
                 savedCards = source(previous.savedCards) { repo.savedCards().orEmpty() }
             )
             if (failures > 0 && failures < sources) _error.value = "Algunos beneficios no se pudieron actualizar. Lo anterior se conserva; vuelve a intentar."
-        } finally { _loading.value = false }
+        } finally {
+            _loading.value = false
+            if (reloadPending) { reloadPending = false; load() }
+        }
     }
 
     private val _referralBusy = MutableStateFlow(false)
