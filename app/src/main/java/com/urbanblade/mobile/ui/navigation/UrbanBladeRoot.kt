@@ -168,6 +168,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
     val clientOnly = com.urbanblade.mobile.core.access.UserExperience.isClient(user.roles)
     // El barbero que no administra ni atiende recepción: su barra es Inicio, Agenda, Mi perfil y Cuenta.
     val barberOnly = "barbero" in user.roles && user.roles.none { it == "administrador" || it == "recepcionista" }
+    // Administración ve reseñas y moderación dentro de Clientes (rediseño de navegación, nov-2026).
+    val adminUser = "administrador" in user.roles
 
     // Nav por rol. Cliente: cinco pestañas con un solo verbo para
     // reservar; Beneficios, pagos y pedidos viven en Cuenta y en el Inicio, ya no en la barra.
@@ -381,7 +383,8 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 composable("admin_metrics") { AnalysisHub(user, "metricas") { nav.popBackStack() } }
                 composable("reports") { AnalysisHub(user, "reportes") { nav.popBackStack() } }
                 composable("insights") { AnalysisHub(user, "insights") { nav.popBackStack() } }
-                composable("logs") { AnalysisHub(user, "bitacora") { nav.popBackStack() } }
+                // La bitácora vive en Sistema (rediseño de navegación, nov-2026), como «Logs» en la web.
+                composable("logs") { SettingsHub(user, "bitacora") { nav.popBackStack() } }
                 composable("social") {
                     FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) {
                         SocialFeedScreen(
@@ -394,10 +397,10 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                     }
                 }
                 composable("clients") {
-                    ClientsHub(user, "clientes", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
+                    ClientsHub(user, features, "clientes", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
                 }
                 composable("waitlist_staff") {
-                    ClientsHub(user, "espera", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
+                    ClientsHub(user, features, "espera", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
                 }
                 composable(
                     "client_detail/{id}",
@@ -411,19 +414,27 @@ private fun AuthenticatedNav(user: AuthUser, authViewModel: AuthViewModel) {
                 }
                 composable("inventory") { InventoryHub(user, "stock") { nav.popBackStack() } }
                 composable("inventory_movements") { InventoryHub(user, "movimientos") { nav.popBackStack() } }
-                composable("barbers_admin") { TeamHub(user.id, "barberos") { nav.popBackStack() } }
-                composable("services_admin") { TeamHub(user.id, "servicios") { nav.popBackStack() } }
-                composable("users") { TeamHub(user.id, "usuarios") { nav.popBackStack() } }
+                composable("barbers_admin") { TeamHub(user.id, features, "barberos") { nav.popBackStack() } }
+                composable("services_admin") { TeamHub(user.id, features, "servicios") { nav.popBackStack() } }
+                composable("users") { TeamHub(user.id, features, "usuarios") { nav.popBackStack() } }
                 composable("campaigns") {
                     FeatureGate(features.campaigns, onBlocked = { nav.goHome(rootRoutes) }) { MarketingHub(features, "campanas") { nav.popBackStack() } }
                 }
                 composable("raffles") {
                     FeatureGate(features.raffles, onBlocked = { nav.goHome(rootRoutes) }) { MarketingHub(features, "sorteos") { nav.popBackStack() } }
                 }
-                composable("offers_admin") { MarketingHub(features, "membresias") { nav.popBackStack() } }
-                composable("reviews") { CommunityHub(user, features, "resenas") { nav.popBackStack() } }
+                // Las membresías son parte de Equipo y catálogo; las reseñas y la moderación, de Clientes (para
+                // administración). Otros roles siguen abriendo Comunidad (p. ej. sus autores bloqueados).
+                composable("offers_admin") { TeamHub(user.id, features, "membresias") { nav.popBackStack() } }
+                composable("reviews") {
+                    if (adminUser) ClientsHub(user, features, "resenas", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
+                    else CommunityHub(user, features, "resenas") { nav.popBackStack() }
+                }
                 composable("moderation") {
-                    FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) { CommunityHub(user, features, "moderacion") { nav.popBackStack() } }
+                    FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) {
+                        if (adminUser) ClientsHub(user, features, "moderacion", onBack = { nav.popBackStack() }, onClientClick = { id -> nav.navigate("client_detail/$id") })
+                        else CommunityHub(user, features, "moderacion") { nav.popBackStack() }
+                    }
                 }
                 composable("blocked_authors") {
                     FeatureGate(features.social, onBlocked = { nav.goHome(rootRoutes) }) { CommunityHub(user, features, "bloqueados") { nav.popBackStack() } }

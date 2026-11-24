@@ -97,10 +97,14 @@ fun ClientsListScreen(user: AuthUser, onClientClick: (String) -> Unit, onBack: (
     ) {
         // Errores de crear, editar o eliminar; el de la consulta sale con su reintento en urbanListFeedback.
         error?.let { item { UrbanErrorBanner(it) } }
+        // Guía de voz: sin «Sin …» como título y sin repetir el botón flotante «Nuevo cliente». Con filtros, el
+        // vacío dice que no hubo coincidencias; sin ellos, que todavía no hay clientes.
+        val filtering = search.isNotBlank() || segment != null
         urbanListFeedback(
             hasLoaded, busy, clients.data.isNotEmpty(), listError,
-            "No pudimos cargar los clientes", "Sin clientes", "No hay clientes que coincidan con la búsqueda.",
-            emptyActionLabel = "Registrar cliente", emptyActionIcon = Icons.Default.PersonAdd, onEmptyAction = { vm.clearError(); showCreate = true }
+            "No pudimos cargar los clientes",
+            if (filtering) "No encontramos clientes con esos filtros" else "Todavía no hay clientes registrados",
+            if (filtering) "Prueba con otro nombre o quita el filtro." else "Usa «Nuevo cliente» para registrar al primero."
         ) { vm.load(search.takeIf { it.isNotBlank() }, segment) }
         if (clients.data.isNotEmpty()) {
             item { UrbanSectionTitle("Clientes", UrbanFormat.count(clients.total ?: clients.data.size, "cliente", "clientes")) }
