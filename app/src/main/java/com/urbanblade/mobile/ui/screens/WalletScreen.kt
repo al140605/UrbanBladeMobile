@@ -22,9 +22,8 @@ import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
+import com.urbanblade.mobile.ui.components.rememberCopyToClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,7 +56,7 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
     val referralNotice by vm.referralNotice.collectAsState()
     val referralError by vm.referralError.collectAsState()
     val referralLinked by vm.referralLinked.collectAsState()
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberCopyToClipboard()
     val context = LocalContext.current
     var copied by remember { mutableStateOf(false) }
     var confirmCancelMembership by remember { mutableStateOf(false) }
@@ -173,7 +172,7 @@ fun WalletScreen(onBack: () -> Unit, onBook: () -> Unit, vm: WalletViewModel = v
                     ReferralCard(
                         referrals,
                         copied = copied,
-                        onCopyCode = { clipboard.setText(AnnotatedString(it)); copied = true },
+                        onCopyCode = { copyToClipboard(it); copied = true },
                         onShare = { code ->
                             val text = "Te invito a UrbanBlade: regístrate con mi código $code y agenda tu primera cita."
                             val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }

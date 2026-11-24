@@ -29,9 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import com.urbanblade.mobile.ui.components.rememberCopyToClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -214,7 +213,7 @@ fun GiftCardsStaffScreen(onBack: () -> Unit, vm: GiftCardsStaffViewModel = viewM
 
 @Composable
 private fun SoldCard(code: String, saldo: Double, onNew: () -> Unit) {
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberCopyToClipboard()
     val context = LocalContext.current
     UrbanPremiumCard(Modifier.fillMaxWidth()) {
         Text("Tarjeta vendida", style = MaterialTheme.typography.labelLarge, color = UrbanColors.GoldText)
@@ -228,7 +227,7 @@ private fun SoldCard(code: String, saldo: Double, onNew: () -> Unit) {
         Text("Saldo ${money(saldo)}", style = MaterialTheme.typography.bodyMedium, color = UrbanColors.Muted)
         Spacer(Modifier.height(14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            UrbanOutlineButton("Copiar", { clipboard.setText(AnnotatedString(code)) }, Modifier.weight(1f), Icons.Default.ContentCopy)
+            UrbanOutlineButton("Copiar", { copyToClipboard(code) }, Modifier.weight(1f), Icons.Default.ContentCopy)
             UrbanOutlineButton(
                 "Compartir",
                 {

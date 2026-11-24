@@ -11,6 +11,8 @@ import com.urbanblade.mobile.ui.viewmodel.BookingPayMethod
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -404,7 +406,7 @@ fun BookingScreen(
                         text = if (step == BookingStep.SCHEDULE) "Cambiar servicio" else "Atrás",
                         onClick = { previousStep() },
                         enabled = !busy,
-                        icon = Icons.Default.ArrowBack,
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -450,7 +452,7 @@ fun BookingScreen(
                     },
                     enabled = canAdvance && (step != BookingStep.PAY || (reserveArmed && acceptsNoShowFee)),
                     loading = busy && step == BookingStep.PAY,
-                    icon = if (step == BookingStep.PAY) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
+                    icon = if (step == BookingStep.PAY) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.ArrowForward,
                     modifier = Modifier.weight(1f)
                 )
             }

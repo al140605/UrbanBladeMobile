@@ -26,9 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
+import com.urbanblade.mobile.ui.components.rememberCopyToClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
@@ -306,7 +305,7 @@ private fun BankRow(
     mono: Boolean = false,
     highlight: Boolean = false
 ) {
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberCopyToClipboard()
     val context = LocalContext.current
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -321,7 +320,7 @@ private fun BankRow(
         }
         if (copyable) {
             IconButton(onClick = {
-                clipboard.setText(AnnotatedString(copyValue))
+                copyToClipboard(copyValue)
                 Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
             }) {
                 Icon(Icons.Default.ContentCopy, "Copiar $label", tint = UrbanColors.Gold)
