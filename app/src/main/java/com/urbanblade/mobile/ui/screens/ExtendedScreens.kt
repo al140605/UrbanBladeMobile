@@ -237,6 +237,9 @@ fun MoreScreen(user: AuthUser, features: com.urbanblade.mobile.data.model.Module
         add(ModuleItem("chatbot", "Bladebot", "Asistente UrbanBlade", Icons.Default.SmartToy, ""))
     }
 
+    // Con letra desde 130 % las tarjetas en dos columnas quedaban de cuatro líneas de texto: una por fila
+    // (mismo criterio que UrbanModuleGrid).
+    val hubColumns = if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f) 1 else 2
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = UrbanSpace.Gutter, end = UrbanSpace.Gutter, top = 18.dp, bottom = com.urbanblade.mobile.ui.components.BladebotClearance),
@@ -256,10 +259,10 @@ fun MoreScreen(user: AuthUser, features: com.urbanblade.mobile.data.model.Module
         }
         if (hubs.isNotEmpty()) {
             item { UrbanSectionTitle("Herramientas") }
-            items(hubs.chunked(2)) { pair ->
+            items(hubs.chunked(hubColumns)) { pair ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     pair.forEach { hub -> HubTile(hub, Modifier.weight(1f)) { onNavigate(hub.route) } }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    if (hubColumns == 2 && pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
