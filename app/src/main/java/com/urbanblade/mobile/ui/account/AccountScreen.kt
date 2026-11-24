@@ -24,7 +24,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Tune
@@ -111,7 +111,7 @@ private fun shortcutsFor(roles: List<String>, features: ModuleFeatures): List<Ac
     }
     else -> listOf(
         AccountShortcut("wallet", "Beneficios", Icons.Default.Stars),
-        AccountShortcut("payments", "Facturas", Icons.Default.ReceiptLong),
+        AccountShortcut("payments", "Facturas", Icons.AutoMirrored.Filled.ReceiptLong),
         AccountShortcut("orders", "Pedidos", Icons.Default.ShoppingBag)
     )
 }

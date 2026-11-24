@@ -75,7 +75,7 @@ android {
         applicationId = "com.urbanblade.mobile"
         minSdk = 26
         targetSdk = 36   // Play exige API 36 en apps nuevas desde 31-ago-2026
-        versionCode = 4
+        versionCode = 5
         versionName = "3.1.0"
 
         // Credential Manager solicita un ID token para el mismo Web Client ID
@@ -131,6 +131,9 @@ android {
             // llena por reflexión se conservan en proguard-rules.pro.
             isMinifyEnabled = true
             isShrinkResources = true
+            // Play avisa si el paquete trae código nativo sin símbolos de depuración: sin ellos, los fallos y ANR
+            // nativos salen sin nombres de función en Play Console. SYMBOL_TABLE agrega la tabla de símbolos al AAB.
+            ndk.debugSymbolLevel = "SYMBOL_TABLE"
             signingConfigs.findByName("upload")?.let { signingConfig = it }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
